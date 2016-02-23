@@ -1,0 +1,26 @@
+#Create sonar.properties file
+
+# Required metadata
+sonar.projectKey=on-tasks
+sonar.projectName=on-tasks
+sonar.projectVersion=1.0
+sonar.scm.enabled=false
+
+# Comma-separated paths to directories with sources (required)
+sonar.sources=build/lib
+sonar.tests=build/spec
+
+# Language
+sonar.language=js
+sonar.profile=node
+
+sonar.javascript.jstestdriver.reportsPath=xunit-reports
+sonar.javascript.lcov.reportPath=build/coverage/lcov.info
+
+# Encoding of the source files
+sonar.sourceEncoding=UTF-8
+sonar.analysis.mode=${SONAR_ANALYSIS}
+sonar.issuesReport.html.enable=true
+sonar.projectDescription=Insert git log stuff here
+#${AUTOTEST_FLAG}.genericcoverage.unitTestReportPaths=autotest-reports/monorail_api_test.xml,autotest-reports/onserve_api_test.xml,autotest-reports/ora_smoke_test.xml,autotest-reports/ora_stack_init.xml
+

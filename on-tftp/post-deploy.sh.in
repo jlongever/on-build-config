@@ -1,0 +1,11 @@
+#!/bin/bash
+echo "Running post-deploy script"
+if [ "${RUN_AUTOTEST}" = "true" ]; then
+  echo "Converting autotest information"
+  mkdir -p autotest-reports
+  for filename in tests/autotest/*.xml; do
+    xsltproc build-config/util/convert.xslt $filename > autotest-reports/$(basename "$filename" .xml).xml
+    sed -i 's|<file path="">|<file path="build/spec/helper.js">|' autotest-reports/$(basename "$filename" .xml).xml
+  done
+fi
+

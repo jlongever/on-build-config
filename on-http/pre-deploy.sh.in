@@ -1,0 +1,10 @@
+#!/bin/bash
+echo "Running pre-deploy script"
+cd $WORKSPACE/build
+./node_modules/.bin/istanbul report lcov
+npm install --save-dev mocha-sonar-reporter
+npm_package_config_mocha_sonar_reporter_classname="Tests_build.spec" npm_package_config_mocha_sonar_reporter_outputfile=test/TEST-all.xml ./node_modules/.bin/istanbul cover -x "**/spec/**" ./node_modules/.bin/_mocha -- $(find spec -name '*-spec.js') -R mocha-sonar-reporter --require spec/helper.js
+cd $WORKSPACE
+
+mkdir -p xunit-reports
+cp build/test/TEST-all.xml xunit-reports
