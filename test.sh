@@ -64,7 +64,7 @@ nodesOn() {
 vagrantUp() {
   cd ${WORKSPACE}/RackHD/example
   cp -rf ${WORKSPACE}/build-config/vagrant/* .
-  WORKSPACE=${WORKSPACE} REPO_NAME=${REPO_NAME} vagrant up --provision
+  CONFIG_DIR=build-config/vagrant/config WORKSPACE=${WORKSPACE} REPO_NAME=${REPO_NAME} vagrant up --provision
 }
 
 vagrantDestroy() {
