@@ -1,7 +1,7 @@
 #!/bin/bash +xe
 runUnitTest() {
    cd ${WORKSPACE}/build
-   npm cache clean >& /dev/null
+   #npm cache clean >& /dev/null
    rm -rf ./node_modules && npm install && npm test 
    #npm cache clean && npm install && npm install mocha-jenkins-reporter
    #JUNIT_REPORT_PATH=report.xml JUNIT_REPORT_STACK=1 \
