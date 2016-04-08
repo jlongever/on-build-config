@@ -1,0 +1,23 @@
+#Create sonar.properties file
+
+# Required metadata
+sonar.projectKey=RackHD
+sonar.projectName=RackHD
+sonar.projectVersion=1.0
+sonar.scm.enabled=false
+
+# Comma-separated paths to directories with sources (required)
+sonar.sources=build/test
+
+# Language
+sonar.language=py
+
+# Results
+sonar.python.xunit.reportPath=xunit-reports/nosetests.xml
+
+# Encoding of the source files
+sonar.sourceEncoding=UTF-8
+sonar.analysis.mode=${SONAR_ANALYSIS}
+sonar.issuesReport.html.enable=true
+sonar.projectDescription=Insert git log stuff here
+
