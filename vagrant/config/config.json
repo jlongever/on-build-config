@@ -46,7 +46,6 @@
         "remotePath": "/amd64-usr/current/"
     }],
     "httpStaticRoot": "/opt/monorail/static/http",
-    "minLogLevel": 3,
     "authUsername": "admin",
     "authPasswordHash": "KcBN9YobNV0wdux8h0fKNqi4uoKCgGl/j8c6YGlG7iA0PB3P9ojbmANGhDlcSBE0iOTIsYsGbtSsbqP4wvsVcw==",
     "authPasswordSalt": "zlxkgxjvcFwm0M8sWaGojh25qNYO8tuNWUMN4xKPH93PidwkCAvaX2JItLA3p7BSCWIzkw4GwWuezoMvKf3UXg==",
@@ -61,5 +60,5 @@
     "tftpBindAddress": "172.31.128.1",
     "tftpBindPort": 69,
     "tftpRoot": "./static/tftp",
-    "minLogLevel": 2
+    "minLogLevel": 0
 }
