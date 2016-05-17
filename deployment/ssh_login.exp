@@ -1,0 +1,28 @@
+#!/usr/bin/expect -f
+
+set ip [lindex $argv 0]
+set user [lindex $argv 1]
+set password [lindex $argv 2]
+set filename [lindex $argv 3]
+set action [lindex $argv 4]
+set duration [lindex $argv 5]
+set VMname [lindex $argv 6]
+set timeout -1
+set sshkey 0
+
+if { $action != "" } {
+    spawn ssh ${user}@${ip} $filename -a $action $ip $duration $VMname
+} else {
+    spawn ssh ${user}@${ip} $filename
+}
+
+expect {
+    "*(yes/no)*" {send "yes\r";set sshkey 1}
+    "*assword:" {send "$password\r"}
+}
+if { $sshkey == 1 } {
+    expect {
+        "*assword:" {send "$password\r"}
+        }
+}
+expect eof
