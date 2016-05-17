@@ -62,16 +62,16 @@ prepareDeps() {
 }
 
 nodesOff() {
-  cd ${WORKSPACE}/tools/deployment/
+  cd ${WORKSPACE}/build-config/deployment/
   for i in ${VCOMPUTE[@]}; do
-    ./scale_out_infras_operation.sh "${ESXI_HOST},${ESXI_USER},${ESXI_PASS},power_off,1,${i}_*"
+    ./vm_control.sh "${ESXI_HOST},${ESXI_USER},${ESXI_PASS},power_off,1,${i}_*"
   done
 }
 
 nodesOn() {
-  cd ${WORKSPACE}/tools/deployment/
+  cd ${WORKSPACE}/build-config/deployment/
   for i in ${VCOMPUTE[@]}; do
-    ./scale_out_infras_operation.sh "${ESXI_HOST},${ESXI_USER},${ESXI_PASS},power_on,1,${i}_*"
+    ./vm_control.sh "${ESXI_HOST},${ESXI_USER},${ESXI_PASS},power_on,1,${i}_*"
   done
 }
 
