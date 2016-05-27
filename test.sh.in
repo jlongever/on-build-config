@@ -54,7 +54,11 @@ prepareDeps() {
      cd ${WORKSPACE}/build-deps
      if [ "${i}" != "${REPO_NAME}" ]; then
          git clone https://github.com/RackHD/${i}.git
-         cd ${i} && npm install --production
+         cd ${i}
+         if [ "${GIT_REFSPEC}" != "origin/master" ]; then
+             git checkout ${GIT_REFSPEC}
+         fi
+         npm install --production
      fi
   done
   dlTftpFiles
