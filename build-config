@@ -85,7 +85,7 @@ fi
 
 if [ ! -z "${COMMIT}" ]; then
   if [ -e "../build/package.json" ]; then
-    if [ "${GIT_REFSPEC}" != "origin/master" ]; then
+    if [ "${GIT_REFSPEC}" != "master" ]; then
       sed -i "s|"git+${FORKURL}#${GIT_REFSPEC}"|"git+${FORKURL}#${COMMIT}"|" ../build/package.json
     else
       sed -i "s|"git+${FORKURL}"|"git+${FORKURL}#${COMMIT}"|" ../build/package.json
