@@ -55,9 +55,7 @@ prepareDeps() {
      if [ "${i}" != "${REPO_NAME}" ]; then
          git clone https://github.com/RackHD/${i}.git
          cd ${i}
-         if [ "${GIT_REFSPEC}" != "origin/master" ]; then
-             git checkout ${GIT_REFSPEC}
-         fi
+         git checkout ${GIT_REFSPEC}
          npm install --production
      fi
   done
