@@ -41,9 +41,9 @@
     "httpFileServiceRoot": "./static/files",
     "httpFileServiceType": "FileSystem",
     "httpProxies": [{
-        "localPath": "/coreos",
-        "server": "http://stable.release.core-os.net",
-        "remotePath": "/amd64-usr/current/"
+        "localPath": "/repo/",
+        "server": "http://10.240.19.193",
+        "remotePath": "/repo/"
     }],
     "httpStaticRoot": "/opt/monorail/static/http",
     "authUsername": "admin",
