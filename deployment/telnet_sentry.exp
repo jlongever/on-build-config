@@ -1,0 +1,21 @@
+#!/usr/bin/expect
+
+set timeout -1
+set host [lindex $argv 0]
+set user [lindex $argv 1]
+set password [lindex $argv 2]
+set control [lindex $argv 3]
+set name [lindex $argv 4]
+
+spawn telnet $host
+expect {
+    "Username:" {send "$user\r"}
+}
+expect {
+    "Password:" {send "$password\r"}
+}
+expect {
+    "Switched CDU:" {send "$control $name\r"}
+}
+send "exit\r"
+expect eof

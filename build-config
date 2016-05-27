@@ -79,7 +79,7 @@ fi
 FORKURL=${FORKURL-https://github.com/RackHD/on-core.git}
 if [ "${FORKURL}" != "https://github.com/RackHD/on-core.git" ]; then
   if [ -e "../build/package.json" ]; then
-    sed -i "s|"git+https://github.com/RackHD/on-core.git"|"git+${FORKURL}"|" ../build/package.json
+    sed -i "s|"git+${FORKURL}"|"git+${FORKURL}"|" ../build/package.json
   fi
 fi
 
