@@ -1,7 +1,17 @@
 #!/bin/bash +xe
 REPO_NAME=`pushd ${WORKSPACE}/build >/dev/null && git remote show origin -n | grep "Fetch URL:" | sed "s#^.*/\(.*\).git#\1#" && popd > /dev/null`
-VCOMPUTE=("jvm-Quanta_T41-1" "jvm-vRinjin-1" "jvm-vRinjin-2")
 REPOS=("on-http" "on-taskgraph" "on-dhcp-proxy" "on-tftp" "on-syslog")
+
+VCOMPUTE="${VCOMPUTE}"
+if [ -z "${VCOMPUTE}" ]; then
+  VCOMPUTE=("jvm-Quanta_T41-1" "jvm-vRinjin-1" "jvm-vRinjin-2")
+fi
+
+TEST_GROUP="${TEST_GROUP}"
+if [ -z "${TEST_GROUP}" ]; then
+   TEST_GROUP="smoke-tests"
+fi
+
 HTTP_STATIC_FILES="${HTTP_STATIC_FILES}"
 TFTP_STATIC_FILES="${TFTP_STATIC_FILES}"
 if [ ! -z "${1}" ]; then
@@ -54,7 +64,9 @@ prepareDeps() {
      cd ${WORKSPACE}/build-deps
      if [ "${i}" != "${REPO_NAME}" ]; then
          git clone https://github.com/RackHD/${i}.git
-         cd ${i} && npm install --production
+         cd ${i}
+         git checkout ${GIT_REFSPEC}
+         npm install --production
      fi
   done
   dlTftpFiles
@@ -63,16 +75,26 @@ prepareDeps() {
 
 nodesOff() {
   cd ${WORKSPACE}/build-config/deployment/
-  for i in ${VCOMPUTE[@]}; do
-    ./vm_control.sh "${ESXI_HOST},${ESXI_USER},${ESXI_PASS},power_off,1,${i}_*"
-  done
+  if [ "${USE_VCOMPUTE}" != "false" ]; then
+    for i in ${VCOMPUTE[@]}; do
+      ./vm_control.sh "${ESXI_HOST},${ESXI_USER},${ESXI_PASS},power_off,1,${i}_*"
+    done
+  else
+     ./telnet_sentry.exp ${SENTRY_HOST} ${SENTRY_USER} ${SENTRY_PASS} off ${OUTLET_NAME}
+     sleep 5
+  fi
 }
 
 nodesOn() {
   cd ${WORKSPACE}/build-config/deployment/
-  for i in ${VCOMPUTE[@]}; do
-    ./vm_control.sh "${ESXI_HOST},${ESXI_USER},${ESXI_PASS},power_on,1,${i}_*"
-  done
+  if [ "${USE_VCOMPUTE}" != "false" ]; then
+    for i in ${VCOMPUTE[@]}; do
+      ./vm_control.sh "${ESXI_HOST},${ESXI_USER},${ESXI_PASS},power_on,1,${i}_*"
+    done
+  else
+     ./telnet_sentry.exp ${SENTRY_HOST} ${SENTRY_USER} ${SENTRY_PASS} on ${OUTLET_NAME}
+     sleep 5
+  fi
 }
 
 vagrantUp() {
@@ -93,7 +115,8 @@ vagrantHalt() {
 
 runTests() {
   cd ${WORKSPACE}/RackHD/test
-  RACKHD_TEST_LOGLVL=INFO python run.py --with-xunit 
+  RACKHD_BASE_REPO_URL=http://172.31.128.1:8080 RACKHD_TEST_LOGLVL=INFO \
+      python run.py --group=${TEST_GROUP} --with-xunit 
   mkdir -p ${WORKSPACE}/xunit-reports
   cp *.xml ${WORKSPACE}/xunit-reports
 }
