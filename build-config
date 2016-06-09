@@ -13,6 +13,12 @@ cat post-result.py.in | sed -f sed.script > post-result.py
 chmod oug+x post-result.py
 rm sed.script
 
+echo "Generating config.ini file from template"
+env | sed 's/[\%]/\\&/g;s/\([^=]*\)=\(.*\)/s%${\1}%\2%/' > sed.script
+cat config.ini.in | sed -f sed.script > config.ini
+chmod oug+x config.ini
+rm sed.script
+
 echo "Generating test script file from template"
 if [ -e "${REPO_NAME}/test.sh.in" ]; then
   env | sed 's/[\%]/\\&/g;s/\([^=]*\)=\(.*\)/s%${\1}%\2%/' > sed.script
