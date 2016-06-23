@@ -17,10 +17,10 @@ RACKHD_BASE_REPO_URL = ${BASE_REPO_URL}
 ; These are OS specific repository paths, which are optional 
 ; however OS installer tests will default to RACKHD_BASE_REPO_URL 
 ; if undefined
-RACKHD_CENTOS_REPO_PATH = ${BASE_REPO_URL}/repo/centos
-RACKHD_ESXI_REPO_PATH = ${BASE_REPO_URL}/repo/esxi
-RACKHD_UBUNTU_REPO_PATH = ${BASE_REPO_URL}/repo/ubuntu
-RACKHD_SUSE_REPO_PATH = ${BASE_REPO_URL}/repo/suse
+; RACKHD_CENTOS_REPO_PATH = ${BASE_REPO_URL}/repo/centos
+; RACKHD_ESXI_REPO_PATH = ${BASE_REPO_URL}/repo/esxi
+; RACKHD_UBUNTU_REPO_PATH = ${BASE_REPO_URL}/repo/ubuntu
+; RACKHD_SUSE_REPO_PATH = ${BASE_REPO_URL}/repo/suse
 
 ; Defines Redfish service endpoints
 RACKHD_REDFISH_URL = ${REDFISH_URL}
