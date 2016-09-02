@@ -7,7 +7,7 @@ import sys
 '''
 Usage:
 python post-result.py \
-https://api.github.com/repos/PengTian0/on-core/issues/${PullRequestId}/comments \
+https://api.github.com/repos/RackHD/on-core/issues/${PullRequestId}/comments \
 http://rackhdci.lss.emc.com \
 http://rackhdci.lss.emc.com/job/on-core/851/ \
 '#851'
