@@ -159,6 +159,10 @@ def post_comments_to_github(comments, github_pr_url, headers):
     '''
     post comments to github Pull Request
     :param comments: comments to be posted to Pull Request
+    :param github_pr_url: the url of the PR
+    :param headers: the request headers which usually contains the "Authorization" field
+    :return: exit with error code 1 if get bad response for the request
+             return null if get successful response
     '''
     body = { "body" : comments }
     r = requests.post(github_pr_url,headers=headers,data=json.dumps(body))
