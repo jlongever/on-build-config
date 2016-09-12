@@ -1,4 +1,5 @@
 #!/bin/bash +xe
+
 REPO_NAME=`pushd ${WORKSPACE}/build >/dev/null && git remote show origin -n | grep "Fetch URL:" | sed "s#^.*/\(.*\).git#\1#" && popd > /dev/null`
 REPOS=("on-http" "on-taskgraph" "on-dhcp-proxy" "on-tftp" "on-syslog")
 
@@ -102,6 +103,10 @@ vagrantUp() {
   cd ${WORKSPACE}/RackHD/example
   cp -rf ${WORKSPACE}/build-config/vagrant/* .
   CONFIG_DIR=${CONFIG_PATH} WORKSPACE=${WORKSPACE} REPO_NAME=${REPO_NAME} vagrant up --provision
+  if [ $? == 1 ]; then 
+      echo "Vagrant up failed."
+      exit 1
+  fi
 }
 
 vagrantDestroy() {

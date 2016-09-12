@@ -102,6 +102,10 @@ vagrantUp() {
   cd ${WORKSPACE}/RackHD/example
   cp -rf ${WORKSPACE}/build-config/vagrant/* .
   CONFIG_DIR=${CONFIG_PATH} WORKSPACE=${WORKSPACE} REPO_NAME=${REPO_NAME} vagrant up --provision
+  if [ $? == 1 ]; then 
+      echo "Vagrant up failed."
+      exit 1
+  fi
 }
 
 vagrantDestroy() {
