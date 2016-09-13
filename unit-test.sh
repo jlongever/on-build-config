@@ -9,4 +9,3 @@ runUnitTest() {
    #cp -rf report.xml ${WORKSPACE}/xunit-reports/mocha-report.xml
 }
 runUnitTest
-exit 0
