@@ -114,6 +114,11 @@ vagrantHalt() {
   vagrant halt
 }
 
+generateSolLog(){
+  cd ${WORKSPACE}/RackHD/example
+  vagrant ssh -c 'cd /home/vagrant/src/build-config/; bash generate-sol-log.sh' &
+}
+
 BASE_REPO_URL="${BASE_REPO_URL}"
 runTests() {
   cp -f ${WORKSPACE}/build-config/config.ini ${WORKSPACE}/RackHD/test/config
@@ -153,7 +158,7 @@ nodesOff
 vagrantUp
 waitForAPI
 nodesOn
-
+generateSolLog
 # Run tests
 runTests
 
