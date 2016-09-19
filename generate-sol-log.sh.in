@@ -32,10 +32,12 @@ while [ ${timeout} != ${maxto} ]; do
                                     while IFS= read -r line; do 
                                         echo "$(date) $line"; 
                                     done > /home/vagrant/src/${vnode_num}.sol.log.raw'
+                        #dump cmd to cmd.sh, replace vars with actual value.
                         echo -e "bmc_ip=$ip\nbmc_user=${bmc%:*}\nbmc_password=${bmc#*:}\nvnode_num=${vnode_num}"|\
                         sed 's/[\%]/\\&/g;s/\([^=]*\)=\(.*\)/s%${\1}%\2%/' > sed.script
                         echo $cmd | sed -f sed.script > cmd.sh
                         chmod oug+x cmd.sh
+                        #run cmd.sh in screen, sol activate simplely run in background can't work.
                         screen -dmS sol bash cmd.sh
                         echo "The number of vnode $ip is $vnode_num"
                         handled_ip_list="$handled_ip_list $ip"
