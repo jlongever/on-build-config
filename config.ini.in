@@ -16,7 +16,7 @@ RACKHD_BASE_REPO_URL = ${BASE_REPO_URL}
 RACKHD_SMB_USER =   ${SMB_USER}
 RACKHD_SMB_PASSWORD =   ${SMB_PASSWORD}
 RACKHD_SMB_WINDOWS_REPO_PATH = ${RACKHD_SMB_WINDOWS_REPO_PATH}
-
+RACKHD_NODES_NUMBER = 3
 ; These are OS specific repository paths, which are optional 
 ; however OS installer tests will default to RACKHD_BASE_REPO_URL 
 ; if undefined
