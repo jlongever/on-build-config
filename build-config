@@ -99,3 +99,28 @@ if [ ! -z "${COMMIT}" ]; then
   fi
 fi
 
+echo "Generating sol-log script file from template"
+#BMC_{DOMAIN}_USER/BMC_{DOMAIN}_PASSWORD config in jenkins build-config-setup job parameters
+#This script generate a BMC_ACCOUNT_LIST="u1/p1 u2/p2 ..." according to these parameters.
+bmc_var_name_list=`env | grep BMC_ | awk -F '=' '{print $1}' | xargs`
+domain_list=""
+for var_name in $bmc_var_name_list; do
+  domain=${var_name%_*}
+  if [[ "$domain_list" != *"$domain"* ]]; then
+    user_var_name=$domain"_USER"
+    password_var_name=$domain"_PASSWORD"
+    BMC_ACCOUNT_LIST="${!user_var_name}:${!password_var_name} $BMC_ACCOUNT_LIST"
+    domain_list="$domain $domain_list"
+  fi
+done
+export BMC_ACCOUNT_LIST
+env | sed 's/[\%]/\\&/g;s/\([^=]*\)=\(.*\)/s%${\1}%\2%/' > sed.script
+if [ -e "${REPO_NAME}/generate-sol-log.sh.in" ]; then
+  cat ${REPO_NAME}/generate-sol-log.sh.in | sed -f sed.script > generate-sol-log.sh
+  chmod oug+x generate-sol-log.sh
+  rm sed.script
+else
+  cat generate-sol-log.sh.in | sed -f sed.script > generate-sol-log.sh
+  chmod oug+x generate-sol-log.sh
+  rm sed.script
+fi

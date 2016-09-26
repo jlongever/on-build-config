@@ -8,4 +8,3 @@ if [ "${RUN_AUTOTEST}" = "true" ]; then
     sed -i 's|<file path="">|<file path="build/spec/helper.js">|' autotest-reports/$(basename "$filename" .xml).xml
   done
 fi
-
