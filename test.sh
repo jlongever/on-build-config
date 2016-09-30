@@ -121,7 +121,8 @@ vagrantHalt() {
 
 generateSolLog(){
   cd ${WORKSPACE}/RackHD/example
-  vagrant ssh -c 'cd /home/vagrant/src/build-config/; bash generate-sol-log.sh' &
+  vagrant ssh -c 'cd /home/vagrant/src/build-config/; \
+        bash generate-sol-log.sh' > ${WORKSPACE}/sol.log &
 }
 
 BASE_REPO_URL="${BASE_REPO_URL}"
