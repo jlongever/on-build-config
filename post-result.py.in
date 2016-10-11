@@ -3,15 +3,16 @@ import requests
 import os
 import subprocess
 import sys
+import argparse
 
 '''
 Usage:
 python post-result.py \
-https://api.github.com/repos/RackHD/on-core/issues/${PullRequestId}/comments \
-http://rackhdci.lss.emc.com \
-http://rackhdci.lss.emc.com/job/on-core/851/ \
-'#851' \
-http://147.178.202.18/
+--github_pr_url https://api.github.com/repos/RackHD/on-core/issues/${PullRequestId}/comments \
+--jenkins_url http://rackhdci.lss.emc.com \
+--build_url http://rackhdci.lss.emc.com/job/on-core/851/ \
+--build_name '#851' \
+--public_jenkins_url http://147.178.202.18/
 '''
 
 with open('${HOME}/.ghtoken', 'r') as file:
@@ -19,12 +20,38 @@ with open('${HOME}/.ghtoken', 'r') as file:
 
 HEADERS = {'Authorization': 'token %s' % TOKEN}
 
-GITHUB_PR_URL = sys.argv[1]
-JENKINS_URL = sys.argv[2]
-BUILD_URL = sys.argv[3]
-BUILD_NAME = sys.argv[4]
-PUBLIC_JENKINS_URL = sys.argv[5]
+GITHUB_PR_URL = ""
+JENKINS_URL = ""
+BUILD_URL = ""
+BUILD_NAME = ""
+PUBLIC_JENKINS_URL = ""
 FAIL_REPORTS = []
+
+def parse_args(args):
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--github_pr_url',
+                        required=True,
+                        help="The url of the pull request in github",
+                        action="store")
+    parser.add_argument('--jenkins_url',
+                        required=True,
+                        help="The url of the internal jenkins",
+                        action="store")
+    parser.add_argument('--build_url',
+                        required=True,
+                        help="the url of the build in jenkins",
+                        action="store")
+    parser.add_argument('--build_name',
+                        required=True,
+                        help="the name of the build in jenkins",
+                        action="store")
+    parser.add_argument('--public_jenkins_url',
+                        required=True,
+                        help="the url of the public jenkins",
+                        action="store")
+
+    parsed_args = parser.parse_args(args)
+    return parsed_args
 
 def get_build_data(build_url):
     '''
@@ -224,4 +251,12 @@ def main():
         post_comments_to_github(OUTPUT, GITHUB_PR_URL, HEADERS)
 
 if __name__ == "__main__":
+    # parse arguments
+    parsed_args = parse_args(sys.argv[1:])
+    GITHUB_PR_URL = parsed_args.github_pr_url
+    JENKINS_URL = parsed_args.jenkins_url
+    BUILD_URL = parsed_args.build_url
+    BUILD_NAME = parsed_args.build_name
+    PUBLIC_JENKINS_URL = parsed_args.public_jenkins_url
+
     main()
