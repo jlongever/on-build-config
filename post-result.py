@@ -162,7 +162,7 @@ def get_sub_builds(build_url, depth = 1):
                         public_sub_build_url = sub_build_url.replace(JENKINS_URL, PUBLIC_JENKINS_URL)
                         for x in range(depth):
                             output += "   "
-                        output += "- ** BUILD " + sub_build_name + "](" + public_sub_build_url + "): " + sub_build_result + "\n"
+                        output += "- ** BUILD [" + sub_build_name + "](" + public_sub_build_url + "): " + sub_build_result + "\n"
                         sub_outputs = get_sub_builds(sub_build_url, depth = depth+1)
                         if len(sub_outputs) > 0:
                             for sub_output in sub_outputs:
