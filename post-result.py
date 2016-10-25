@@ -96,11 +96,11 @@ def generate_failure_report(build_url, build_name):
              None if failed to get the json data of test report
     '''
     data = get_test_report(build_url)
-    failure_report = "\n"
-    failure_report += "BUILD " + build_name + "  Error Logs:\n\n"
     if data:
         failCount = int(data.get('failCount'))
         if failCount > 0:
+            failure_report = "\n<details>\n"
+            failure_report += "<summary>BUILD " + build_name + "  Error Logs:</summary>"
             for suite in data['suites']:
                 for case in suite['cases']:
                     if case['errorDetails']:
@@ -111,9 +111,10 @@ def generate_failure_report(build_url, build_name):
                         details = "Error Details: " + errorDetails + "\n"
                         stack = "Stack Trace: " + errorStackTrace + "\n"
                         failure_report += name + details + stack + "\n"
-        return failure_report
-    else:
-        return None
+            failure_report += "</details>\n"
+            return failure_report
+    
+    return None
 
 def get_sub_builds(build_url, depth = 1):
     '''
@@ -210,7 +211,6 @@ def main():
     OUTPUT = ""
     job_name = BUILD_URL.split('/')[-3]
     build_number = BUILD_URL.split('/')[-2]
-
     public_build_url = BUILD_URL.replace(JENKINS_URL, PUBLIC_JENKINS_URL)
     try:
         build_data = get_build_data(BUILD_URL)
@@ -223,24 +223,18 @@ def main():
             for sub_output in sub_build_outputs:
                 OUTPUT += sub_output
 
-            if build_result != "SUCCESS":
-                failure_report = generate_failure_report(BUILD_URL, build_name)
-                FAIL_REPORTS.append(failure_report)
-
-            if len(FAIL_REPORTS) > 0:
-                for fail_report in FAIL_REPORTS:
-                    OUTPUT += fail_report
         else:
-            build_name = job_name + " #" + build_number   
+            build_name = job_name + " #" + build_number
+            OUTPUT += "*** BUILD [" + build_name + "](" + public_build_url + ") ***\n"
+
             failure_report = generate_failure_report(BUILD_URL, build_name)
             FAIL_REPORTS.append(failure_report)
 
-            if len(FAIL_REPORTS) > 0:
-                for fail_report in FAIL_REPORTS:
-                    OUTPUT +=  "BUILD [" + build_name + "](" + public_build_url + ") :\n"
-                    OUTPUT += fail_report
-            else:
-                OUTPUT += "*** BUILD [" + build_name + "](" + public_build_url + ") ***\n"
+        if len(FAIL_REPORTS) > 0:
+            for fail_report in FAIL_REPORTS:
+                if fail_report is not None:
+                    OUTPUT += fail_report       
+
     except Exception as e:
         print e
         sys.exit(1)
@@ -248,6 +242,7 @@ def main():
         if OUTPUT == "":
             build_name = job_name + " #" + build_number
             OUTPUT += "*** BUILD [" + build_name + "](" + public_build_url + ") ***\n"
+
         post_comments_to_github(OUTPUT, GITHUB_PR_URL, HEADERS)
 
 if __name__ == "__main__":
