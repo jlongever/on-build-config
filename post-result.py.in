@@ -100,7 +100,7 @@ def generate_failure_report(build_url, build_name):
         failCount = int(data.get('failCount'))
         if failCount > 0:
             failure_report = "\n<details>\n"
-            failure_report += "<summary>BUILD " + build_name + "  Error Logs:</summary>"
+            failure_report += "<summary>BUILD " + build_name + "  Error Logs  &#9660;</summary>"
             for suite in data['suites']:
                 for case in suite['cases']:
                     if case['errorDetails']:
