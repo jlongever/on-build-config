@@ -13,7 +13,7 @@ bmc_account_list="${BMC_ACCOUNT_LIST}"
 handled_ip_list=""
 vnode_num=0
 timeout=0
-maxto=50
+maxto=20
 while [ ${timeout} != ${maxto} ]; do
     ip_list=`arp | awk '{print $1}' | xargs`
     echo "IP LIST: $ip_list"
@@ -47,7 +47,7 @@ while [ ${timeout} != ${maxto} ]; do
             fi  
         fi    
     done
-    #after more than 5*50 seconds all nodes are believed have got the IP by DHCP
+    #after more than 5*20 seconds all nodes are believed have got the IP by DHCP
     sleep 5
     timeout=`expr ${timeout} + 1`
 done
