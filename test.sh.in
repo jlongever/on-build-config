@@ -127,10 +127,16 @@ generateSolLog(){
 
 BASE_REPO_URL="${BASE_REPO_URL}"
 runTests() {
+  read array<<<"${TEST_GROUP}"
+  args=()
+  group=" --group="
+  for item in $array; do
+    args+="${group}${item}"
+  done
   cp -f ${WORKSPACE}/build-config/config.ini ${WORKSPACE}/RackHD/test/config
   cd ${WORKSPACE}/RackHD/test
   RACKHD_BASE_REPO_URL=${BASE_REPO_URL} RACKHD_TEST_LOGLVL=INFO \
-      python run.py --group=${TEST_GROUP} --with-xunit 
+      python run.py ${args} --with-xunit 
   mkdir -p ${WORKSPACE}/xunit-reports
   cp *.xml ${WORKSPACE}/xunit-reports
 }
