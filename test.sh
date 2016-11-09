@@ -119,6 +119,12 @@ vagrantHalt() {
   vagrant halt
 }
 
+vagrantSuspendAll() {
+  for box in `vagrant global-status --prune | awk '/running/{print $1}'`; do
+    vagrant suspend ${box}
+  done
+}
+
 generateSolLog(){
   cd ${WORKSPACE}/RackHD/example
   vagrant ssh -c 'cd /home/vagrant/src/build-config/; \
@@ -165,6 +171,9 @@ prepareDeps
 # Power off nodes and shutdown vagrant box
 vagrantDestroy
 nodesOff
+
+# Suspend any other running vagrant boxes
+vagrantSuspendAll
 
 # Power on vagrant box and nodes 
 vagrantUp
