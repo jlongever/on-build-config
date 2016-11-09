@@ -9,7 +9,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
     # MONORAIL SERVER
     config.vm.define "dev" do |target|
         target.vm.box = "rackhd/rackhd"
-        target.vm.box_version = "0.16"
+        target.vm.box_version = "0.15"
         target.vm.provider "virtualbox" do |v|
             v.memory = 4096
             v.cpus = 4
@@ -67,8 +67,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
           service isc-dhcp-server start
           service rsyslog stop
           echo manual | sudo tee /etc/init/rsyslog.override
-          pm2 logs > /home/vagrant/src/"#{ENV['REPO_NAME']}"/vagrant.log &
-          pm2 start rackhd-pm2-config.yml
+          nf start > /home/vagrant/src/"#{ENV['REPO_NAME']}"/vagrant.log &
         SHELL
     end
 end
