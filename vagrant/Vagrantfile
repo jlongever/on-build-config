@@ -45,7 +45,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
         end
         
         if ENV['TEST_GROUP']
-          if ENV['TEST_GROUP'] == "esxi-5-5-install.v1.1.test"
+          if ( ENV['TEST_GROUP'] == "esxi-5-5-min-install.v1.1.test" ) || ( ENV['TEST_GROUP'] == "esxi-5-5-max-install.v1.1.test" )
             config.vm.provision "file", source: "./dhcpd.conf", destination: "~/dhcpd.conf"
             config.vm.provision "shell" do |s|
             s.inline = "cp /home/vagrant/dhcpd.conf /etc/dhcp"
