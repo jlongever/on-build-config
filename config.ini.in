@@ -25,6 +25,7 @@ RACKHD_NODES_NUMBER = 3
 ; RACKHD_UBUNTU_REPO_PATH = ${BASE_REPO_URL}/repo/ubuntu
 ; RACKHD_SUSE_REPO_PATH = ${BASE_REPO_URL}/repo/suse
 ; RACKHD_WINPE_REPO_PATH = http://172.31.128.1:8080/repo/winpe
+; RACKHD_COREOS_REPO_PATH = ${BASE_REPO_URL}/repo/coreos
 
 ; Defines Redfish service endpoints
 RACKHD_REDFISH_URL = ${REDFISH_URL}
