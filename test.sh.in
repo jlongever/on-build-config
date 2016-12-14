@@ -125,6 +125,15 @@ vagrantSuspendAll() {
   done
 }
 
+virtualBoxDestroyRunning() {
+  for uuid in `vboxmanage list runningvms | awk '{print $2}' | tr -d '{}'`; do
+    echo "shutting down vm ${uuid}"
+    vboxmanage controlvm ${uuid} poweroff
+    echo "deleting vm ${uuid}"
+    vboxmanage unregistervm ${uuid}
+  done
+}
+
 generateSolLog(){
   cd ${WORKSPACE}/RackHD/example
   vagrant ssh -c 'cd /home/vagrant/src/build-config/; \
@@ -174,6 +183,9 @@ nodesOff
 
 # Suspend any other running vagrant boxes
 vagrantSuspendAll
+
+# Delete any running VMs
+virtualBoxDestroyRunning
 
 # Power on vagrant box and nodes 
 vagrantUp
