@@ -56,21 +56,12 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
           end
         end
         
-        if ENV['CONFIG_DIR'] # this ENV VAR defined in on-build-config repo's test.sh, pointing to vagrant/config/mongo/config.json in on-build-config repo.
+        if ENV['CONFIG_DIR']
           target.vm.synced_folder "#{ENV['WORKSPACE']}/#{ENV['CONFIG_DIR']}", "/opt/monorail/"
           target.vm.synced_folder "#{ENV['WORKSPACE']}/#{ENV['CONFIG_DIR']}", "/opt/onrack/etc/"
           target.vm.synced_folder "#{ENV['WORKSPACE']}/#{ENV['CONFIG_DIR']}", "/home/vagrant/opt/monorail/"
         end
         
-        if ENV['TEST_GROUP']
-          if ENV['TEST_GROUP'] =~  /esxi-5-5-min-install.v1.1.test/ || ENV['TEST_GROUP'] =~  /esxi-5-5-max-install.v1.1.test/
-            config.vm.provision "file", source: "./dhcpd.conf", destination: "~/dhcpd.conf"
-            config.vm.provision "shell" do |s|
-            s.inline = "cp /home/vagrant/dhcpd.conf /etc/dhcp"
-            s.privileged = true
-            end
-          end
-        end
         target.vm.network "public_network", ip: "172.31.128.1", bridge: "em1"
         target.vm.network "forwarded_port", guest: 8080, host: 9090
         target.vm.network "forwarded_port", guest: 5672, host: 9091
@@ -101,7 +92,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
           service isc-dhcp-server start
           service rsyslog stop
           echo manual | sudo tee /etc/init/rsyslog.override
-          if [ "#{ENV['MULTI']}" == "true" ]; then
+          if [ "#{ENV['MULTI']}" ]; then
             pm2 logs > /home/vagrant/src/build/vagrant.log &
           else
             pm2 logs > /home/vagrant/src/"#{ENV['REPO_NAME']}"/vagrant.log &
@@ -109,5 +100,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
           waitForPM2Daemon
           pm2 start rackhd-pm2-config.yml
         SHELL
+
+
     end
 end

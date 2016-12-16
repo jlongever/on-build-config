@@ -57,6 +57,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
         end
         
         if ENV['CONFIG_DIR']
+          target.vm.synced_folder "#{ENV['WORKSPACE']}/#{ENV['CONFIG_DIR']}", "/opt/monorail/"
           target.vm.synced_folder "#{ENV['WORKSPACE']}/#{ENV['CONFIG_DIR']}", "/opt/onrack/etc/"
           target.vm.synced_folder "#{ENV['WORKSPACE']}/#{ENV['CONFIG_DIR']}", "/home/vagrant/opt/monorail/"
         end

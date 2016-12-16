@@ -1,13 +1,11 @@
 #!/bin/bash +xe
-if [ -z "${REPO_NAME}" ]; then
-  REPO_NAME=`pushd ${WORKSPACE}/build >/dev/null && git remote show origin -n | grep "Fetch URL:" | sed "s#^.*/\(.*\).git#\1#" && popd > /dev/null`
-fi
 
+REPO_NAME=`pushd ${WORKSPACE}/build >/dev/null && git remote show origin -n | grep "Fetch URL:" | sed "s#^.*/\(.*\).git#\1#" && popd > /dev/null`
 REPOS=("on-http" "on-taskgraph" "on-dhcp-proxy" "on-tftp" "on-syslog")
 
 VCOMPUTE="${VCOMPUTE}"
 if [ -z "${VCOMPUTE}" ]; then
-  VCOMPUTE=("quanta_d51")
+  VCOMPUTE=("jvm-Quanta_T41-1" "jvm-vRinjin-1" "jvm-vRinjin-2")
 fi
 
 TEST_GROUP="${TEST_GROUP}"
@@ -25,12 +23,8 @@ if [ ! -z "${2}" ]; then
 fi
 
 dlHttpFiles() {
-  if [ -n "${MULTI}" ]; then
-    dir=${WORKSPACE}/on-http/static/http/common
-  else
-    dir=${WORKSPACE}/build/static/http/common
-  fi
-  if [[ "${REPO_NAME}" != *"on-http"* ]]; then
+  dir=${WORKSPACE}/build/static/http/common
+  if [ "${REPO_NAME}" != "on-http" ]; then
       dir=${WORKSPACE}/build-deps/on-http/static/http/common
   fi
   mkdir -p ${dir} && cd ${dir}
@@ -47,12 +41,8 @@ dlHttpFiles() {
 }
 
 dlTftpFiles() {
-  if [ -n "${MULTI}" ]; then
-    dir=${WORKSPACE}/on-tftp/static/tftp
-  else
-    dir=${WORKSPACE}/build/static/tftp
-  fi
-  if [[ "${REPO_NAME}" != *"on-tftp"* ]]; then
+  dir=${WORKSPACE}/build/static/tftp
+  if [ "${REPO_NAME}" != "on-tftp" ]; then
       dir=${WORKSPACE}/build-deps/on-tftp/static/tftp
   fi
   mkdir -p ${dir} && cd ${dir}
@@ -70,15 +60,10 @@ dlTftpFiles() {
 
 prepareDeps() {
   rm -rf ${WORKSPACE}/build-deps
-  if [ -z "${MULTI}" ]; then
-    mkdir -p ${WORKSPACE}/build-deps/${REPO_NAME} 
-  else
-    mkdir -p ${WORKSPACE}/build-deps
-    mkdir -p ${WORKSPACE}/build
-  fi
+  mkdir -p ${WORKSPACE}/build-deps/${REPO_NAME} 
   for i in ${REPOS[@]}; do
      cd ${WORKSPACE}/build-deps
-     if [[ "${REPO_NAME}" != *"${i}"* ]]; then
+     if [ "${i}" != "${REPO_NAME}" ]; then
          git clone https://github.com/RackHD/${i}.git
          cd ${i}
          git checkout ${GIT_REFSPEC}
@@ -87,30 +72,6 @@ prepareDeps() {
   done
   dlTftpFiles
   dlHttpFiles
-  apiPackageModify
-}
-
-apiPackageModify() {
-  if [[ "${REPO_NAME}" == *"on-http"* ]] && [[ "${REPO_NAME}" == *"rackhd"* ]]; then
-    pushd ${WORKSPACE}/on-http/extra
-    sed -i "s/.*git symbolic-ref.*/ continue/g" make-deb.sh
-    sed -i "/build-package.bash/d" make-deb.sh
-    sed -i "/mkdir/d" make-deb.sh
-    sudo bash make-deb.sh
-    popd
-    for package in ${API_PACKAGE_LIST}; do
-      sudo pip uninstall -y ${package//./-}
-      pushd ${WORKSPACE}/on-http/$package
-        fail=true
-        while $fail; do
-          sudo python setup.py install
-          if [ $? -eq 0 ];then
-        	  fail=false
-          fi
-        done
-      popd
-    done
-  fi
 }
 
 nodesOff() {
@@ -141,13 +102,11 @@ CONFIG_PATH=${CONFIG_PATH-build-config/vagrant/config/mongo}
 vagrantUp() {
   cd ${WORKSPACE}/RackHD/example
   cp -rf ${WORKSPACE}/build-config/vagrant/* .
-  MODIFIED_REPO_NAME=${REPO_NAME// /,}
-  CONFIG_DIR=${CONFIG_PATH} WORKSPACE=${WORKSPACE} REPO_NAME=${MODIFIED_REPO_NAME} MULTI=${MULTI} vagrant up --provision
+  CONFIG_DIR=${CONFIG_PATH} WORKSPACE=${WORKSPACE} REPO_NAME=${REPO_NAME} vagrant up --provision
   if [ $? -ne 0 ]; then 
       echo "Vagrant up failed."
       exit 1
   fi
-
 }
 
 vagrantDestroy() {
@@ -199,7 +158,7 @@ runTests() {
 
 waitForAPI() {
   timeout=0
-  maxto=60
+  maxto=30
   url=http://localhost:9090/api/1.1/nodes
   while [ ${timeout} != ${maxto} ]; do
     wget --retry-connrefused --waitretry=1 --read-timeout=20 --timeout=15 -t 1 --continue ${url}

@@ -4,7 +4,6 @@
 pr_parser.py: SCRIPTS that analyse pr information and write parsed pr information
 (especially the multi-relate-pr) to post-build proprerties for downstream job.
 """
-__author__ = "Alan Wei"
 
 
 import argparse
@@ -114,10 +113,20 @@ class PrParser(object):
         for pr_comment in pr.get_issue_comments():
             pr_texts.append(pr_comment.body)
         
+        # pre processing
+        pr_text_segment = []
+        for pr_text in pr_texts:
+            pr_text = pr_text.lower()
+            partition = pr_text.split('jenkins')
+            if len(partition) <= 1:
+                continue
+            for segment in partition[1:]:
+                pr_text_segment.append("jenkins"+segment)
+
         #parse pr
         related_prs = []
-        for pr_text in pr_texts:
-            pr_words = pr_text.lower().replace(':', '').replace(',', ' ').split()
+        for pr_text in pr_text_segment:
+            pr_words = pr_text.replace(':', '').replace(',', ' ').split()
 
             #find keyword "jenkins"
             if 'jenkins' not in pr_words:
@@ -229,7 +238,8 @@ class PrParser(object):
             for pr in all_prs:
                 repo, sha, pull_id, actual_commit = pr
                 repo_name = repo.split('/')[1]
-                properties_dic['REPO_NAME'] += "{0} ".format(repo_name)
+                if repo_name not in properties_dic['REPO_NAME']:
+                    properties_dic['REPO_NAME'] += "{0} ".format(repo_name)
                 repo_name = repo.split('/')[1].replace('-','_').upper()
                 properties_dic[repo_name] = "true"
                 properties_dic["{0}_ghprbGhRepository".format(repo_name)] = repo

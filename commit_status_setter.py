@@ -49,5 +49,5 @@ for n, repo in enumerate(repo_list):
     COMMIT = pr.get_commits().reversed[0]
     COMMIT.create_status(args.status, \
                         description=args.description.replace(',',' '), \
-                        context='Jenkins-Dependency-PR')
+                        context='Jenkins')
 
