@@ -150,6 +150,9 @@ runTests() {
   done
   cp -f ${WORKSPACE}/build-config/config.ini ${WORKSPACE}/RackHD/test/config
   cd ${WORKSPACE}/RackHD/test
+  rm -rf .venv/on-build-config
+  ./mkenv.sh on-build-config
+  source myenv_on-build-config
   RACKHD_BASE_REPO_URL=${BASE_REPO_URL} RACKHD_TEST_LOGLVL=INFO \
       python run.py ${args} --with-xunit 
   mkdir -p ${WORKSPACE}/xunit-reports
