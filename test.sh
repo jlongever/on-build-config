@@ -141,10 +141,11 @@ generateSolLog(){
 }
 
 setupVirtualEnv(){
-  cd ${WORKSPACE}/RackHD/test
+  pushd ${WORKSPACE}/RackHD/test
   rm -rf .venv/on-build-config
   ./mkenv.sh on-build-config
   source myenv_on-build-config
+  popd
 }
 
 BASE_REPO_URL="${BASE_REPO_URL}"
