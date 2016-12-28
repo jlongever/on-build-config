@@ -3,16 +3,6 @@
 REPO_NAME=`pushd ${WORKSPACE}/build >/dev/null && git remote show origin -n | grep "Fetch URL:" | sed "s#^.*/\(.*\).git#\1#" && popd > /dev/null`
 REPOS=("on-http" "on-taskgraph" "on-dhcp-proxy" "on-tftp" "on-syslog")
 
-VCOMPUTE="${VCOMPUTE}"
-if [ -z "${VCOMPUTE}" ]; then
-  VCOMPUTE=("jvm-Quanta_T41-1" "jvm-vRinjin-1" "jvm-vRinjin-2")
-fi
-
-TEST_GROUP="${TEST_GROUP}"
-if [ -z "${TEST_GROUP}" ]; then
-   TEST_GROUP="smoke-tests"
-fi
-
 HTTP_STATIC_FILES="${HTTP_STATIC_FILES}"
 TFTP_STATIC_FILES="${TFTP_STATIC_FILES}"
 if [ ! -z "${1}" ]; then
@@ -58,21 +48,55 @@ dlTftpFiles() {
   done
 }
 
-prepareDeps() {
-  rm -rf ${WORKSPACE}/build-deps
-  mkdir -p ${WORKSPACE}/build-deps/${REPO_NAME} 
-  for i in ${REPOS[@]}; do
-     cd ${WORKSPACE}/build-deps
-     if [ "${i}" != "${REPO_NAME}" ]; then
-         git clone https://github.com/RackHD/${i}.git
-         cd ${i}
-         git checkout ${GIT_REFSPEC}
-         npm install --production
-     fi
-  done
+preparePackages() {
+  if [ -z ${MANIFEST_FILE_URL} ];
+  then
+      rm -rf ${WORKSPACE}/build-deps
+      mkdir -p ${WORKSPACE}/build-deps/${REPO_NAME}
+      for i in ${REPOS[@]}; do
+          cd ${WORKSPACE}/build-deps
+          if [ "${i}" != "${REPO_NAME}" ]; then
+              git clone https://github.com/RackHD/${i}.git
+              cd ${i}
+              git checkout ${GIT_REFSPEC}
+              npm install --production
+          fi
+      done
+  else
+      pushd ${WORKSPACE}
+      curl --user ${BINTRAY_USERNAME}:${BINTRAY_API_KEY} -L "${MANIFEST_FILE_URL}" -o rackhd-manifest
+      ./build-config/manifest-build-tools/HWIMO-BUILD ./build-config/manifest-build-tools/application/reprove.py \
+      --manifest rackhd-manifest \
+      --builddir ${WORKSPACE}/build-deps \
+      --jobs 8 \
+      --force \
+      checkout \
+      packagerefs
+
+      for i in ${REPOS[@]}; do
+          pushd ${WORKSPACE}/build-deps/${i}
+          npm install --production
+          popd
+      done
+      popd
+  fi
+}
+
+prepareDeps(){
+  preparePackages
   dlTftpFiles
   dlHttpFiles
 }
+
+VCOMPUTE="${VCOMPUTE}"
+if [ -z "${VCOMPUTE}" ]; then
+  VCOMPUTE=("jvm-Quanta_T41-1" "jvm-vRinjin-1" "jvm-vRinjin-2")
+fi
+
+TEST_GROUP="${TEST_GROUP}"
+if [ -z "${TEST_GROUP}" ]; then
+   TEST_GROUP="smoke-tests"
+fi
 
 nodesOff() {
   cd ${WORKSPACE}/build-config/deployment/
