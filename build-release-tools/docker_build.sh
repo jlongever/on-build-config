@@ -53,7 +53,7 @@ doBuild() {
     #Set an empty TAG before each build
     TAG=""
     #For relpacing the unstable wheezy official source
-    SOURCE_LIST=https://raw.githubusercontent.com/RackHD/on-tools/master/manifest-build-tools/docker_sources.list
+    SOURCE_LIST=https://raw.githubusercontent.com/RackHD/on-build-config/master/build-release-tools/docker_sources.list
     for repo in $repos;do
         if [ ! -d $repo ]; then
             echo "Repo directory of $repo does not exist"
