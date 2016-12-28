@@ -26,10 +26,10 @@ date: The commit of each repository are last commit before the date.
                       date string, such as: 2016-12-01 00:00:00 (the commit of each repository are the last commit before the date")
 
 timezone: The Time Zone for the date, such as: +0800, -0800, -0500
-git-credential: Git credentials for CI services.
 builddir: The directory for checked repositories.
 
 The optional parameters:
+git-credential: Git credentials for CI services.
 force: If true, overwrite the destination manifest file even it already exists.
 jobs: number of parallel jobs to run. The number is related to the compute architecture, multi-core processors...
 """
@@ -75,7 +75,6 @@ def parse_command_line(args):
                         action="store")
 
     parser.add_argument("--git-credential",
-                        required=True,
                         help="Git credential for CI services",
                         action="append")
 
@@ -113,13 +112,13 @@ def main():
             utc_now = datetime.utcnow()
             day_str = utc_now.strftime("%Y%m%d")
             dest_manifest = "{branch}-{day}".format(branch=slice_branch, day=day_str)
-            generator = ManifestGenerator(dest_manifest, args.branch, args.builddir, args.git_credential, jobs=args.jobs, force=args.force)
+            generator = ManifestGenerator(dest_manifest, args.branch, args.builddir, git_credential=args.git_credential, jobs=args.jobs, force=args.force)
         else:
             dt = convert_date(args.date)
             day_str = dt.strftime("%Y%m%d")
             dest_manifest = "{branch}-{day}".format(branch=slice_branch, day=day_str)
             date_str = "{0} {1}".format(dt.strftime("%Y-%m-%d %H:%M:%S"), args.timezone)
-            generator = SpecifyDayManifestGenerator(dest_manifest, args.branch, date_str, args.builddir, args.git_credential, jobs=args.jobs, force=args.force)
+            generator = SpecifyDayManifestGenerator(dest_manifest, args.branch, date_str, args.builddir, git_credential=args.git_credential, jobs=args.jobs, force=args.force)
             
         generator.update_manifest()
         generator.generate_manifest()

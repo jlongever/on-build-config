@@ -20,9 +20,9 @@ Usage:
 The required parameters:
 build-directory: A directory where all the repositories are cloned to. 
 manifest-file: The path of manifest file. 
-git-credential: Git URL and credential for CI services: <URL>,<Credentials>
 
 The optional parameters:
+git-credential: Git URL and credential for CI services: <URL>,<Credentials>
 is-official-release: Whether this release is official. The default value is False
 parameter-file: The file with parameters. The file will be passed to downstream jobs.
 force: Use destination directory, even if it exists.
@@ -71,7 +71,6 @@ def parse_args(args):
                         default="downstream_parameters")
 
     parser.add_argument('--git-credential',
-                        required=True,
                         help="Git URL and credential for CI services: <URL>,<Credentials>",
                         action='append',
                         default=None)
@@ -171,7 +170,7 @@ def get_build_repos(directory):
         repos.append(filename)
     return repos
 
-def checkout_repos(manifest, builddir, force, git_credential, jobs):
+def checkout_repos(manifest, builddir, force, jobs, git_credential=None):
     try:
         manifest_actions = ManifestActions(manifest, builddir, force=force, git_credentials=git_credential, jobs=jobs, actions=["checkout", "packagerefs"])
         manifest_actions.execute_actions()
@@ -243,7 +242,7 @@ def main():
     Exit on encountering any error.
     """
     args = parse_args(sys.argv[1:])
-    checkout_repos(args.manifest_file, args.build_directory, args.force, args.git_credential, args.jobs)
+    checkout_repos(args.manifest_file, args.build_directory, args.force, args.jobs, git_credential=args.git_credential)
     build_debian_packages(args.build_directory, args.jobs, args.is_official_release, args.sudo_credential)
     write_downstream_parameter_file(args.build_directory, args.manifest_file, args.is_official_release, args.parameter_file)
 
