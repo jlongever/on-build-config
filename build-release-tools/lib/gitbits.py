@@ -79,6 +79,7 @@ class GitBit(object):
                                        "password": password,
                                        "url": full_url,
                                       })
+            self.set_identity(username=username)
             return True
         else:
             return False
@@ -125,7 +126,7 @@ class GitBit(object):
                     print >> credential_file, "{0}".format(credential['url'])
 
 
-    def set_identity(self, username, email):
+    def set_identity(self, username=None, email=None):
         """
         Define a username and email for the Git identity.  Git will autogenerate one as it can
         if not provided.  As our automated Git tools should not have a persistent identity via

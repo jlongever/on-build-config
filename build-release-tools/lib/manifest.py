@@ -8,7 +8,6 @@ import os
 import re
 import sys
 import datetime
-import config
 
 from gitbits import GitBit
 
@@ -107,7 +106,6 @@ class Manifest(object):
         Set gitbit credentials.
         :return: None
         """
-        self.gitbit.set_identity(config.gitbit_identity['username'], config.gitbit_identity['email'])
         if self._git_credentials:
             for url_cred_pair in self._git_credentials:
                 url, cred = url_cred_pair.split(',')
