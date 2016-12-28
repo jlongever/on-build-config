@@ -140,6 +140,14 @@ generateSolLog(){
         bash generate-sol-log.sh' > ${WORKSPACE}/sol.log &
 }
 
+setupVirtualEnv(){
+  pushd ${WORKSPACE}/RackHD/test
+  rm -rf .venv/on-build-config
+  ./mkenv.sh on-build-config
+  source myenv_on-build-config
+  popd
+}
+
 BASE_REPO_URL="${BASE_REPO_URL}"
 runTests() {
   read array<<<"${TEST_GROUP}"
@@ -189,6 +197,13 @@ virtualBoxDestroyRunning
 
 # Power on vagrant box and nodes 
 vagrantUp
+# We setup the virtual-environment here, since once we
+# call "nodesOn", it's a race to get to the first test
+# before the nodes get booted far enough to start being
+# seen by RackHD. Logically, it would be better IN runTests.
+# We do it between the vagrant and waitForAPI to use the
+# time to make the env instead of doing sleeps...
+setupVirtualEnv
 waitForAPI
 nodesOn
 generateSolLog
