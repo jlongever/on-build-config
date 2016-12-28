@@ -41,7 +41,7 @@ ${virtualenv} --clear env/${env_name}
 source "env/${env_name}/bin/activate"
 
 # Use locally sourced pip configuration
-export PIP_CONFIG_FILE=`pwd`/pip.conf
+export PIP_CONFIG_FILE=pip.conf
 
 # Install all required packages
 pip install -r requirements.txt
