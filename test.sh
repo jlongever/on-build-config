@@ -140,6 +140,13 @@ generateSolLog(){
         bash generate-sol-log.sh' > ${WORKSPACE}/sol.log &
 }
 
+setupVirtualEnv(){
+  cd ${WORKSPACE}/RackHD/test
+  rm -rf .venv/on-build-config
+  ./mkenv.sh on-build-config
+  source myenv_on-build-config
+}
+
 BASE_REPO_URL="${BASE_REPO_URL}"
 runTests() {
   read array<<<"${TEST_GROUP}"
@@ -150,9 +157,6 @@ runTests() {
   done
   cp -f ${WORKSPACE}/build-config/config.ini ${WORKSPACE}/RackHD/test/config
   cd ${WORKSPACE}/RackHD/test
-  rm -rf .venv/on-build-config
-  ./mkenv.sh on-build-config
-  source myenv_on-build-config
   RACKHD_BASE_REPO_URL=${BASE_REPO_URL} RACKHD_TEST_LOGLVL=INFO \
       python run.py ${args} --with-xunit 
   mkdir -p ${WORKSPACE}/xunit-reports
@@ -192,6 +196,13 @@ virtualBoxDestroyRunning
 
 # Power on vagrant box and nodes 
 vagrantUp
+# We setup the virtual-environment here, since once we
+# call "nodesOn", it's a race to get to the first test
+# before the nodes get booted far enough to start being
+# seen by RackHD. Logically, it would be better IN runTests.
+# We do it between the vagrant and waitForAPI to use the
+# time to make the env instead of doing sleeps...
+setupVirtualEnv
 waitForAPI
 nodesOn
 generateSolLog
