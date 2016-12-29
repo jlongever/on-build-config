@@ -1,6 +1,8 @@
 #!/bin/bash +xe
+if [ -z "${REPO_NAME}" ]; then
+  REPO_NAME=`pushd ${WORKSPACE}/build >/dev/null && git remote show origin -n | grep "Fetch URL:" | sed "s#^.*/\(.*\).git#\1#" && popd > /dev/null`
+fi
 
-REPO_NAME=`pushd ${WORKSPACE}/build >/dev/null && git remote show origin -n | grep "Fetch URL:" | sed "s#^.*/\(.*\).git#\1#" && popd > /dev/null`
 REPOS=("on-http" "on-taskgraph" "on-dhcp-proxy" "on-tftp" "on-syslog")
 
 HTTP_STATIC_FILES="${HTTP_STATIC_FILES}"
@@ -13,8 +15,12 @@ if [ ! -z "${2}" ]; then
 fi
 
 dlHttpFiles() {
-  dir=${WORKSPACE}/build/static/http/common
-  if [ "${REPO_NAME}" != "on-http" ]; then
+  if [ -n "${MULTI}" ]; then
+    dir=${WORKSPACE}/on-http/static/http/common
+  else
+    dir=${WORKSPACE}/build/static/http/common
+  fi
+  if [[ "${REPO_NAME}" != *"on-http"* ]]; then
       dir=${WORKSPACE}/build-deps/on-http/static/http/common
   fi
   mkdir -p ${dir} && cd ${dir}
@@ -31,8 +37,12 @@ dlHttpFiles() {
 }
 
 dlTftpFiles() {
-  dir=${WORKSPACE}/build/static/tftp
-  if [ "${REPO_NAME}" != "on-tftp" ]; then
+  if [ -n "${MULTI}" ]; then
+    dir=${WORKSPACE}/on-tftp/static/tftp
+  else
+    dir=${WORKSPACE}/build/static/tftp
+  fi
+  if [[ "${REPO_NAME}" != *"on-tftp"* ]]; then
       dir=${WORKSPACE}/build-deps/on-tftp/static/tftp
   fi
   mkdir -p ${dir} && cd ${dir}
@@ -52,20 +62,26 @@ preparePackages() {
   if [ -z ${MANIFEST_FILE_URL} ];
   then
       rm -rf ${WORKSPACE}/build-deps
-      mkdir -p ${WORKSPACE}/build-deps/${REPO_NAME}
+      if [ -z "${MULTI}" ]; then
+        mkdir -p ${WORKSPACE}/build-deps/${REPO_NAME}
+      else
+        mkdir -p ${WORKSPACE}/build-deps
+        mkdir -p ${WORKSPACE}/build
+      fi
       for i in ${REPOS[@]}; do
-          cd ${WORKSPACE}/build-deps
-          if [ "${i}" != "${REPO_NAME}" ]; then
-              git clone https://github.com/RackHD/${i}.git
-              cd ${i}
-              git checkout ${GIT_REFSPEC}
-              npm install --production
-          fi
+         cd ${WORKSPACE}/build-deps
+         if [[ "${REPO_NAME}" != *"${i}"* ]]; then
+             git clone https://github.com/RackHD/${i}.git
+             cd ${i}
+             git checkout ${GIT_REFSPEC}
+             npm install --production
+         fi
       done
+
   else
       pushd ${WORKSPACE}
       curl --user ${BINTRAY_USERNAME}:${BINTRAY_API_KEY} -L "${MANIFEST_FILE_URL}" -o rackhd-manifest
-      ./build-config/manifest-build-tools/HWIMO-BUILD ./build-config/manifest-build-tools/application/reprove.py \
+      ./build-config/build-release-tools/HWIMO-BUILD ./build-config/build-release-tools/application/reprove.py \
       --manifest rackhd-manifest \
       --builddir ${WORKSPACE}/build-deps \
       --jobs 8 \
@@ -86,6 +102,30 @@ prepareDeps(){
   preparePackages
   dlTftpFiles
   dlHttpFiles
+  apiPackageModify
+}
+
+apiPackageModify() {
+  if [[ "${REPO_NAME}" == *"on-http"* ]] && [[ "${REPO_NAME}" == *"rackhd"* ]]; then
+    pushd ${WORKSPACE}/on-http/extra
+    sed -i "s/.*git symbolic-ref.*/ continue/g" make-deb.sh
+    sed -i "/build-package.bash/d" make-deb.sh
+    sed -i "/mkdir/d" make-deb.sh
+    sudo bash make-deb.sh
+    popd
+    for package in ${API_PACKAGE_LIST}; do
+      sudo pip uninstall -y ${package//./-}
+      pushd ${WORKSPACE}/on-http/$package
+        fail=true
+        while $fail; do
+          sudo python setup.py install
+          if [ $? -eq 0 ];then
+        	  fail=false
+          fi
+        done
+      popd
+    done
+  fi
 }
 
 VCOMPUTE="${VCOMPUTE}"
@@ -126,7 +166,8 @@ CONFIG_PATH=${CONFIG_PATH-build-config/vagrant/config/mongo}
 vagrantUp() {
   cd ${WORKSPACE}/RackHD/example
   cp -rf ${WORKSPACE}/build-config/vagrant/* .
-  CONFIG_DIR=${CONFIG_PATH} WORKSPACE=${WORKSPACE} REPO_NAME=${REPO_NAME} vagrant up --provision
+  MODIFIED_REPO_NAME=${REPO_NAME// /,}
+  CONFIG_DIR=${CONFIG_PATH} WORKSPACE=${WORKSPACE} REPO_NAME=${MODIFIED_REPO_NAME} MULTI=${MULTI} vagrant up --provision
   if [ $? -ne 0 ]; then 
       echo "Vagrant up failed."
       exit 1
@@ -164,6 +205,14 @@ generateSolLog(){
         bash generate-sol-log.sh' > ${WORKSPACE}/sol.log &
 }
 
+setupVirtualEnv(){
+  pushd ${WORKSPACE}/RackHD/test
+  rm -rf .venv/on-build-config
+  ./mkenv.sh on-build-config
+  source myenv_on-build-config
+  popd
+}
+
 BASE_REPO_URL="${BASE_REPO_URL}"
 runTests() {
   read array<<<"${TEST_GROUP}"
@@ -182,7 +231,7 @@ runTests() {
 
 waitForAPI() {
   timeout=0
-  maxto=30
+  maxto=60
   url=http://localhost:9090/api/1.1/nodes
   while [ ${timeout} != ${maxto} ]; do
     wget --retry-connrefused --waitretry=1 --read-timeout=20 --timeout=15 -t 1 --continue ${url}
@@ -213,6 +262,13 @@ virtualBoxDestroyRunning
 
 # Power on vagrant box and nodes 
 vagrantUp
+# We setup the virtual-environment here, since once we
+# call "nodesOn", it's a race to get to the first test
+# before the nodes get booted far enough to start being
+# seen by RackHD. Logically, it would be better IN runTests.
+# We do it between the vagrant and waitForAPI to use the
+# time to make the env instead of doing sleeps...
+setupVirtualEnv
 waitForAPI
 nodesOn
 generateSolLog
