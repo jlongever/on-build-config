@@ -22,22 +22,42 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
         # target.vm.network :public_network
         if ENV['WORKSPACE']
           target.vm.synced_folder "#{ENV['WORKSPACE']}/build-deps", "/home/vagrant/src/"
-          if ENV['REPO_NAME']
-            target.vm.synced_folder "#{ENV['WORKSPACE']}/build", "/home/vagrant/src/#{ENV['REPO_NAME']}"
-          end
-          if ENV['REPO_NAME'] == "on-tasks"
-            target.vm.synced_folder "#{ENV['WORKSPACE']}/build", "/home/vagrant/src/on-taskgraph/node_modules/on-tasks/" 
-            target.vm.synced_folder "#{ENV['WORKSPACE']}/build", "/home/vagrant/src/on-http/node_modules/on-tasks/" 
-          end
-          if ENV['REPO_NAME'] == "on-core"
-            target.vm.synced_folder "#{ENV['WORKSPACE']}/build", "/home/vagrant/src/on-taskgraph/node_modules/on-core/"  
-            target.vm.synced_folder "#{ENV['WORKSPACE']}/build", "/home/vagrant/src/on-http/node_modules/on-core/" 
-            target.vm.synced_folder "#{ENV['WORKSPACE']}/build", "/home/vagrant/src/on-tftp/node_modules/on-core/" 
-            target.vm.synced_folder "#{ENV['WORKSPACE']}/build", "/home/vagrant/src/on-dhcp-proxy/node_modules/on-core/" 
+          if ENV['MULTI'] =="true"
+            target.vm.synced_folder "#{ENV['WORKSPACE']}/build", "/home/vagrant/src/build"
+            for repo in ENV['REPO_NAME'].split(',')
+              if repo != "rackhd"
+                target.vm.synced_folder "#{ENV['WORKSPACE']}/#{repo}", "/home/vagrant/src/#{repo}"
+              end
+            end
+            if ENV['REPO_NAME'].include? "on-tasks"
+              target.vm.synced_folder "#{ENV['WORKSPACE']}/on-tasks", "/home/vagrant/src/on-taskgraph/node_modules/on-tasks/" 
+              target.vm.synced_folder "#{ENV['WORKSPACE']}/on-tasks", "/home/vagrant/src/on-http/node_modules/on-tasks/" 
+            end
+            if ENV['REPO_NAME'].include? "on-core"
+              target.vm.synced_folder "#{ENV['WORKSPACE']}/on-core", "/home/vagrant/src/on-taskgraph/node_modules/on-core/"  
+              target.vm.synced_folder "#{ENV['WORKSPACE']}/on-core", "/home/vagrant/src/on-http/node_modules/on-core/" 
+              target.vm.synced_folder "#{ENV['WORKSPACE']}/on-core", "/home/vagrant/src/on-tftp/node_modules/on-core/" 
+              target.vm.synced_folder "#{ENV['WORKSPACE']}/on-core", "/home/vagrant/src/on-dhcp-proxy/node_modules/on-core/" 
+            end
+          else
+            if ENV['REPO_NAME']
+              target.vm.synced_folder "#{ENV['WORKSPACE']}/build", "/home/vagrant/src/#{ENV['REPO_NAME']}"
+            end
+            if ENV['REPO_NAME'] == "on-tasks"
+              target.vm.synced_folder "#{ENV['WORKSPACE']}/build", "/home/vagrant/src/on-taskgraph/node_modules/on-tasks/" 
+              target.vm.synced_folder "#{ENV['WORKSPACE']}/build", "/home/vagrant/src/on-http/node_modules/on-tasks/" 
+            end
+            if ENV['REPO_NAME'] == "on-core"
+              target.vm.synced_folder "#{ENV['WORKSPACE']}/build", "/home/vagrant/src/on-taskgraph/node_modules/on-core/"  
+              target.vm.synced_folder "#{ENV['WORKSPACE']}/build", "/home/vagrant/src/on-http/node_modules/on-core/" 
+              target.vm.synced_folder "#{ENV['WORKSPACE']}/build", "/home/vagrant/src/on-tftp/node_modules/on-core/" 
+              target.vm.synced_folder "#{ENV['WORKSPACE']}/build", "/home/vagrant/src/on-dhcp-proxy/node_modules/on-core/" 
+            end
           end
         end
         
         if ENV['CONFIG_DIR']
+          target.vm.synced_folder "#{ENV['WORKSPACE']}/#{ENV['CONFIG_DIR']}", "/opt/monorail/"
           target.vm.synced_folder "#{ENV['WORKSPACE']}/#{ENV['CONFIG_DIR']}", "/opt/onrack/etc/"
           target.vm.synced_folder "#{ENV['WORKSPACE']}/#{ENV['CONFIG_DIR']}", "/home/vagrant/opt/monorail/"
         end
@@ -72,7 +92,11 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
           service isc-dhcp-server start
           service rsyslog stop
           echo manual | sudo tee /etc/init/rsyslog.override
-          pm2 logs > /home/vagrant/src/"#{ENV['REPO_NAME']}"/vagrant.log &
+          if [ "#{ENV['MULTI']}" ]; then
+            pm2 logs > /home/vagrant/src/build/vagrant.log &
+          else
+            pm2 logs > /home/vagrant/src/"#{ENV['REPO_NAME']}"/vagrant.log &
+          fi
           waitForPM2Daemon
           pm2 start rackhd-pm2-config.yml
         SHELL
