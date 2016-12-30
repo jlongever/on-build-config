@@ -30,7 +30,7 @@ dlHttpFiles() {
   mkdir -p ${dir} && cd ${dir}
   # pull down index from bintray repo and parse files from index
   wget --no-check-certificate https://dl.bintray.com/rackhd/binary/builds/ && \
-      exec grep 'href=' index.html | awk '{print $3}' | cut -c8-200 | sed -e "s/\"//g" > files
+      exec  cat index.html |grep -o href=.*\"|sed 's/href=//' | sed 's/"//g' > files
   for i in `cat ./files`; do
     wget --no-check-certificate https://dl.bintray.com/rackhd/binary/builds/${i}
   done
@@ -48,7 +48,7 @@ dlTftpFiles() {
   mkdir -p ${dir} && cd ${dir}
   # pull down index from bintray repo and parse files from index
   wget --no-check-certificate https://dl.bintray.com/rackhd/binary/ipxe/ && \
-      exec grep 'href=' index.html | awk '{print $3}' | cut -c8-200 | sed -e "s/\"//g" > files
+      exec  cat index.html |grep -o href=.*\"|sed 's/href=//' | sed 's/"//g' > files
   for i in `cat ./files`; do
     wget --no-check-certificate https://dl.bintray.com/rackhd/binary/ipxe/${i}
   done
