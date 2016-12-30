@@ -2,7 +2,6 @@
 Module to abstract operations to repository
 """
 import os
-import config
 from gitbits import GitBit
 from ParallelTasks import ParallelTasks
 from common import *
@@ -190,7 +189,6 @@ class RepoOperator(object):
         Set gitbit credentials.
         :return:
         """
-        self.git.set_identity(config.gitbit_identity['username'], config.gitbit_identity['email'])
         if credentials is None:
             if self._git_credentials is None:
                 return

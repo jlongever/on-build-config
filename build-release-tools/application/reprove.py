@@ -47,7 +47,6 @@ import json
 import os
 import shutil
 import sys
-import config
 
 from urlparse import urlparse, urlunsplit
 from RepositoryOperator import RepoOperator
