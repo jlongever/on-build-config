@@ -17,7 +17,7 @@ except ImportError as import_err:
     sys.exit(1)
 
 class ManifestGenerator(object):
-    def __init__(self, dest, branch, builddir, git_credential, force=False, jobs=1):
+    def __init__(self, dest, branch, builddir, git_credential=None, force=False, jobs=1):
         """
         Generate a new manifest according to the manifest sample: manifest.json
 
@@ -117,9 +117,9 @@ class ManifestGenerator(object):
             json.dump(self._manifest.manifest, fp, indent=4, sort_keys=True)
 
 class SpecifyDayManifestGenerator(ManifestGenerator):
-    def __init__(self, dest, branch, date, builddir, git_credential, force=False, jobs=1):
+    def __init__(self, dest, branch, date, builddir, git_credential=None, force=False, jobs=1):
         self._date = date
-        super(SpecifyDayManifestGenerator, self).__init__(dest, branch, builddir, git_credential, force=force, jobs=jobs)
+        super(SpecifyDayManifestGenerator, self).__init__(dest, branch, builddir, git_credential=git_credential, force=force, jobs=jobs)
 
     def update_repositories_commit(self, repositories):
         for repo in repositories:

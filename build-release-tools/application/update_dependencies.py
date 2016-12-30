@@ -15,8 +15,9 @@ The required parameters:
 manifest: The file path of manifest.
 builddir: The destination for repositories in manifest stored.
           Repositories under the directory include on-xxx and RackHD
-git-credential: url, credentials pair for the access to github repos
+
 The optional parameter:
+git-credential: url, credentials pair for the access to github repos
 force: Overwrite the build directory if it exists.
 is-official-release: if true, this release is official, the default value is false
 jobs: number of parallel jobs to run(checkout repositories). The number is related to the compute architecture, multi-core processors...
@@ -162,7 +163,6 @@ def parse_command_line(args):
                         action="store_true")
 
     parser.add_argument("--git-credential",
-                        required=True,
                         help="Git credentials for CI services",
                         action="append")
 
@@ -182,7 +182,7 @@ def parse_command_line(args):
 
     return parsed_args
 
-def checkout_repos(manifest, builddir, force, git_credential, jobs):
+def checkout_repos(manifest, builddir, force, jobs, git_credential=None):
     manifest_actions = ManifestActions(manifest, builddir, force=force, git_credentials=git_credential, jobs=jobs, actions=["checkout"])
     manifest_actions.execute_actions()
 
@@ -191,7 +191,7 @@ def main():
     args = parse_command_line(sys.argv[1:])
 
     # Checkout repositories according to manifest file
-    checkout_repos(args.manifest, args.builddir, args.force, args.git_credential, args.jobs)
+    checkout_repos(args.manifest, args.builddir, args.force, args.jobs, git_credential=args.git_credential)
 
     # Start to initial an instance of UpdateRackhdVersion
     updater = RackhdDebianControlUpdater(args.builddir, is_official_release=args.is_official_release)

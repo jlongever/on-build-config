@@ -18,11 +18,11 @@ repo: Git url to match for updating the commit-id
 branch: The target branch for the named repo
 commit: The commit id to target an exact version
 manifest_download_url: The manifest base download URL.
-git_credential: url, credentials pair for the access to github repos
 manifest_file:The target manifest file to be updated
 updated_manifest: The property file that leads downstream job.
 
 The optional parameters:
+git_credential: url, credentials pair for the access to github repos
 dryrun: Do not commit any changes, just print what would be done
 """
 
