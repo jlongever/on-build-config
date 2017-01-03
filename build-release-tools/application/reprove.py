@@ -21,10 +21,6 @@ branch
 The required parameters:
 manifest: the path of manifest file.
 builddir: the destination for checked out repositories.
-git-credential: url, credentials pair for the access to github repos.
-                For example: https://github.com,GITHUB
-                GITHUB is an environment variable: 
-                GITHUB=username:password
 action: the supported action, includes checkout branch.
         "checkout": it  will clone all the repositories in a manifest file;
                     if "branch" in a repository dictionary, the action will check out to the branch.
@@ -36,6 +32,10 @@ action: the supported action, includes checkout branch.
                   + git+https://github.com/RackHD/on-core.git#branch/release-1.2.3
 
 The optional parameters:
+git-credential: url, credentials pair for the access to github repos.
+                For example: https://github.com,GITHUB
+                GITHUB is an environment variable:
+                GITHUB=username:password
 force: use destination directory, even if it exists
 jobs: number of parallel jobs to run. The number is related to the compute architecture, multi-core processors...
 branch-name: the name of new branch.
@@ -47,7 +47,6 @@ import json
 import os
 import shutil
 import sys
-import config
 
 from urlparse import urlparse, urlunsplit
 from RepositoryOperator import RepoOperator
