@@ -5,16 +5,6 @@ fi
 
 REPOS=("on-http" "on-taskgraph" "on-dhcp-proxy" "on-tftp" "on-syslog")
 
-VCOMPUTE="${VCOMPUTE}"
-if [ -z "${VCOMPUTE}" ]; then
-  VCOMPUTE=("jvm-Quanta_T41-1" "jvm-vRinjin-1" "jvm-vRinjin-2")
-fi
-
-TEST_GROUP="${TEST_GROUP}"
-if [ -z "${TEST_GROUP}" ]; then
-   TEST_GROUP="smoke-tests"
-fi
-
 HTTP_STATIC_FILES="${HTTP_STATIC_FILES}"
 TFTP_STATIC_FILES="${TFTP_STATIC_FILES}"
 if [ ! -z "${1}" ]; then
@@ -68,23 +58,51 @@ dlTftpFiles() {
   done
 }
 
-prepareDeps() {
-  rm -rf ${WORKSPACE}/build-deps
-  if [ -z "${MULTI}" ]; then
-    mkdir -p ${WORKSPACE}/build-deps/${REPO_NAME} 
+preparePackages() {
+  # If manifest_file_url is not specified, clone the latest code of rackhd
+  if [ -z ${MANIFEST_FILE_URL} ];
+  then
+      rm -rf ${WORKSPACE}/build-deps
+      if [ -z "${MULTI}" ]; then
+        mkdir -p ${WORKSPACE}/build-deps/${REPO_NAME}
+      else
+        mkdir -p ${WORKSPACE}/build-deps
+        mkdir -p ${WORKSPACE}/build
+      fi
+      for i in ${REPOS[@]}; do
+         cd ${WORKSPACE}/build-deps
+         if [[ "${REPO_NAME}" != *"${i}"* ]]; then
+             git clone https://github.com/RackHD/${i}.git
+             cd ${i}
+             git checkout ${GIT_REFSPEC}
+             npm install --production
+         fi
+      done
+
+  # If manifest_file_url is specified, checkout the specified version of rackhd 
+  # according to manifest file.
   else
-    mkdir -p ${WORKSPACE}/build-deps
-    mkdir -p ${WORKSPACE}/build
+      pushd ${WORKSPACE}
+      curl --user ${BINTRAY_USERNAME}:${BINTRAY_API_KEY} -L "${MANIFEST_FILE_URL}" -o rackhd-manifest
+      ./build-config/build-release-tools/HWIMO-BUILD ./build-config/build-release-tools/application/reprove.py \
+      --manifest rackhd-manifest \
+      --builddir ${WORKSPACE}/build-deps \
+      --jobs 8 \
+      --force \
+      checkout \
+      packagerefs
+
+      for i in ${REPOS[@]}; do
+          pushd ${WORKSPACE}/build-deps/${i}
+          npm install --production
+          popd
+      done
+      popd
   fi
-  for i in ${REPOS[@]}; do
-     cd ${WORKSPACE}/build-deps
-     if [[ "${REPO_NAME}" != *"${i}"* ]]; then
-         git clone https://github.com/RackHD/${i}.git
-         cd ${i}
-         git checkout ${GIT_REFSPEC}
-         npm install --production
-     fi
-  done
+}
+
+prepareDeps(){
+  preparePackages
   dlTftpFiles
   dlHttpFiles
   apiPackageModify
@@ -112,6 +130,16 @@ apiPackageModify() {
     done
   fi
 }
+
+VCOMPUTE="${VCOMPUTE}"
+if [ -z "${VCOMPUTE}" ]; then
+  VCOMPUTE=("jvm-Quanta_T41-1" "jvm-vRinjin-1" "jvm-vRinjin-2")
+fi
+
+TEST_GROUP="${TEST_GROUP}"
+if [ -z "${TEST_GROUP}" ]; then
+   TEST_GROUP="smoke-tests"
+fi
 
 nodesOff() {
   cd ${WORKSPACE}/build-config/deployment/
