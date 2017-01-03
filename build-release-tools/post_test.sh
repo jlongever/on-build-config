@@ -146,7 +146,7 @@ deploy_ova() {
     echo yes | ovftool \
     --prop:adminIP=$adminIP  --prop:adminGateway=$adminGateway --prop:adminNetmask=$adminNetmask  --prop:adminDNS=$adminDNS \
     --overwrite --powerOffTarget --powerOn --skipManifestCheck \
-    --net:$net \
+    --net:"$net" \
     --datastore=$datastore \
     --name=$deployName \
     ${ovaFile} \
