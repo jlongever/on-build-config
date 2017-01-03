@@ -26,7 +26,7 @@
 # vagrant-post-test need some special parameter of boxFile and controlNetwork name
 # --boxFile ./someDir/some.box
 # --controlNetwork vmnet*
-# --
+# --vagrantfile ./someFile
 #
 # docker-post-test need some special parameter of docker build record file and cloned RackHD repo
 # --RackHDDir ./someDir/RackHD
@@ -85,6 +85,9 @@ while [ "$1" != "" ];do
         --controlNetwork)
             shift
             controlNetwork=$1;;
+        --vagrantfile)
+            shift
+            vagrantfile=$1;;
         --RackHDDir)
             shift
             RackHDDir=$1;;
@@ -170,11 +173,10 @@ post_test_ova() {
 ############################################
 
 create_vagrant_file() {
-    wget vagrantFile -O Vagrantfile.in
     sed -e "s#rackhd/rackhd#${boxFile}#g" \
         -e '/target.vm.box_version/d' \
         -e "s#em1#${controlNetwork}#g" \
-        Vagrantfile.in > Vagrantfile
+        $vagrantfile > Vagrantfile
 }
 
 post_test_vagrant() {
@@ -201,7 +203,7 @@ post_test_docker() {
         cp docker-compose-mini.yml docker-compose-mini.yml.bak
         for repo_tag in $LINE; do
             repo=${repo_tag%:*}
-            sed -i "s#rackhd/${repo}.*#rackhdmirror/${repo_tag}#g" docker-compose-mini.yml
+            sed -i "s#rackhd/${repo}.*#rackhd/${repo_tag}#g" docker-compose-mini.yml
         done
         docker-compose -f docker-compose-mini.yml pull --ignore-pull-failures
         docker-compose -f docker-compose-mini.yml up -d
