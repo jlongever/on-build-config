@@ -1,8 +1,6 @@
 #!/bin/bash +xe
-if [ -z "${REPO_NAME}" ]; then
-  REPO_NAME=`pushd ${WORKSPACE}/build >/dev/null && git remote show origin -n | grep "Fetch URL:" | sed "s#^.*/\(.*\).git#\1#" && popd > /dev/null`
-fi
 
+REPO_NAME=`pushd ${WORKSPACE}/build >/dev/null && git remote show origin -n | grep "Fetch URL:" | sed "s#^.*/\(.*\).git#\1#" && popd > /dev/null`
 REPOS=("on-http" "on-taskgraph" "on-dhcp-proxy" "on-tftp" "on-syslog")
 
 HTTP_STATIC_FILES="${HTTP_STATIC_FILES}"
@@ -15,18 +13,14 @@ if [ ! -z "${2}" ]; then
 fi
 
 dlHttpFiles() {
-  if [ -n "${MULTI}" ]; then
-    dir=${WORKSPACE}/on-http/static/http/common
-  else
-    dir=${WORKSPACE}/build/static/http/common
-  fi
-  if [[ "${REPO_NAME}" != *"on-http"* ]]; then
+  dir=${WORKSPACE}/build/static/http/common
+  if [ "${REPO_NAME}" != "on-http" ]; then
       dir=${WORKSPACE}/build-deps/on-http/static/http/common
   fi
   mkdir -p ${dir} && cd ${dir}
   # pull down index from bintray repo and parse files from index
   wget --no-check-certificate https://dl.bintray.com/rackhd/binary/builds/ && \
-      exec grep 'href=' index.html | awk '{print $3}' | cut -c8-200 | sed -e "s/\"//g" > files
+      exec  cat index.html |grep -o href=.*\"|sed 's/href=//' | sed 's/"//g' > files
   for i in `cat ./files`; do
     wget --no-check-certificate https://dl.bintray.com/rackhd/binary/builds/${i}
   done
@@ -37,18 +31,14 @@ dlHttpFiles() {
 }
 
 dlTftpFiles() {
-  if [ -n "${MULTI}" ]; then
-    dir=${WORKSPACE}/on-tftp/static/tftp
-  else
-    dir=${WORKSPACE}/build/static/tftp
-  fi
-  if [[ "${REPO_NAME}" != *"on-tftp"* ]]; then
+  dir=${WORKSPACE}/build/static/tftp
+  if [ "${REPO_NAME}" != "on-tftp" ]; then
       dir=${WORKSPACE}/build-deps/on-tftp/static/tftp
   fi
   mkdir -p ${dir} && cd ${dir}
   # pull down index from bintray repo and parse files from index
   wget --no-check-certificate https://dl.bintray.com/rackhd/binary/ipxe/ && \
-      exec grep 'href=' index.html | awk '{print $3}' | cut -c8-200 | sed -e "s/\"//g" > files
+      exec  cat index.html |grep -o href=.*\"|sed 's/href=//' | sed 's/"//g' > files
   for i in `cat ./files`; do
     wget --no-check-certificate https://dl.bintray.com/rackhd/binary/ipxe/${i}
   done
@@ -59,6 +49,7 @@ dlTftpFiles() {
 }
 
 preparePackages() {
+  # If manifest_file_url is not specified, clone the latest code of rackhd
   if [ -z ${MANIFEST_FILE_URL} ];
   then
       rm -rf ${WORKSPACE}/build-deps
@@ -78,6 +69,8 @@ preparePackages() {
          fi
       done
 
+  # If manifest_file_url is specified, checkout the specified version of rackhd
+  # according to manifest file. 
   else
       pushd ${WORKSPACE}
       curl --user ${BINTRAY_USERNAME}:${BINTRAY_API_KEY} -L "${MANIFEST_FILE_URL}" -o rackhd-manifest
@@ -103,29 +96,6 @@ prepareDeps(){
   dlTftpFiles
   dlHttpFiles
   apiPackageModify
-}
-
-apiPackageModify() {
-  if [[ "${REPO_NAME}" == *"on-http"* ]] && [[ "${REPO_NAME}" == *"rackhd"* ]]; then
-    pushd ${WORKSPACE}/on-http/extra
-    sed -i "s/.*git symbolic-ref.*/ continue/g" make-deb.sh
-    sed -i "/build-package.bash/d" make-deb.sh
-    sed -i "/mkdir/d" make-deb.sh
-    sudo bash make-deb.sh
-    popd
-    for package in ${API_PACKAGE_LIST}; do
-      sudo pip uninstall -y ${package//./-}
-      pushd ${WORKSPACE}/on-http/$package
-        fail=true
-        while $fail; do
-          sudo python setup.py install
-          if [ $? -eq 0 ];then
-        	  fail=false
-          fi
-        done
-      popd
-    done
-  fi
 }
 
 VCOMPUTE="${VCOMPUTE}"
@@ -166,8 +136,7 @@ CONFIG_PATH=${CONFIG_PATH-build-config/vagrant/config/mongo}
 vagrantUp() {
   cd ${WORKSPACE}/RackHD/example
   cp -rf ${WORKSPACE}/build-config/vagrant/* .
-  MODIFIED_REPO_NAME=${REPO_NAME// /,}
-  CONFIG_DIR=${CONFIG_PATH} WORKSPACE=${WORKSPACE} REPO_NAME=${MODIFIED_REPO_NAME} MULTI=${MULTI} vagrant up --provision
+  CONFIG_DIR=${CONFIG_PATH} WORKSPACE=${WORKSPACE} REPO_NAME=${REPO_NAME} vagrant up --provision
   if [ $? -ne 0 ]; then 
       echo "Vagrant up failed."
       exit 1
@@ -231,7 +200,7 @@ runTests() {
 
 waitForAPI() {
   timeout=0
-  maxto=60
+  maxto=30
   url=http://localhost:9090/api/1.1/nodes
   while [ ${timeout} != ${maxto} ]; do
     wget --retry-connrefused --waitretry=1 --read-timeout=20 --timeout=15 -t 1 --continue ${url}

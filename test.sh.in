@@ -59,6 +59,7 @@ dlTftpFiles() {
 }
 
 preparePackages() {
+  # If manifest_file_url is not specified, clone the latest code of rackhd
   if [ -z ${MANIFEST_FILE_URL} ];
   then
       rm -rf ${WORKSPACE}/build-deps
@@ -78,6 +79,8 @@ preparePackages() {
          fi
       done
 
+  # If manifest_file_url is specified, checkout the specified version of rackhd 
+  # according to manifest file.
   else
       pushd ${WORKSPACE}
       curl --user ${BINTRAY_USERNAME}:${BINTRAY_API_KEY} -L "${MANIFEST_FILE_URL}" -o rackhd-manifest
