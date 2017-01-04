@@ -180,6 +180,7 @@ create_vagrant_file() {
 }
 
 post_test_vagrant() {
+    create_vagrant_file
     vagrant destroy -f
     vagrant up --provision
     waitForAPI

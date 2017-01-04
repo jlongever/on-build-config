@@ -47,7 +47,7 @@ doBuild() {
     # List order is important, on-tasks image build is based on on-core image, 
     # on-http and on-taskgraph ard based on on-tasks image 
     # others are based on on-core image
-    repos=$(echo "on-core on-syslog on-dhcp-proxy on-tftp on-wss on-statsd on-tasks on-taskgraph on-http")
+    repos=$(echo "on-imagebuilder on-core on-syslog on-dhcp-proxy on-tftp on-wss on-statsd on-tasks on-taskgraph on-http")
     #Record all repo:tag for post-pushing
     repos_tags=""
     #Set an empty TAG before each build
@@ -69,7 +69,10 @@ doBuild() {
             echo "Building rackhd/$repo$TAG"
             repos_tags=$repos_tags$repo$TAG" "
             cp Dockerfile ../Dockerfile.bak
-            if [ "$repo" != "on-core" ];then
+            if [ "$repo" == "on-imagebuilder" ]; then
+                    docker build -t rackhd/files$TAG .
+                    repos_tags=files$TAG" "
+            elif [ "$repo" != "on-core" ];then
                     # Use the new sources.list
                     sed -i "/^FROM/a RUN mv /etc/apt/sources.list /etc/apt/sources.list.bak\nADD $SOURCE_LIST /etc/apt/sources.list" Dockerfile
                     #Based on newly build upstream image to build
