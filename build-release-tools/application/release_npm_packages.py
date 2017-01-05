@@ -128,6 +128,7 @@ def publish_packages(build_dir, is_official_release, npm_registry, npm_token):
         for package in npm_packages:
             package_dir = os.path.join(build_dir, package)
             npm = NPM(npm_registry, npm_token)
+            print "starting to publish npm package {0}".format(package)
             if is_official_release:
                 npm.publish_package(package_dir)
             else:
