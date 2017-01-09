@@ -124,6 +124,8 @@ def publish_packages(build_dir, is_official_release, npm_registry, npm_token):
     Publish all the npm packages under directory specified by build_dir
     """
     npm_packages = get_npm_packages(build_dir)
+    # Skip the release of di.js
+    npm_packages.remove("di.js")
     for package in npm_packages:
         try:
             package_dir = os.path.join(build_dir, package)
