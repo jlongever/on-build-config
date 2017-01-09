@@ -2,12 +2,12 @@
 # Copyright 2015-2016, EMC, Inc.
 
 """
-The script will update the debian/changelog files, inside all git repos under the folder which "build-dir" param specified. 
-The version field in changelog file will be updated to given version ( via "dch  -v $ver -b -m" command).
-
+The script will update the version of debian/changelog and package.json files, inside all git repos under the folder which "build-dir" param specified. 
+The version field in debian/changelog file will be updated to given version ( via "dch  -v $ver -b -m" command).
+The version field in package.json will be updated to given version (via "npm version --no-git-tag-version #ver" command)
 
 usage:
-./on-tools/manifest-build-tools/HWIMO-BUILD on-tools/manifest-build-tools/application/update_changelog.py \
+./on-build-config/build-release-tools/HWIMO-BUILD on-build-config/build-release-tools/application/jump_version.py
 --build-dir d/ \
 --version 1.2.6 \
 --publish \
@@ -29,10 +29,14 @@ git-credential: url, credentials pair for the access to github repos.
 import os
 import sys
 import argparse
-import datetime
-import subprocess
-from RepositoryOperator import RepoOperator
-from common import *
+
+try:
+    from RepositoryOperator import RepoOperator
+    from npm import NPM
+    import common
+except ImportError as import_err:
+    print import_err
+    sys.exit(1)
 
 class ChangelogUpdater(object):
     def __init__(self, repo_dir, version):
@@ -63,7 +67,7 @@ class ChangelogUpdater(object):
         :return: the name of the repository
         """
         repo_url = self.repo_operator.get_repo_url(self._repo_dir)
-        repo_name = strip_suffix(os.path.basename(repo_url), ".git")
+        repo_name = common.strip_suffix(os.path.basename(repo_url), ".git")
         return repo_name
 
     def update_changelog(self, message=None):
@@ -85,7 +89,7 @@ class ChangelogUpdater(object):
                     for debianstatic_filename in os.listdir(debianstatic_dir):
                         if debianstatic_filename == repo_name:
                             debianstatic_repo_dir = "debianstatic/{0}".format(repo_name)
-                            link_dir(debianstatic_repo_dir, "debian", self._repo_dir)
+                            common.link_dir(debianstatic_repo_dir, "debian", self._repo_dir)
                             linked = True
 
         if not debian_exist and not linked:
@@ -96,24 +100,61 @@ class ChangelogUpdater(object):
         # -b: Force a version to be less than the current one
         # -m: Don't change (maintain) the trailer line in the changelog entry; i.e.
         #     maintain the maintainer and date/time details
-        cmd_args = ["dch", "-v", self._version, "-b", "-m"]
-        if message is None:
-            message = "new release {0}".format(self._version)
-        cmd_args += ["-p", message]
-        proc = subprocess.Popen(cmd_args,
-                                cwd=self._repo_dir,
-                                stderr=subprocess.PIPE,
-                                stdout=subprocess.PIPE,
-                                shell=False)
-        (out, err) = proc.communicate()
+        try:
+            cmd_args = ["dch", "-v", self._version, "-b", "-m"]
+            if message is None:
+                message = "new release {0}".format(self._version)
+            cmd_args += ["-p", message]
+            common.run_command(cmd_args, directory=self._repo_dir)
+      
+            if linked:
+                os.remove(os.path.join(self._repo_dir, "debian"))
 
-        if linked:
-            os.remove(os.path.join(self._repo_dir, "debian"))
-
-        if proc.returncode != 0:
+            return True
+        except Exception, err:
             raise RuntimeError("Failed to add an entry for {0} in debian/changelog due to {1}".format(self._version, err))
 
-        return True
+
+class NPMVersionUpdater(object):
+    def __init__(self, repo_dir, version):
+        """
+        The module updates package.json under the directory of repository
+        _repo_dir: the directory of the repository
+        _version: the new version which is going to be updated to package.json
+        """
+        self._repo_dir = repo_dir
+        self._version = version
+
+    def package_exist(self):
+        """
+        check whether package.json exists under the repository
+        return: True if it exist
+                False
+        """
+        if os.path.isdir(self._repo_dir):
+            for filename in os.listdir(self._repo_dir):
+                if filename == "package.json":
+                    return True
+        return False
+
+    def update_package_json(self):
+        """
+        add the version of package.json
+        return: Ture if changelog is updated
+                False, otherwise
+        """
+        package_exist = self.package_exist()
+        if not package_exist:
+            print "No package.json under {0}".format(self._repo_dir)
+            return False
+        try:
+            print "start to update version of {0}".format(self._repo_dir)
+            NPM.update_version(self._repo_dir, version=self._version)
+            return True
+        except Exception, e:
+            raise RuntimeError("Failed to update the version of package.json under {0}\ndue to {1}"\
+                               .format(self._repo_dir, e))
+
 
 def parse_command_line(args):
     """
@@ -157,13 +198,17 @@ def main():
         for filename in os.listdir(args.build_dir):
             try:
                 repo_dir = os.path.join(args.build_dir, filename)
-                updater = ChangelogUpdater(repo_dir, args.version)
-                if updater.update_changelog(message = args.message):
+                changelog_updater = ChangelogUpdater(repo_dir, args.version)
+                npm_package_updater = NPMVersionUpdater(repo_dir, args.version)
+                package_updated = npm_package_updater.update_package_json()
+                changelog_updated = changelog_updater.update_changelog(message = args.message)
+                if changelog_updated or package_updated:
                     if args.publish:
-                        commit_message = "update changelog for new release {0}".format(args.version)
+                        print "start to push changes in {0}".format(repo_dir)
+                        commit_message = "jump version for new release {0}".format(args.version)
                         repo_operator.push_repo_changes(repo_dir, commit_message)
             except Exception,e:
-                print "Failed to update changelog of {0} due to {1}".format(filename, e)
+                print "Failed to jump version of {0} due to {1}".format(filename, e)
                 sys.exit(1)
     else:
         print "The argument build-dir must be a directory"

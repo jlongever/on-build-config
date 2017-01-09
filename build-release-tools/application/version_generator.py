@@ -3,7 +3,7 @@
 
 """
 The script compute the version of a package, just like:
-1.1-1-20161129UTC
+1.1.1-20161129UTC
 
 usage:
 ./on-tools/manifest-build-tools/HWIMO-BUILD on-tools/manifest-build-tools/application/version_generator.py \
@@ -20,6 +20,7 @@ The optional parameters:
 is-official-release: whether the release is official (default value is false)
 """
 import os
+import json
 import sys
 import argparse
 from datetime import datetime,timedelta
@@ -35,9 +36,8 @@ class VersionGenerator(object):
     def __init__(self, repo_dir):
         """
         This module compute the version of a repository
-        The version for candidate release: {big-version}~{version-stage}-{small-version}
-        The big version is parsed from debian/changelog
-        The version-stage is devel if branch is master; or rc if branch if not master
+        The version for candidate release: {release_version}-{build_version}
+        The release version is parsed from debian/changelog
         The samll version is consist of the commit hash and commit date of manifest repository
         :return:None
         """
@@ -50,11 +50,11 @@ class VersionGenerator(object):
         repo_name = common.strip_suffix(os.path.basename(repo_url), ".git")
         return repo_name
 
-    def generate_small_version(self):
+    def generate_build_version(self):
         """
-        Generate the small version which consists of commit date and commit hash of manifest repository
-        According to small version, users can track the commit of all repositories in manifest file
-        return: small version 
+        Generate the build version which consists of commit date and commit hash of manifest repository
+        According to build version, users can track the commit of all repositories in manifest file
+        return: build version 
         """
         if self._repo_name == "RackHD":
             utc_now = datetime.utcnow()
@@ -80,11 +80,11 @@ class VersionGenerator(object):
                     return True
         return False
 
-    def generate_big_version(self):
+    def generate_debian_release_version(self):
         """
-        Generate the big version according to changelog
-        The big version is the latest version of debian/changelog
-        return: big version
+        Generate the release version according to changelog
+        The release version is the latest version of debian/changelog
+        return: release version
         """
         # If the repository has the debianstatic/repository name/,
         # create a soft link to debian before compute version
@@ -109,39 +109,48 @@ class VersionGenerator(object):
 
         return version
 
-    def generate_version_stage(self):
+    def generate_npm_release_version(self):
         """
-        Generate the version stage according to the stage of deveplopment
-        return: devel ,if the branch is master
-                rc, if the branch is not master
+        Generate the release version according to the version field in package.json
         """
-        current_branch = self.repo_operator.get_current_branch(self._repo_dir)
-        version_stage = ""
-        if "master" in current_branch:
-            version_stage = "devel"
-        else:
-            version_stage = "rc"
-        return version_stage
-        
-    def generate_package_version(self, is_official_release):
+        package_json_file = os.path.join(self._repo_dir, "package.json")
+        if not os.path.exists(package_json_file):
+            # if there's no package.json file, there is nothing more for us to do here
+            return None
+        with open(package_json_file, "r") as fp:
+            package_data = json.load(fp)
+            fp.close()     
+            version = package_data["version"]
+            return version
+
+    def generate_package_version(self, is_official_release, version_type="debian"):
         """
-        generate the version of package, just like:
-        1.1-1-devel-20160809150908-7396d91 or 1.1-1
+        Generate the version of package, just like:
+        1.1.1-20160809150908UTC-7396d91 or 1.1.1
         :return: package version
         """
-        big_version = self.generate_big_version()
-        if big_version is None:
-            common.logging.warning("Failed to generate big version, maybe the {0} doesn't contain debian directory".format(self._repo_dir))
+        
+        if version_type == "debian":
+            release_version = self.generate_debian_release_version()
+        elif version_type == "npm":
+            release_version = self.generate_npm_release_version()
+        else:
+            common.logging.error("The parameter version_type {0} is not valid".format(version_type))
+            common.logging.error("The parameter version_type can only be debian or npm")
+            return None
+
+        if release_version is None:
+            common.logging.warning("Failed to generate release version, maybe the {0} doesn't contain debian directory or package.json".format(self._repo_dir))
             return None
 
         if is_official_release:
-            version = big_version
+            version = release_version
         else:
-            small_version = self.generate_small_version()
-            if small_version is None:
-                raise RuntimeError("Failed to generate version for {0}, due to the small version is None".format(self._repo_dir))
+            build_version = self.generate_build_version()
+            if build_version is None:
+                raise RuntimeError("Failed to generate version for {0}, due to the build version is None".format(self._repo_dir))
 
-            version = "{0}-{1}".format(big_version, small_version)
+            version = "{0}-{1}".format(release_version, build_version)
         
         return version
 
