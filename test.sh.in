@@ -279,6 +279,9 @@ fi
 
 if [ "$RUN_CIT_TEST" == true ] || [ "$RUN_FIT_TEST" == true ] ; then
 
+  #avoid previous run exist abnormally, without cleanup, do the vagrant destroy again in current folder
+  vagrantDestroy
+  
   # Power off nodes
   nodesOff
 
