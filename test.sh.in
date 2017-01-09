@@ -279,8 +279,7 @@ fi
 
 if [ "$RUN_CIT_TEST" == true ] || [ "$RUN_FIT_TEST" == true ] ; then
 
-  #avoid previous run exist abnormally, without cleanup, do the vagrant destroy again in current folder
-  vagrantDestroy
+  # based on the assumption that in the same folder, the VMs has been exist normally. so don't destroy VM here.
   
   # Power off nodes
   nodesOff
@@ -309,7 +308,7 @@ if [ "$RUN_CIT_TEST" == true ] || [ "$RUN_FIT_TEST" == true ] ; then
   #vagrantSuspendAll
 
   # Delete any running VMs
-  virtualBoxDestroyRunning
+  #virtualBoxDestroyRunning
 
 
 fi
