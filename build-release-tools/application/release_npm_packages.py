@@ -123,9 +123,9 @@ def publish_packages(build_dir, is_official_release, npm_registry, npm_token):
     """
     Publish all the npm packages under directory specified by build_dir
     """
-    try:
-        npm_packages = get_npm_packages(build_dir)
-        for package in npm_packages:
+    npm_packages = get_npm_packages(build_dir)
+    for package in npm_packages:
+        try:
             package_dir = os.path.join(build_dir, package)
             npm = NPM(npm_registry, npm_token)
             print "starting to publish npm package {0}".format(package)
@@ -133,8 +133,12 @@ def publish_packages(build_dir, is_official_release, npm_registry, npm_token):
                 npm.publish_package(package_dir)
             else:
                 npm.publish_package(package_dir, tag="ci-release")
-    except Exception, e:
-        raise RuntimeError("Failed to publish packages under {0} \ndue to {1}".format(build_dir, e))
+        except Exception, e:
+            if e.message.find("You cannot publish over the previously published version") != -1:
+                print "The version of the package {0} is already published".format(package)
+                pass
+            else:
+                raise RuntimeError("Failed to publish packages under {0} \ndue to {1}".format(build_dir, e))
 
 
 def checkout_repos(manifest, builddir, force, jobs, git_credential=None):
