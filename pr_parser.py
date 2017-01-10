@@ -133,8 +133,9 @@ class PrParser(object):
                 continue
             position = pr_words.index('jenkins')
 
-            #Checks to make sure jenkins is not the last element in pr_words
-            if ((position+1) == len(pr_words)) :
+            #Checks to make sure the pr_words are long enough to parse.
+            #Needs to be at least length of 3 ("Jenkins ignore/depend PR")
+            if ((position+2) >= len(pr_words)) :
                 continue
 
             #analyse dependency relationship, "depend" or "ignore" 
