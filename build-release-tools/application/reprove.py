@@ -59,9 +59,9 @@ class ManifestActions(object):
     valid actions:
     checkout: check out a set of repositories to match the manifest file
     """
-    valid_actions = ['checkout', 'branch', 'packagerefs']
+    valid_actions = ['checkout', 'branch', 'packagerefs', 'tag']
 
-    def __init__(self, manifest_path, builddir, force=False, git_credentials=None, jobs=1, actions=[], branch_name=None):
+    def __init__(self, manifest_path, builddir, force=False, git_credentials=None, jobs=1, actions=[], branch_name=None, tag_name=None):
         """
         __force - Overwrite a directory if it exists
         __git_credential - url, credentials pair for the access to github repos
@@ -82,7 +82,7 @@ class ManifestActions(object):
             self.add_action(action)
 
         self._branch_name = branch_name
-       
+        self._tag_name = tag_name
         self.repo_operator = RepoOperator(self._git_credentials)
 
     def set_force(self, force):
@@ -145,8 +145,8 @@ class ManifestActions(object):
                 print "  {0}".format(op)
             sys.exit(1)
         else:
-            if action == "branch" and self._git_credentials == None:
-                print "Must Specify git_credentials when try to create branch"
+            if action in ['branch', 'tag'] and self._git_credentials == None:
+                print "Must Specify git_credentials when try to write repository"
                 sys.exit(1)
             self.actions.append(action)
 
@@ -238,9 +238,12 @@ class ManifestActions(object):
         if 'branch' in self.actions:
             self.execute_branch_action()
 
+        if 'tag' in self.actions:
+            self.create_tag()
+
         # Start to update the packge.json, for example:
         # - git+https://github.com/RackHD/on-core.git
-        # +     
+        # + 
         if 'packagerefs' in self.actions:
             self.update_package_references()
 
@@ -396,6 +399,42 @@ class ManifestActions(object):
 
         return version
 
+
+    def create_tag(self):
+        if self._tag_name is None:
+            raise ValueError("No setting for branch-name")
+        else:
+            print "create tag for the repos..."
+            self.tag_existing_repositories()
+
+    def tag_existing_repositories(self):
+        """
+        Issues set_tagname commands to repos in a provided manifest
+        :return: None
+        """
+        repo_list = self._manifest.repositories
+        if repo_list is None:
+            print "No repository list found in manifest file"
+            sys.exit(2)
+        else:
+            # Loop through list of repos and create specified tag on each
+            for repo in repo_list:
+                self.set_repo_tagname(repo)
+  
+    def set_repo_tagname(self, repo):
+        """
+        Sets tagname on the repos in the manifest file
+        :param repo: A dictionary
+        :return: None
+        """
+        try:
+            repo_url = repo["repository"]
+            repo_directory = self.directory_for_repo(repo)
+            self.repo_operator.set_repo_tagname(repo_url, repo_directory, self._tag_name)
+        except RuntimeError as error:
+            print "Exiting due to error: {0}".format(error)
+            sys.exit(1)
+
     def push_changed_repositories(self, commit_message):
         repo_list = self._manifest.repositories
         if repo_list is None:
@@ -444,6 +483,9 @@ def parse_command_line(args):
     parser.add_argument("--branch-name",
                         help="branch name applied to repos",
                         action="store")
+    parser.add_argument("--tag-name",
+                        help="tag name applied to repos",
+                        action="store")
     parser.add_argument("--jobs",
                         default=1,
                         help="Number of parallel jobs to run",
@@ -461,7 +503,7 @@ def main():
         args = parse_command_line(sys.argv[1:])
     
         # Create and initial an instance of ManifestActions
-        manifest_actions = ManifestActions(args.manifest, args.builddir, force=args.force, git_credentials=args.git_credential, jobs=args.jobs, actions=args.action, branch_name=args.branch_name)
+        manifest_actions = ManifestActions(args.manifest, args.builddir, force=args.force, git_credentials=args.git_credential, jobs=args.jobs, actions=args.action, branch_name=args.branch_name, tag_name=args.tag_name)
 
         manifest_actions.execute_actions()
     except Exception,e:
