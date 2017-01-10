@@ -30,6 +30,7 @@ jobs: Number of parallel jobs(build debian packages) to run.
 import argparse
 import os
 import sys
+import json
 
 try:
     from reprove import ManifestActions
@@ -98,12 +99,12 @@ def get_npm_packages(build_dir):
                     packages.append(dirname)
     return packages
 
-def update_packages_version(build_dir, is_official_release):
-    """
-    Compute the version of package and update the package.json with the version
-    :param build_dir: The directory of rackhd repository
-    :param is_official_release: If true, this release is official release
-    """
+def compute_packages_version(build_dir, is_official_release):
+    '''
+    compute the version of packages under the build_dir
+    return: a dict like: {"pacakge name": "version"}
+    '''
+    version_dict = {}
     try:
         npm_packages = get_npm_packages(build_dir)
         for package in npm_packages:
@@ -111,13 +112,72 @@ def update_packages_version(build_dir, is_official_release):
             version_generator = VersionGenerator(package_dir)
             version = version_generator.generate_package_version(is_official_release, version_type="npm")
             if version != None:
-                print "starting to update version of {0} to {1}".format(package_dir, version)
-                NPM.update_version(package_dir, version=version)
+                version_dict[package] = version
             else:
-                raise RuntimeError("Failed to update version of {package} due to version is None".format(package=package_dir))
-            
+                raise RuntimeError("Failed to compute version of {package} due to version is None".format(package=package_dir))
+        return version_dict
+
+    except Exception, e:
+        raise RuntimeError("Failed to compute version for packages under {0} \ndue to {1}".format(build_dir, e))
+    
+def update_packages_version(build_dir, version_dict):
+    """
+    Update the package.json with the version
+    :param build_dir: The directory of rackhd repository
+    :param version_dict: a dict contains package name and version
+    """
+    try:
+        for key, value in version_dict.iteritems():
+            package_dir = os.path.join(build_dir, key)
+            print "starting to update version of {0} to {1}".format(package_dir, value)
+            NPM.update_version(package_dir, version=value)
     except Exception, e:
         raise RuntimeError("Failed to update version for package under {0} \ndue to {1}".format(build_dir, e))
+
+def update_packages_dependency(build_dir, version_dict):
+    """
+    Update the dependency of package.json.
+    For example:
+    - "on-core": "git+https://github.com/RackHD/on-core.git",
+    + "on-core": "1.0.0",
+    """
+    try:
+        for key, value in version_dict.items():
+            package_dir = os.path.join(build_dir, key)
+            print "starting to update the dependency of {0}".format(package_dir)
+            update_dependency(package_dir, version_dict)
+    except Exception, e:
+        raise RuntimeError("Failed to update dependency for package under {0} \ndue to {1}".format(build_dir, e))
+
+
+def update_dependency(package_dir, version_dict):
+    package_json_file = os.path.join(package_dir, "package.json")
+    if not os.path.exists(package_json_file):
+        # If there's no package.json file, there is nothing more for us to do here
+        return
+
+    changes = False
+    log = ""
+    with open(package_json_file, "r") as fp:
+        package_data = json.load(fp)
+        if "dependencies" in package_data:
+            for package, version in package_data["dependencies"].items():
+                new_version = None
+                if package in version_dict:
+                    new_version = version_dict[package]
+                if new_version is not None and version != new_version:
+                    package_data["dependencies"][package] = new_version
+                    changes = True
+                    log += "  {0}:\n    WAS {1}\n    NOW {2}\n".format(package,version,new_version)
+
+    if changes:
+        print "There are changes to dependencies for {0}\n{1}".format(package_json_file, log)
+        os.remove(package_json_file)
+        new_file = package_json_file
+        with open(new_file, "w") as newfile:
+            json.dump(package_data, newfile, indent=4, sort_keys=True)
+    else:
+        print "There are NO changes to data for {0}".format(package_json_file)
 
 def publish_packages(build_dir, is_official_release, npm_registry, npm_token):
     """
@@ -160,7 +220,10 @@ def main():
     args = parse_args(sys.argv[1:])
     npm_registry, npm_token = args.npm_credential.split(',', 2)
     checkout_repos(args.manifest_file, args.build_directory, args.force, args.jobs, git_credential=args.git_credential)
-    update_packages_version(args.build_directory, args.is_official_release)
+
+    version_dict = compute_packages_version(args.build_directory, args.is_official_release)
+    update_packages_version(args.build_directory, version_dict)
+    update_packages_dependency(args.build_directory, version_dict)
     publish_packages(args.build_directory, args.is_official_release, npm_registry, npm_token)
 
 if __name__ == '__main__':
