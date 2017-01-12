@@ -402,12 +402,12 @@ class ManifestActions(object):
 
     def create_tag(self):
         if self._tag_name is None:
-            raise ValueError("No setting for branch-name")
+            raise ValueError("No setting for tag-name")
         else:
             print "create tag for the repos..."
-            self.tag_existing_repositories()
+            self.create_tag_for_repositories()
 
-    def tag_existing_repositories(self):
+    def create_tag_for_repositories(self):
         """
         Issues set_tagname commands to repos in a provided manifest
         :return: None
@@ -423,7 +423,7 @@ class ManifestActions(object):
   
     def set_repo_tagname(self, repo):
         """
-        Sets tagname on the repos in the manifest file
+        Add a tag to a repository
         :param repo: A dictionary
         :return: None
         """
