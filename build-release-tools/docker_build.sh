@@ -19,6 +19,9 @@ WORKDIR=${WORKDIR:=$(dirname $(dirname $BASEDIR))}
 IS_OFFICIAL_RELEASE=${2}
 IS_OFFICIAL_RELEASE=${IS_OFFICIAL_RELEASE:=false}
 
+BUILD_NIGHTLY=false
+BUILD_LATEST=false
+
 tagCalculate() {
     repo=$1
     #Get package version from debian/changelog
@@ -62,7 +65,9 @@ doBuild() {
         fi
         pushd $repo
             PKG_TAG=""
-            if [ "$BUILD_LATEST" != true ]; then
+            if [ "$BUILD_NIGHTLY" == true ]; then
+                TAG=:nightly
+            elif [ "$BUILD_LATEST" != true ]; then
                 tagCalculate $repo
                 TAG=:${PKG_TAG}
             fi
@@ -119,6 +124,10 @@ doBuild
 if [[ "$IS_OFFICIAL_RELEASE" == true ]];then
     # latest tag is for master branch build.
     BUILD_LATEST=true
+    doBuild
+else
+    # nightly tag is for nightly build.
+    BUILD_NIGHTLY=true
     doBuild
 fi
 # Build ends
