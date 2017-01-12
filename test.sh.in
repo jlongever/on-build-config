@@ -1,4 +1,7 @@
 #!/bin/bash +xe
+
+
+export VCOMPUTE=("${NODE_NAME}-Rinjin1","${NODE_NAME}-Rinjin2","${NODE_NAME}-Quanta")
 if [ -z "${REPO_NAME}" ]; then
   REPO_NAME=`pushd ${WORKSPACE}/build >/dev/null && git remote show origin -n | grep "Fetch URL:" | sed "s#^.*/\(.*\).git#\1#" && popd > /dev/null`
 fi
@@ -188,6 +191,26 @@ nodesOn() {
   fi
 }
 
+nodesDelete() {
+  cd ${WORKSPACE}/build-config/deployment/
+  if [ "${USE_VCOMPUTE}" != "false" ]; then
+    for i in ${VCOMPUTE[@]}; do
+      ./vm_control.sh "${ESXI_HOST},${ESXI_USER},${ESXI_PASS},delete,1,${i}_*"
+    done
+  fi
+}
+
+nodesCreate() {
+  cd ${WORKSPACE}/build-config/deployment/
+  if [ "${USE_VCOMPUTE}" != "false" ]; then
+    for i in {1..2}
+    do
+       ovftool --noSSLVerify --diskMode=${DISKMODE} --datastore=${DATASTORE}  --name="${NODE_NAME}-Rinjin${i}" --net:"${NIC}=${NODE_NAME}-switch" "${HOME}/isofarm/OVA/vRinjin-Haswell.ova"   vi://${ESXI_USER}:${ESXI_PASS}@${ESXI_HOST}
+    done
+    ovftool  --noSSLVerify --diskMode=${DISKMODE} --datastore=${DATASTORE} --name="${NODE_NAME}-Quanta" --net:"${NIC}=${NODE_NAME}-switch" "${HOME}/isofarm/OVA/vQuanta-T41-Haswell.ova"   vi://${ESXI_USER}:${ESXI_PASS}@${ESXI_HOST}
+  fi
+}
+
 CONFIG_PATH=${CONFIG_PATH-build-config/vagrant/config/mongo}
 vagrantUp() {
   cd ${WORKSPACE}/RackHD/example
@@ -202,6 +225,7 @@ vagrantUp() {
 vagrantDestroy() {
   cd ${WORKSPACE}/RackHD/example
   vagrant destroy -f
+  nodesDelete
 }
 
 vagrantHalt() {
@@ -285,7 +309,9 @@ waitForAPI() {
 }
 if [ "$SKIP_PREP_DEP" == false ] ; then
   # Prepare the latest dependent repos to be shared with vagrant
+  nodesDelete
   prepareDeps
+  #nodesCreate
 fi
 
 if [ "$RUN_CIT_TEST" == true ] || [ "$RUN_FIT_TEST" == true ] ; then
@@ -296,8 +322,8 @@ if [ "$RUN_CIT_TEST" == true ] || [ "$RUN_FIT_TEST" == true ] ; then
   # based on the assumption that in the same folder, the VMs has been exist normally. so don't destroy VM here.
   
   # Power off nodes
-  nodesOff
-
+  #nodesOff
+  nodesCreate
   # Power on vagrant box and nodes 
   vagrantUp
   # We setup the virtual-environment here, since once we
