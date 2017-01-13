@@ -117,7 +117,7 @@ class PrParser(object):
         pr_text_segment = []
         for pr_text in pr_texts:
             pr_text = pr_text.lower()
-            partition = pr_text.split('jenkins')
+            partition = [i for i in pr_text.split('jenkins') if i]
             if len(partition) <= 1:
                 continue
             for segment in partition[1:]:
