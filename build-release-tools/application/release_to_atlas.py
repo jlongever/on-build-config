@@ -108,11 +108,8 @@ def upload_boxs(build_directory, atlas, is_release, atlas_version):
                 import time
                 datatime_now_md = time.strftime("0.%m.%d", time.gmtime(int(datetime.utcnow().strftime('%s')) - 24*60*60))
                 atlas_version = datatime_now_md
-        try:
             atlas.upload_handler(atlas_version, "virtualbox", full_file_path)
-        except Exception as e:
-            print e.message
-            sys.exit(1)
+
 
 def main():
     """
