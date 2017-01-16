@@ -279,6 +279,9 @@ fi
 
 if [ "$RUN_CIT_TEST" == true ] || [ "$RUN_FIT_TEST" == true ] ; then
 
+  # register the signal handler to clean up( vagrantDestroy ), with process being killed
+  trap vagrantDestroy SIGINT SIGTERM SIGKILL
+
   # based on the assumption that in the same folder, the VMs has been exist normally. so don't destroy VM here.
   
   # Power off nodes
