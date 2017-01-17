@@ -217,7 +217,7 @@ def upload_boxs(build_directory, atlas, is_release, atlas_version):
             if is_release:
                 # Box file name is like "rackhd-ubuntu-14.04-1.2.3.box" when release.
                 # Extract 1.2.3 only
-                atlas_version = "-".join(full_file_path.split('/')[-1:][0].strip(".box").split('-')[3])
+                atlas_version = full_file_path.split('/')[-1:][0].strip(".box").split('-')[3]
             else:
                 from datetime import datetime
                 datatime_now_md = datetime.utcnow().strftime("0.%m.%d")

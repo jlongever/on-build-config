@@ -94,6 +94,9 @@ while [ "$1" != "" ];do
         --buildRecord)
             shift
             buildRecord=$1;;
+        --rackhdVersion)
+            shift
+            rackhdVersion=$1;;
         *)
         exit 1
     esac
@@ -103,6 +106,7 @@ done
 findRackHDService() {
     case $type in
         ova)
+        service_normal_sentence="Authentication Failed"
         # ova northPort default to 8080
         api_test_result=`ansible ova-for-post-test -a "wget --retry-connrefused --waitretry=1 --read-timeout=20 --timeout=15 -t 1 --continue localhost:8080/api/2.0/nodes"`
         echo $api_test_result | grep "$service_normal_sentence" > /dev/null  2>&1
@@ -120,7 +124,6 @@ findRackHDService() {
 
 waitForAPI() {
     #will be edit after build own ova
-    service_normal_sentence="Authentication Failed"
     timeout=0
     maxto=60
     while [ ${timeout} != ${maxto} ]; do
@@ -136,6 +139,23 @@ waitForAPI() {
         echo "Timed out waiting for RackHD API service (duration=`expr $maxto \* 10`s)."
         exit 1
       fi
+}
+
+checkRackHDVersion() {
+    case $type in
+        ova)
+        installed_version=`ansible ova-for-post-test -a "apt-cache policy rackhd" | grep Installed | awk '{print $2}'`
+        ;;
+        vagrant)
+        installed_version=`vagrant ssh -c "apt-cache policy rackhd" | grep Installed | awk '{print $2}'`
+        ;;
+    esac
+    if [ "$installed_version" != "$rackhdVersion" ]; then
+        echo "Installed wrong rackhd version $installed_version"
+        exit 1
+    else
+        echo "Installed correct rackhd version $installed_version"
+    fi
 }
 
 ############################################
@@ -165,6 +185,7 @@ post_test_ova() {
     delete_ova
     deploy_ova
     waitForAPI
+    checkRackHDVersion
     delete_ova
 }
 
@@ -184,6 +205,7 @@ post_test_vagrant() {
     vagrant destroy -f
     vagrant up --provision
     waitForAPI
+    checkRackHDVersion
     vagrant destroy -f
 }
 
