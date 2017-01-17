@@ -163,8 +163,25 @@ class BuildCommand(object):
     @sudo_creds.setter
     def sudo_creds(self, sudo_creds):
         self._sudo_creds = sudo_creds
-        
-    def to_string(self):
+    
+    @staticmethod
+    def import_environment_file(env_file):
+        print "start to import environment file {0}".format(env_file)
+        if not os.path.isfile(env_file):
+            raise RuntimeError("Failed to import environment file due to the file {0} doesn't exist"
+                               .format(env_file))
+        props = common.parse_property_file(env_file)
+        if props:
+            my_env = os.environ.copy()
+            my_env_str = ""
+            for item in props.items():
+                key = item[0]
+                value = item[1]
+                my_env[key] = value
+                my_env_str += "{key}={value} ".format(key=key, value=value)
+        return my_env, my_env_str
+
+    def to_string(self, my_env_str):
         cmd_args = []
         if self._use_sudo:
             if self._sudo_creds is None:
@@ -173,7 +190,10 @@ class BuildCommand(object):
             cmd_args += ["echo"]
             cmd_args += [password]
             cmd_args += ["|sudo -S"]
-
+            if my_env_str is not None and my_env_str != "":
+                cmd_args += ["env "]
+                cmd_args += [my_env_str]
+                
         cmd_args += [self._name]
 
         if self._arguments:
@@ -182,14 +202,20 @@ class BuildCommand(object):
         command_str = " ".join(cmd_args)
         return command_str
 
-    def run(self):
+    def run(self, env_file = None):
         try:
-            command = self.to_string()
+            my_env = os.environ.copy()
+            my_env_str = ""
+            if env_file is not None:
+                my_env, my_env_str = self.import_environment_file(env_file)
+
+            command = self.to_string(my_env_str)
             print "Execute command: {0} under {1}".format(command, self._directory)
             proc = subprocess.Popen(command,
                                     stderr=subprocess.PIPE,
                                     stdout=subprocess.PIPE,
                                     cwd=self._directory,
+                                    env=my_env,
                                     shell=True)
             (out, err) = proc.communicate()
         except Exception, ex:
@@ -244,19 +270,6 @@ class Builder(ParallelTasks):
 
         super(Builder, self).add_task(data, name)
 
-    @staticmethod
-    def initail_environment(env_file):
-        print "start to export environment file {0}".format(env_file)
-        if not os.path.isfile(env_file):
-            raise RuntimeError("Failed to initial environment due to the file {0} doesn't exist"
-                               .format(env_file))
-        props = common.parse_property_file(env_file)
-        if props:
-            for item in props.items():
-                key = item[0]
-                value = item[1]
-                os.environ[key] = value
-
     def do_one_task(self, name, data, results):
         """
         Perform the actual work.
@@ -268,13 +281,14 @@ class Builder(ParallelTasks):
             if 'command' not in results:
                 results['command'] = []
 
+            my_env_file = None
             if 'env_file' in data and data['env_file'] is not None:
-                self.initail_environment(data['env_file'])
+                my_env_file = data['env_file']
 
             for command in data['commands']:
                 if not command.is_executable():
                     build_result = BuildResult(command, present=False)
-                build_result = command.run()
+                build_result = command.run(env_file=my_env_file)
                 if build_result is not None:
                     results['command'].append(build_result)
 
