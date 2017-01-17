@@ -63,12 +63,12 @@ dlTftpFiles() {
   if [[ "${REPO_NAME}" != *"on-tftp"* ]]; then
       dir=${WORKSPACE}/build-deps/on-tftp/static/tftp
   fi
+    mkdir -p ${dir} && cd ${dir}
   if [ -n "${INTERNAL_TFTP_ZIP_FILE_URL}" ]; then
     # use INTERNAL TEMP SOURCE
-    wget ${INTERNAL_TFTP_FILE_ZIP_URL} 
+    wget ${INTERNAL_TFTP_ZIP_FILE_URL} 
     unzip pxe.zip && mv pxe/* . && rm -rf pxe pxe.zip
   else
-    mkdir -p ${dir} && cd ${dir}
     # pull down index from bintray repo and parse files from index
     wget --no-check-certificate https://dl.bintray.com/rackhd/binary/ipxe/ && \
         exec  cat index.html |grep -o href=.*\"|sed 's/href=//' | sed 's/"//g' > files
