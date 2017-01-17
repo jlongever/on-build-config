@@ -223,7 +223,9 @@ def main():
     checkout_repos(args.manifest_file, args.build_directory, args.force, args.jobs, git_credential=args.git_credential)
 
     version_dict = compute_packages_version(args.build_directory, args.is_official_release)
-    update_packages_version(args.build_directory, version_dict)
+    if args.is_official_release == "false":
+        update_packages_version(args.build_directory, version_dict)
+
     update_packages_dependency(args.build_directory, version_dict)
     publish_packages(args.build_directory, args.is_official_release, npm_registry, npm_token)
 
