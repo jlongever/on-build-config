@@ -97,12 +97,13 @@ def get_npm_packages(build_dir):
             for filename in os.listdir(repo_dir):
                 if filename == "package.json":
                     packages.append(dirname)
+                    break
     return packages
 
 def compute_packages_version(build_dir, is_official_release):
     '''
     compute the version of packages under the build_dir
-    return: a dict like: {"pacakge name": "version"}
+    return: a dict like: {"package name": "version"}
     '''
     version_dict = {}
     try:
