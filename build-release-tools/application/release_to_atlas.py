@@ -69,6 +69,8 @@ class Atlas(object):
             self.create_provider(atlas_version, provider)
 
         self.upload_box(atlas_version, provider, box_file)
+        # release when upload is the present requirements
+        self.release_box(atlas_version)
 
     def create_version(self, atlas_version):
         """
@@ -114,6 +116,19 @@ class Atlas(object):
                 print "Failed to Upload box {0} to version/{1}/provider/{2}!\n {3}".format(box_file, atlas_version, provider,retval)
                 sys.exit(1)
 
+    def release_box(self, atlas_version):
+        """
+        Change the status of specific atlas_version to release
+        """
+        release_url = self.generate_url("release_box", atlas_version)
+        resp = self.session.put(release_url)
+        if resp.ok:
+            print "Release version {0} successfully!".format(atlas_version)
+        else:
+            print "Failed to release version {0}\n{1}".format(atlas_version, resp.text)
+            sys.exit(1)
+            
+
     def version_exist(self, atlas_version):
         """
         Check if box version exists
@@ -151,7 +166,8 @@ class Atlas(object):
             "create_version": lambda atlas_version, provider: "/".join([self.atlas_url, self.box, "versions"]),
             "check_provider": lambda atlas_version, provider: "/".join([self.atlas_url, self.box, "version/{0}/provider/{1}".format(atlas_version, provider)]),
             "create_provider": lambda atlas_version, provider: "/".join([self.atlas_url, self.box, "version/{0}/providers".format(atlas_version)]),
-            "upload_box": lambda atlas_version, provider: "/".join([self.atlas_url, self.box, "version/{0}/provider/{1}".format(atlas_version, provider), "upload"])
+            "upload_box": lambda atlas_version, provider: "/".join([self.atlas_url, self.box, "version/{0}/provider/{1}".format(atlas_version, provider), "upload"]),
+            "release_box": lambda atlas_version, provider: "/".join([self.atlas_url, self.box, "version/{0}".format(atlas_version, provider), "release"])
         }
         return purpose_handler[purpose](atlas_version, provider)
 
