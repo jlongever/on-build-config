@@ -31,77 +31,12 @@ import sys
 
 try:
     import common
+    from PlatformClients import Bintray
 except ImportError as import_err:
     print import_err
     sys.exit(1)
 
 push_exe_script = "pushToBintray.sh"
-
-class Bintray(object):
-    """
-    A module of bintray
-    """
-    def __init__(self, creds, subject, repo, push_executable, **kwargs):
-        self._username, self._api_key = common.parse_credential_variable(creds)
-        self._subject = subject
-        self._repo = repo
-        self._push_executable = push_executable
-        for key, value in kwargs.items():
-            setattr(self, key, value)
-
-    @property
-    def component(self):
-        return self._component
-
-    @component.setter
-    def component(self, component):
-        self._component = component
-
-    @property
-    def distribution(self):
-        return self._distribution
-
-    @distribution.setter
-    def distribution(self, distribution):
-        self._distribution = distribution
-
-    @property
-    def architecture(self):
-        return self._architecture
-
-    @architecture.setter
-    def architecture(self, architecture):
-        self._architecture = architecture
-
-    def upload_a_file(self, package, version, file_path):
-        """
-        Upload a debian file to bintray.
-        """
-        cmd_args = [self._push_executable]
-        cmd_args += ["--user", self._username]
-        cmd_args += ["--api_key", self._api_key]
-        cmd_args += ["--subject", self._subject]
-        cmd_args += ["--repo", self._repo]
-        cmd_args += ["--package", package]
-        cmd_args += ["--version", version]
-        cmd_args += ["--file_path", file_path]
-
-        if self._component:
-            cmd_args += ["--component", self._component]
-        if self._distribution:
-            cmd_args += ["--distribution", self._distribution]
-        if self._architecture:
-            cmd_args += ["--architecture", self._architecture]
-
-        cmd_args += ["--package", package]
-        cmd_args += ["--version", version]
-        cmd_args += ["--file_path", file_path]
-
-        try:
-            common.run_command(cmd_args)
-        except Exception, ex:
-            raise RuntimeError("Failed to upload file {0} due to {1}".format(file_path, ex))
-        return True
 
 def parse_args(args):
     """
