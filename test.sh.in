@@ -192,8 +192,7 @@ CONFIG_PATH=${CONFIG_PATH-build-config/vagrant/config/mongo}
 vagrantUp() {
   cd ${WORKSPACE}/RackHD/example
   cp -rf ${WORKSPACE}/build-config/vagrant/* .
-  MODIFIED_REPO_NAME=${REPO_NAME// /,}
-  CONFIG_DIR=${CONFIG_PATH} WORKSPACE=${WORKSPACE} REPO_NAME=${MODIFIED_REPO_NAME} MULTI=${MULTI} vagrant up --provision
+  CONFIG_DIR=${CONFIG_PATH} WORKSPACE=${WORKSPACE} REPO_NAME="${REPO_NAME}" MULTI=${MULTI} vagrant up --provision
   if [ $? -ne 0 ]; then 
       echo "Vagrant up failed."
       exit 1
