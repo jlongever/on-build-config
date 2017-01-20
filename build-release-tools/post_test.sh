@@ -36,6 +36,7 @@
 # If build twice in one docker build job, the repos:tags of each build will be stored in each line
 ############################################
 
+set -e
 
 while [ "$1" != "" ];do
     case $1 in
