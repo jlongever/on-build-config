@@ -289,15 +289,14 @@ if [ "$SKIP_PREP_DEP" == false ] ; then
 fi
 
 if [ "$RUN_CIT_TEST" == true ] || [ "$RUN_FIT_TEST" == true ] ; then
-  # Power off nodes and shutdown vagrant box
-  vagrantDestroy
+
+  # register the signal handler to clean up( vagrantDestroy ), with process being killed
+  trap vagrantDestroy SIGINT SIGTERM SIGKILL
+
+  # based on the assumption that in the same folder, the VMs has been exist normally. so don't destroy VM here.
+  
+  # Power off nodes
   nodesOff
-
-  # Suspend any other running vagrant boxes
-  vagrantSuspendAll
-
-  # Delete any running VMs
-  virtualBoxDestroyRunning
 
   # Power on vagrant box and nodes 
   vagrantUp
@@ -313,5 +312,18 @@ if [ "$RUN_CIT_TEST" == true ] || [ "$RUN_FIT_TEST" == true ] ; then
   generateSolLog
   # Run tests
   runTests
+
+  # Clean Up below
+
+  #shutdown vagrant box and delete all resource (like removing vm disk files in "~/VirtualBox VMs/")
+  vagrantDestroy
+
+  # Suspend any other running vagrant boxes
+  #vagrantSuspendAll
+
+  # Delete any running VMs
+  #virtualBoxDestroyRunning
+
+
 fi
 
