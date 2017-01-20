@@ -204,6 +204,7 @@ post_test_vagrant() {
     create_vagrant_file
     vagrant destroy -f
     vagrant up --provision
+    trap "vagrant destroy -f" SIGINT SIGTERM SIGKILL
     waitForAPI
     checkRackHDVersion
     vagrant destroy -f
