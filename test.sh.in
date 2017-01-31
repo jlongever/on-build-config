@@ -207,7 +207,7 @@ nodesCreate() {
     do
        ovftool --noSSLVerify --diskMode=${DISKMODE} --datastore=${DATASTORE}  --name="${NODE_NAME}-Rinjin${i}" --net:"${NIC}=${NODE_NAME}-switch" "${HOME}/isofarm/OVA/vRinjin-Haswell.ova"   vi://${ESXI_USER}:${ESXI_PASS}@${ESXI_HOST}
     done
-    ovftool  --noSSLVerify --diskMode=${DISKMODE} --datastore=${DATASTORE} --name="${NODE_NAME}-Quanta" --net:"${NIC}=${NODE_NAME}-switch" "${HOME}/isofarm/OVA/vQuanta-T41-Haswell.ova"   vi://${ESXI_USER}:${ESXI_PASS}@${ESXI_HOST}
+    ovftool  --noSSLVerify --diskMode=${DISKMODE} --datastore=${DATASTORE} --name="${NODE_NAME}-Quanta" --net:"${NIC}=${NODE_NAME}-switch" "${HOME}/isofarm/OVA/vbmc_quanta_d51_16.ova"   vi://${ESXI_USER}:${ESXI_PASS}@${ESXI_HOST}
   fi
 }
 
