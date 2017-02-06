@@ -59,7 +59,7 @@ class ManifestActions(object):
     valid actions:
     checkout: check out a set of repositories to match the manifest file
     """
-    valid_actions = ['checkout', 'branch', 'packagerefs', 'tag']
+    valid_actions = ['checkout', 'branch', 'packagerefs', 'packagerefs-commit', 'tag']
 
     def __init__(self, manifest_path, builddir, force=False, git_credentials=None, jobs=1, actions=[], branch_name=None, tag_name=None):
         """
@@ -247,6 +247,10 @@ class ManifestActions(object):
         if 'packagerefs' in self.actions:
             self.update_package_references()
 
+        # Update package dependency with repo commit-id
+        if 'packagerefs-commit' in self.actions:
+            self.update_package_references(ref_type="commit")
+
     def execute_branch_action(self):
         """
         execute the action "branch"
@@ -319,7 +323,7 @@ class ManifestActions(object):
             print "Exiting due to error: {0}".format(error)
             sys.exit(1)
 
-    def update_package_references(self, version=None):
+    def update_package_references(self, version=None, ref_type="path"):
         print "Update internal package lists"
         repo_list = self._manifest.repositories
         if repo_list is None:
@@ -328,9 +332,9 @@ class ManifestActions(object):
         else:
             # Loop through list of repos and update package.json on each
             for repo in repo_list:
-                self.update_repo_package_list(repo, pkg_version=version)
+                self.update_repo_package_list(repo, pkg_version=version, ref_type=ref_type)
 
-    def update_repo_package_list(self, repo, pkg_version=None):
+    def update_repo_package_list(self, repo, pkg_version=None, ref_type="path"):
         """
         Update the package.json of repository to point to new version
         :param repo: a manifest repository entry
@@ -351,7 +355,7 @@ class ManifestActions(object):
             package_data = json.load(fp)
             if 'dependencies' in package_data:
                 for package, version in package_data['dependencies'].items():
-                    new_version = self._update_dependency(version, pkg_version=pkg_version)
+                    new_version = self._update_dependency(version, pkg_version=pkg_version, ref_type=ref_type)
                     if new_version != version:
                         log += "  {0}:\n    WAS {1}\n    NOW {2}\n".format(package,
                                                                            version,
@@ -370,7 +374,7 @@ class ManifestActions(object):
             print "There are NO changes to data for {0}".format(package_json_file)
 
 
-    def _update_dependency(self, version, pkg_version=None):
+    def _update_dependency(self, version, pkg_version=None, ref_type="path"):
         """
         Check the specified package & version, and return a new package version if
         the package is listed in the manifest.
@@ -388,8 +392,12 @@ class ManifestActions(object):
         if pkg_version is None:
             for repo in self._manifest.repositories:
                 if new_url == repo['repository']:
-                    if 'directory-name' in repo:
-                        new_url = os.path.abspath(repo['directory-name'])
+                    if ref_type == "path":
+                        if 'directory-name' in repo:
+                            new_url = os.path.abspath(repo['directory-name'])
+                            return new_url
+                    elif ref_type == "commit":
+                        new_url = "git+{url}#{pkg_version}".format(url=new_url, pkg_version=repo['commit-id'])
                         return new_url
         else:
             for repo in self._manifest.repositories:
