@@ -99,6 +99,10 @@ class Atlas(object):
         resp = self.session.put(release_url)
         if resp.ok:
             print "Release version {0} successfully!".format(atlas_version)
+        # Atlas return 422(Unprocessable Entity) when you try to release a released version.
+        # Not sure if 422 is only for "already released" so add text-find double check.
+        elif resp.text.find("already") != -1 and resp.status_code == 422:
+            print "Warning: version {0} has already been released!".format(atlas_version)
         else:
             raise Exception("Failed to release version {0}\n{1}".format(atlas_version, resp.text))
 
