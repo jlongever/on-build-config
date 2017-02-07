@@ -136,7 +136,7 @@ class SpecifyDayManifestGenerator(ManifestGenerator):
                 jenkins_commit = self.repo_operator.get_latest_author_commit_before_date(repo_dir,self._date, self._jenkins_author)
             except Exception,e:
                 if merge_commit is None:
-                    raise RuntimeError(e)
+                    raise RuntimeError("Failed to update repositories commit: repository {0} \nDue to {1}".format(repo_dir, e))
 
             repo["commit-id"] = merge_commit
             if len(jenkins_commit) > 0:
