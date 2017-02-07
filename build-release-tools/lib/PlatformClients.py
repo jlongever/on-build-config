@@ -6,7 +6,7 @@ import os
 import sys
 import requests
 import subprocess
-
+import base64
 try:
     import common
 except ImportError as import_err:
@@ -20,14 +20,23 @@ class Atlas(object):
     An instance of 'class Atlas' represents a box in Atlas.
         default: rackhd/rackhd in official Atlas server.
     """
-    def __init__(self, atlas_url, atlas_username, atlas_name, atlas_token):
+    def __init__(self, creds, atlas_url, atlas_name):
+        # This class doesn't use user:pass format creds because 
+        # just atlas_token is enough for call atlas API. 
+        assert creds, "creds is None!"
+        assert atlas_name, "atlas_name is None!"
+        
+        # creds can be a env varname of value "user:token" or just the value
+        try:
+            # get from env var
+            self.atlas_username, self.atlas_token = common.parse_credential_variable(creds)
+        except ValueError as e:
+            # not in env var, parse as user:api-key
+            self.atlas_username, self.atlas_token = creds.split(":")
+
         self.atlas_url = atlas_url or "https://atlas.hashicorp.com/api/v1"
-
-        self.atlas_username = atlas_username or "rackhd"
-        self.atlas_name = atlas_name or "rackhd"
+        self.atlas_name = atlas_name
         self.box = "/".join(["box", self.atlas_username, self.atlas_name])
-
-        self.atlas_token = atlas_token
 
         self.session = requests.Session()
         self.session.headers.update({'X-Atlas-Token': self.atlas_token})
@@ -48,7 +57,7 @@ class Atlas(object):
             # release when upload is the present requirements
             self.release_box(atlas_version)
         except Exception as any_expection:
-            raise any_expection
+            raise Exception("Faild to upload box {0} to {1}/{2}\n{3}".format(box_file, atlas_version, provider, any_expection))
 
     def create_version(self, atlas_version):
         """
@@ -106,7 +115,7 @@ class Atlas(object):
         """
         Check if box version exists
         """
-        check_version_url = self.generate_url("check_version", atlas_version)
+        check_version_url = self.generate_url("version", atlas_version)
         resp = self.session.get(check_version_url)
         if resp.ok:
             print "Box version {0} already exists.".format(atlas_version)
@@ -130,28 +139,69 @@ class Atlas(object):
         print "{0} provider of version {1} doesn't' exist, will be created soon".format(provider, atlas_version)
         return False
 
+    def get_box_versions(self):
+        """
+        Get all boxes' versions
+        """
+        get_box_versions_url = self.generate_url("box")
+        resp = self.session.get(get_box_versions_url)
+        if resp.ok:
+            versions = [item["version"] for item in resp.json()["versions"]]
+        else:
+            raise Exception("Failed to get box versions {0}\n{1}".format(self.box, resp.text))
+        return versions
+
+    def del_box_version(self, version):
+        """
+        Delete one box version
+        """
+        del_box_versions_url = self.generate_url("version", version)
+        resp = self.session.delete(del_box_versions_url)
+        if resp.ok:
+            print "Delete {0}/{1} successfully!".format(self.box, version)
+        else:
+            raise Exception("Failed to delete {0}/{1}\n{2}!".format(self.box, version, resp.text))
+
     def generate_url(self, purpose, atlas_version=None, provider=None):
         """
         Tool method, Generate all possible urls according to purpose
         """
         purpose_handler = {
-            "check_version": lambda atlas_version, provider: "/".join([self.atlas_url, self.box, "version/{0}".format(atlas_version)]),
-            "create_version": lambda atlas_version, provider: "/".join([self.atlas_url, self.box, "versions"]),
-            "check_provider": lambda atlas_version, provider: "/".join([self.atlas_url, self.box, "version/{0}/provider/{1}".format(atlas_version, provider)]),
-            "create_provider": lambda atlas_version, provider: "/".join([self.atlas_url, self.box, "version/{0}/providers".format(atlas_version)]),
-            "upload_box": lambda atlas_version, provider: "/".join([self.atlas_url, self.box, "version/{0}/provider/{1}".format(atlas_version, provider), "upload"]),
-            "release_box": lambda atlas_version, provider: "/".join([self.atlas_url, self.box, "version/{0}".format(atlas_version, provider), "release"])
+            "version": "/".join([self.atlas_url, self.box, "version/{0}".format(atlas_version)]),
+            "create_version": "/".join([self.atlas_url, self.box, "versions"]),
+            "check_provider": "/".join([self.atlas_url, self.box, "version/{0}/provider/{1}".format(atlas_version, provider)]),
+            "create_provider": "/".join([self.atlas_url, self.box, "version/{0}/providers".format(atlas_version)]),
+            "upload_box": "/".join([self.atlas_url, self.box, "version/{0}/provider/{1}".format(atlas_version, provider), "upload"]),
+            "release_box": "/".join([self.atlas_url, self.box, "version/{0}".format(atlas_version, provider), "release"]),
+            "box": "/".join([self.atlas_url, self.box])
         }
-        return purpose_handler[purpose](atlas_version, provider)
+        return purpose_handler[purpose]
 
 class Bintray(object):
     """
     Bintray client for calling Bintray API.
     """
-    def __init__(self, creds, subject, repo, push_executable, **kwargs):
-        self._username, self._api_key = common.parse_credential_variable(creds)
+    def __init__(self, creds, subject, repo, push_executable=None, **kwargs):
+        assert creds, "creds is None!"
+        assert subject, "subject is None!"
+        assert repo, "repo is None!"
+
+
+        # creds can be a env varname of value "user:api_key" or just the value
+        try:
+            # get from env var
+            self._username, self._api_key = common.parse_credential_variable(creds)
+        except ValueError as e:
+            # not in env var, parse as user:api-key
+            self._username, self._api_key = creds.split(":")
+        self._api_url = "https://api.bintray.com"
         self._subject = subject
         self._repo = repo
+
+        self.session = requests.Session()
+        basic_auth = "Basic {0}".format(base64.b64encode(":".join([self._username, self._api_key])))
+        self.session.headers.update({'authorization': basic_auth})
+
         self._push_executable = push_executable
         for key, value in kwargs.items():
             setattr(self, key, value)
@@ -209,3 +259,94 @@ class Bintray(object):
         except Exception, ex:
             raise RuntimeError("Failed to upload file {0} due to {1}".format(file_path, ex))
         return True
+
+    def get_package_versions(self, package):
+        """
+        Get the version list of one package.
+        """
+        get_package_versions_url = "/".join([self._api_url, "packages", self._subject, self._repo, package])
+        versions = []
+        resp = self.session.get(get_package_versions_url)
+        if resp.ok:
+            versions = resp.json()["versions"]
+        elif resp.status_code == 404:
+            print "Bintray package: {0}/{1}/{2} doesn't exist".format(self._subject, self._repo, package)
+        else:
+            raise Exception("Failed to get package versions: {0}\n{1}".format(package, resp.text))
+        return versions
+
+    def del_package_version(self, package, version):
+        """
+        Delete a version of one package
+        """
+        del_package_version_url = "/".join([self._api_url, "packages", self._subject, self._repo, package, "versions", version])
+        print del_package_version_url
+        resp = self.session.delete(del_package_version_url)
+        if resp.ok:
+            print "Delete {0}/{1} successfully!".format(package, version)
+        else:
+            raise Exception("Failed to delete {0}/{1}\n {2}!".format(package, version, resp.text))
+
+class Dockerhub(object):
+    """
+    A client class of Dockerhub.
+    """
+    def __init__(self, creds, repo, api_url):
+        assert creds, "creds is None!"
+        assert repo, "repo is None!"
+
+        # creds can be a env varname of value "user:password" or just the value
+        try:
+            # get from env var
+            self.username, self.password = common.parse_credential_variable(creds)
+        except ValueError as e:
+            # not in env var, parse as user:pass
+            self.username, self.password = creds.split(":")
+        self.repo = repo
+        self.api_url = api_url or "https://hub.docker.com/v2"
+
+        self.token = self.retrieve_token()
+        self.session = requests.Session()
+        self.session.headers.update({'authorization': "JWT %s" % self.token})
+
+    def retrieve_token(self):
+        """
+        Get access token of dockerhub
+        """
+        login_url = "/".join([self.api_url, "users", "login"])
+        data = {"username": self.username, "password": self.password}
+        resp = requests.post(login_url, data=data)
+        if resp.ok:
+            return resp.json()["token"]
+        else:
+            raise Exception("Failed to retrive dockerhub token.\n{0}".format(resp.text))
+
+    def get_package_tags(self, package):
+        """
+        Get all tags of a package
+        """
+        assert package, "arg package is None!"
+        get_package_versions_url = "/".join([self.api_url, "repositories", self.repo, package, "tags"])
+        resp = self.session.get(get_package_versions_url)
+        tags = []
+        if resp.ok:
+            for tag in resp.json()["results"]:
+                tags.append(tag["name"])
+        elif resp.status_code == 404:
+            print "Package {0} does not exist.".format(package)
+        else:
+            raise Exception("Failed to get package tags: {0}\n{1}".format(package, resp.text))
+        return tags
+
+    def del_package_tag(self, package, tag):
+        """
+        Del docker image of specific package/tag
+        """
+        assert package, "arg package is None!"
+        assert tag, "arg tag is None!"
+        del_package_versions_url = "/".join([self.api_url, "repositories", self.repo, package, "tags", tag])
+        resp = self.session.delete(del_package_versions_url)
+        if resp.ok:
+            print "Delete {0}/{1} successfully!".format(package, tag)
+        else:
+            raise Exception("Failed to delete{0}/{1}.\n{2}".format(package, tag, resp.text))
