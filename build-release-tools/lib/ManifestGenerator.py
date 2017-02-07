@@ -121,7 +121,7 @@ class ManifestGenerator(object):
 class SpecifyDayManifestGenerator(ManifestGenerator):
     def __init__(self, dest, branch, date, builddir, git_credential=None, force=False, jobs=1):
         self._date = date
-        self._author = config.gitbit_identity["username"]
+        self._jenkins_author = config.gitbit_identity["username"]
         super(SpecifyDayManifestGenerator, self).__init__(dest, branch, builddir, git_credential=git_credential, force=force, jobs=jobs)
 
     def update_repositories_commit(self, repositories):
@@ -133,13 +133,12 @@ class SpecifyDayManifestGenerator(ManifestGenerator):
                 # Get the last merge commit before the date
                 merge_commit = self.repo_operator.get_latest_merge_commit_before_date(repo_dir,self._date)
                 # Get the last commit of Jenkins before the date
-                jenkins_commit = self.repo_operator.get_latest_author_commit_before_date(repo_dir,self._date, self._author)
+                jenkins_commit = self.repo_operator.get_latest_author_commit_before_date(repo_dir,self._date, self._jenkins_author)
             except Exception,e:
                 if merge_commit is None:
                     raise RuntimeError(e)
 
             repo["commit-id"] = merge_commit
             if len(jenkins_commit) > 0:
-                jenkins_commit_newer = self.repo_operator.commit1_newer_than_commit2(repo_dir, jenkins_commit, merge_commit)
-                if jenkins_commit_newer:
-                    repo["commit-id"] = jenkins_commit
+                newer_commit = self.repo_operator.get_newer_commit(repo_dir, jenkins_commit, merge_commit)
+                repo["commit-id"] = newer_commit
