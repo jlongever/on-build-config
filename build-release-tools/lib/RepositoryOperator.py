@@ -286,27 +286,27 @@ class RepoOperator(object):
         repo_directory_name = strip_suffix(os.path.basename(repo_url), ".git")
         return os.path.join(dest_dir, repo_directory_name)
 
-    def get_lastest_commit_date(self, repo_dir):
+    def get_latest_commit_date(self, repo_dir):
         """
         :param repo_dir: path of the repository
         :return: commit-date
         """
         if repo_dir is None or not os.path.isdir(repo_dir):
-            raise RuntimeError("The repository directory is not a directory")
+            raise RuntimeError("The repository directory {0} is not specified. or its format is wrong".format(repo_dir))
         return_code, output, error = self.git.run(['show', '-s', '--pretty=format:%ct'], directory=repo_dir)
         if return_code == 0:
             return output.strip()
         else:
             raise RuntimeError("Unable to get commit date in directory {0}".format(repo_dir))
 
-    def get_lastest_commit_id(self, repo_dir):
+    def get_latest_commit_id(self, repo_dir):
         """
         :param repo_dir: path of the repository
         :return: commit-id
         """
          
         if repo_dir is None or not os.path.isdir(repo_dir):
-            raise RuntimeError("The repository directory is not a directory")
+            raise RuntimeError("The repository directory {0} is not specified. or its format is wrong".format(repo_dir))
 
         return_code, output, error = self.git.run(['log', '--format=format:%H', '-n', '1'], directory=repo_dir)
 
@@ -315,9 +315,10 @@ class RepoOperator(object):
         else:
             raise RuntimeError("Unable to get commit id in directory {0}".format(repo_dir))
 
-    def get_lastest_merge_commit_before_date(self, repo_dir, date):
+    def get_latest_merge_commit_before_date(self, repo_dir, date):
         if repo_dir is None or not os.path.isdir(repo_dir):
-            raise RuntimeError("The repository directory is not a directory")
+            raise RuntimeError("The repository directory {0} is not specified. or its format is wrong".format(repo_dir))
+
         return_code, output, error = self.git.run(['log', '--merges', '--format=format:%H', '--before='+date, '-n', '1'], directory=repo_dir)
 
         if return_code == 0:
@@ -325,6 +326,37 @@ class RepoOperator(object):
         else:
             raise RuntimeError("Unable to get commit id before {date} in directory {repo_dir}"\
                   .format(date=date, repo_dir=repo_dir))
+
+    def get_latest_author_commit_before_date(self, repo_dir, date, author):
+        if repo_dir is None or not os.path.isdir(repo_dir):
+            raise RuntimeError("The repository directory {0} is not specified. or its format is wrong".format(repo_dir))
+
+        return_code, output, error = self.git.run(['log', '--author='+author, '--format=format:%H', '--before='+date, '-n', '1'], directory=repo_dir)
+
+        if return_code == 0:
+            return output.strip()
+        else:
+            raise RuntimeError("Unable to get commit id of {author} before {date} in directory {repo_dir}"\
+                  .format(author=author, date=date, repo_dir=repo_dir))
+
+
+    def get_newer_commit(self, repo_dir, commit1, commit2):
+        '''
+        if commit1 is newer than commit2, return True
+        else, return False
+        '''
+        if repo_dir is None or not os.path.isdir(repo_dir):
+            raise RuntimeError("The repository directory {0} is not specified. or its format is wrong".format(repo_dir))
+        return_code, output, error = self.git.run(['rev-list', commit1+'..'+commit2, '--count'], directory=repo_dir)
+        if return_code == 0:
+            if output.strip() == "0":
+                return commit1
+            else:
+                return commit2
+        else:
+            raise RuntimeError("Unable to get any commit between {commit1} and {commit2} in directory {repo_dir}"\
+                  .format(commit1=commit1, commit2=commit2, repo_dir=repo_dir))
+
 
     def get_commit_message(self, repo_dir, commit):
         """
@@ -334,7 +366,7 @@ class RepoOperator(object):
         """
 
         if repo_dir is None or not os.path.isdir(repo_dir):
-            raise RuntimeError("The repository directory is not a directory")
+            raise RuntimeError("The repository directory {0} is not specified. or its format is wrong".format(repo_dir))
 
         return_code, output, error = self.git.run(['log', '--format=format:%B', '-n', '1', commit], directory=repo_dir)
 
@@ -353,7 +385,7 @@ class RepoOperator(object):
         """
 
         if repo_dir is None or not os.path.isdir(repo_dir):
-            raise RuntimeError("The repository directory is not a directory")
+            raise RuntimeError("The repository directory {0} is not specified. or its format is wrong".format(repo_dir))
 
         return_code, output, error = self.git.run(['ls-remote', '--get-url'], directory=repo_dir)
 
@@ -370,7 +402,7 @@ class RepoOperator(object):
         """
 
         if repo_dir is None or not os.path.isdir(repo_dir):
-            raise RuntimeError("The repository directory is not a directory")
+            raise RuntimeError("The repository directory {0} is not specified. or its format is wrong".format(repo_dir))
 
         return_code, output, error = self.git.run(['symbolic-ref', '--short', 'HEAD'], directory=repo_dir)
 

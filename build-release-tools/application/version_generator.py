@@ -62,9 +62,9 @@ class VersionGenerator(object):
             version = utc_yesterday.strftime('%Y%m%dUTC')
             return version
         else:
-            commit_timestamp_str = self.repo_operator.get_lastest_commit_date(self._repo_dir)
+            commit_timestamp_str = self.repo_operator.get_latest_commit_date(self._repo_dir)
             date = datetime.utcfromtimestamp(int(commit_timestamp_str)).strftime('%Y%m%dUTC')
-            commit_id = self.repo_operator.get_lastest_commit_id(self._repo_dir)
+            commit_id = self.repo_operator.get_latest_commit_id(self._repo_dir)
             version = "{date}-{commit}".format(date=date, commit=commit_id[0:7])
             return version
 

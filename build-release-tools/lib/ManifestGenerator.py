@@ -12,6 +12,8 @@ try:
     from RepositoryOperator import RepoOperator
     from manifest import Manifest
     import common
+    import config
+
 except ImportError as import_err:
     print import_err
     sys.exit(1)
@@ -73,13 +75,13 @@ class ManifestGenerator(object):
 
     def update_repositories_commit(self, repositories):
         """
-        update the commit-id of repository with the lastest commit id
+        update the commit-id of repository with the latest commit id
         :param repositories: a list of repository directory
         :return: None
         """
         for repo in repositories:
             repo_dir = self.directory_for_repo(repo)
-            repo["commit-id"] = self.repo_operator.get_lastest_commit_id(repo_dir)
+            repo["commit-id"] = self.repo_operator.get_latest_commit_id(repo_dir)
 
     def update_manifest(self):
         """
@@ -119,9 +121,24 @@ class ManifestGenerator(object):
 class SpecifyDayManifestGenerator(ManifestGenerator):
     def __init__(self, dest, branch, date, builddir, git_credential=None, force=False, jobs=1):
         self._date = date
+        self._jenkins_author = config.gitbit_identity["username"]
         super(SpecifyDayManifestGenerator, self).__init__(dest, branch, builddir, git_credential=git_credential, force=force, jobs=jobs)
 
     def update_repositories_commit(self, repositories):
         for repo in repositories:
             repo_dir = self.directory_for_repo(repo)
-            repo["commit-id"] = self.repo_operator.get_lastest_merge_commit_before_date(repo_dir,self._date)
+            merge_commit = None
+            jenkins_commit = None
+            try:
+                # Get the last merge commit before the date
+                merge_commit = self.repo_operator.get_latest_merge_commit_before_date(repo_dir,self._date)
+                # Get the last commit of Jenkins before the date
+                jenkins_commit = self.repo_operator.get_latest_author_commit_before_date(repo_dir,self._date, self._jenkins_author)
+            except Exception,e:
+                if merge_commit is None:
+                    raise RuntimeError("Failed to update repositories commit: repository {0} \nDue to {1}".format(repo_dir, e))
+
+            repo["commit-id"] = merge_commit
+            if len(jenkins_commit) > 0:
+                newer_commit = self.repo_operator.get_newer_commit(repo_dir, jenkins_commit, merge_commit)
+                repo["commit-id"] = newer_commit
