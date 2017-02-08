@@ -9,20 +9,18 @@ usage:
     on-tools/manifest-build-tools/application/release_to_atlas.py \
     --build-directory b/RackHD/packer \
     --atlas-url https://atlas.hashicorp.com/api/v1 \
-    --atlas-username rackhd \
+    --atlas-creds rackhd:****** \
     --atlas-name rackhd \
-    --atlas-token ****** \
     --atlas-version 1.2.3 \
     --is-release true
 
 The required parameters:
     build-directory: A directory where box files laid in.
-    atlas-token: atlas access token.
+    atlas-creds: value or env var name of atlas creds, format is atlas_username:atlas_token.
 
 The optional parameters:
     provider: The provider of vagrant box, virtualbox, vmware_fusion .etc, default: virtualbox
     atlas-url: Base URL for Atlas, default: https://atlas.hashicorp.com/api/v1
-    atlas-username: The account name of atlas, default: rackhd
     atlas-name: The box name under a specific account of atlas, default: rackhd
     atlas-version: The box version in atlas, default: version number when is_release
                    0.month.day when is ci_builds.
@@ -56,17 +54,12 @@ def parse_args(args):
                         help="Base URL for Atlas, default: https://atlas.hashicorp.com/api/v1",
                         action='store')
 
-    parser.add_argument('--atlas-username',
-                        help="The account name of atlas, default: rackhd",
+    parser.add_argument('--atlas-creds',
+                        help="Value or env var name of atlas creds, format is atlas_username:atlas_token",
                         action='store')
 
     parser.add_argument('--atlas-name',
                         help="The repo name under a specific account of atlas, default: rackhd",
-                        action='store')
-
-    parser.add_argument('--atlas-token',
-                        required=True,
-                        help="atlas access token",
                         action='store')
 
     parser.add_argument('--atlas-version',
@@ -120,7 +113,7 @@ def main():
         is_release = False
         if args.is_release == "true" or args.is_release == "True":
             is_release = True
-        atlas = Atlas(args.atlas_url, args.atlas_username, args.atlas_name, args.atlas_token)
+        atlas = Atlas(creds=args.atlas_creds, atlas_url=args.atlas_url, atlas_name=args.atlas_name)
         upload_boxs(args.build_directory, atlas, is_release, args.atlas_version)
     except Exception, e:
         print e
