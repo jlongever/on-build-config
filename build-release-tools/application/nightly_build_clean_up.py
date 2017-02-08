@@ -28,6 +28,7 @@ usage:
 
 The required parameters:
     source-type: The source of this operation will clean up.
+    date_range: Specify beginTime-endTime of the nightly builds.
     # for bintray
     bintray-cred: user:api-key of bintray, value or env var name.
     bintray-subject: The target subject you want to clean. Default: rackhd
@@ -41,7 +42,6 @@ The required parameters:
     atlas-name: The box name under a specific account of atlas, default: rackhd
 
 The optional parameters:
-    date_range: Specify beginTime-endTime of the nightly builds, default: last 14 days
     # for dockerhub
     dockerhub-api-url: Base API URL for dockerhub, default: "https://hub.docker.com/v2"
     # for atlas
@@ -53,6 +53,8 @@ import argparse
 import requests
 import time
 from datetime import datetime
+from dateutil.tz import tzutc
+from dateutil import parser
 
 try:
     import common
@@ -117,7 +119,7 @@ def parse_args(args):
     return parsed_args
 
 RACKHD_REPOS = ["on-imagebuilder", "on-core", "on-syslog", "on-dhcp-proxy", "files", \
-                "on-tftp", "on-wss", "on-statsd", "on-tasks", "on-taskgraph", "on-http"]
+                "on-tftp", "on-wss", "on-statsd", "on-tasks", "on-taskgraph", "on-http", "rackhd"]
 
 def clean_bintray_nightly_builds(bintray_cred, bintray_subject, bintray_repo, date_range):
     """
@@ -125,12 +127,9 @@ def clean_bintray_nightly_builds(bintray_cred, bintray_subject, bintray_repo, da
     """
     bintray = Bintray(creds=bintray_cred, subject=bintray_subject, repo=bintray_repo)
     for package in RACKHD_REPOS:
-        versions = bintray.get_package_versions(package)
+        versions = bintray.get_package_versions_between_upload_time_range(package, date_range[0], date_range[1])
         for version in versions:
-            build_date = get_build_date_from_version(package, version)
-            if not build_date:
-                continue
-            if date_range[0] <= build_date <= date_range[1]:
+            if is_nightly_build(package, version):
                 print "Cleaning {0}/{1} in bintray".format(package, version)
                 bintray.del_package_version(package, version)
     print "Bintray nightly builds between {0} and {1} has been cleaned successfully".format(date_range[0], date_range[1])
@@ -141,14 +140,10 @@ def clean_dockerhub_nightly_builds(dockerhub_cred, dockerhub_repo, dockerhub_api
     """
     dockerhub = Dockerhub(creds=dockerhub_cred, repo=dockerhub_repo, api_url=dockerhub_api_url)
     for package in RACKHD_REPOS:
-        tags = dockerhub.get_package_tags(package)
+        tags = dockerhub.get_package_tags_between_upload_time_range(package, date_range[0], date_range[1])
         # for rackhd docker images, version==tag
         for tag in tags:
-            build_date = get_build_date_from_version(package, tag)
-            if not build_date:
-            # for release build versioned X.Y.Z , the build_date will be NULL
-                continue
-            if date_range[0] <= build_date <= date_range[1]:
+            if is_nightly_build(package, tag):
                 print "Cleaning {0}/{1} in dockerhub".format(package, tag)
                 dockerhub.del_package_tag(package, tag)
     print "Dockerhub nightly builds between {0} and {1} has been cleaned successfully".format(date_range[0], date_range[1])
@@ -159,70 +154,51 @@ def clean_atlas_nightly_builds(atlas_cred, atlas_name, atlas_url, date_range):
     """
     # atlas_token is enough for calling api, so split atlas_cred
     atlas = Atlas(creds=atlas_cred, atlas_name=atlas_name, atlas_url=atlas_url)
-    versions = atlas.get_box_versions()
+    versions = atlas.get_box_versions_between_upload_time_range(date_range[0], date_range[1])
     # daliy build box version is like 0.12.25: 0.m.d
     #begin delete
-    this_year = datetime.now().year
-    this_month = datetime.now().month
-    today = datetime.now().day
-    last_year = datetime.now().year -1
     for version in versions:
         version_segments = [i for i in version.split(".")]
         if len(version_segments) < 3:
         # atlas support version like 0.16 , but nightly builds are all 0.x.y 
             continue
-        y, m, d = version_segments
+        y = version_segments[1]
         if int(y) == 0:
         # nightly builds are all 0.x.y, initial number is 0
-            if (int(m) > this_month) or (int(d) > today and  int(m) == this_month):
-                build_date = int("".join([str(last_year), str(m), str(d)]))
-            else:
-                build_date = int("".join([str(this_year), str(m), str(d)]))
-            if date_range[0] <= build_date <= date_range[1]:
-                print "Cleaning box {0} in atlas".format(version)
-                atlas.del_box_version(version)
+            print "Cleaning box {0} in atlas".format(version)
+            atlas.del_box_version(version)
     print "Atlas nightly builds between {0} and {1} has been cleaned successfully".format(date_range[0], date_range[1])
-
 
 def get_date_range(date_range):
     """
     arg date_range is like "20170112-20170120"
-    return: (20170112, 20170120)
+    return: (begin_time, end_time)
+    time type is datetime with tzinfo=tzutc()
     """
     if date_range:
         try:
-            processed_date_range = tuple([int(i) for i in date_range.split('-')])
+            processed_date_range = tuple([parser.parse(i).replace(tzinfo=tzutc()) for i in date_range.split('-')])
         except TypeError as e:
             print "Wrong format of date-range".fomat(e.message)
             sys.exit(1)
-    else:
-        # if no arg date_range, set date_range as the last 14 days
-        begin_time = time.strftime("%Y%m%d", time.gmtime(time.time()-24*60*60*14))
-        end_time = time.strftime("%Y%m%d", time.gmtime(time.time()))
-        processed_date_range = (int(begin_time), int(end_time))
-
     return processed_date_range
 
-def get_build_date_from_version(package, version):
+def is_nightly_build(package, version):
     """
-    extract build date from package version
-    1.2.3-20161228UTC-5a1749a -> 20161228
+    Judge if a version is nightly build version
+    Nightly build version example: 1.2.3-20161228UTC-5a1749a
     """
     version_segments = version.split("-")
     if len(version_segments) <= 1:
         # is release builds
-        return
+        return False
     try:
         build_date = int(version_segments[1].strip("UTC"))
     except Exception as e:
         # IndexError or ValueError
         print "Package version format error: {0}{1}\n {2}".format(package, version, e)
-        #sys.exit(1)
-        return
-    # make sure build date is valid
-    if build_date < 20000000 or build_date > 29999999:
-        print "Package version format error: {0}{1}".format(package, version)
-    return build_date
+        return False
+    return True
 
 
 def main():

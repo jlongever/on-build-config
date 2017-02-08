@@ -7,6 +7,8 @@ import sys
 import requests
 import subprocess
 import base64
+from dateutil import parser
+
 try:
     import common
 except ImportError as import_err:
@@ -150,6 +152,22 @@ class Atlas(object):
         else:
             raise Exception("Failed to get box versions {0}\n{1}".format(self.box, resp.text))
         return versions
+    def get_box_versions_between_upload_time_range(self, begin_time, end_time):
+        """
+        Get boxes' versions build between begin_time and end_time
+        """
+        assert begin_time <= end_time, "end_time must larger than begin_time"
+        versions_between_upload_time_range = []
+        get_box_versions_url = self.generate_url("box")
+        resp = self.session.get(get_box_versions_url)
+        if resp.ok:
+            for version_object in resp.json()["versions"]:
+                upload_time = parser.parse(version_object["updated_at"])
+                if begin_time < upload_time < end_time:
+                    versions_between_upload_time_range.append(version_object["version"])
+        else:
+            raise Exception("Failed to get box {0} versions between {1} and {2} \n{3}".format(self.box, begin_time, end_time, resp.text))
+        return versions_between_upload_time_range
 
     def del_box_version(self, version):
         """
@@ -260,6 +278,19 @@ class Bintray(object):
             raise RuntimeError("Failed to upload file {0} due to {1}".format(file_path, ex))
         return True
 
+    def __get_package_version_object(self, package, version):
+        """
+        Get a version object of one package
+        """
+        version_object = {}
+        package_version_url = "/".join([self._api_url, "packages", self._subject, self._repo, package, "versions", version])
+        resp = self.session.get(package_version_url)
+        if resp.ok:
+            version_object = resp.json()
+        else:
+            raise Exception("Failed to get object of {0}/{1}\n {2}!".format(package, version, resp.text))
+        return version_object
+
     def get_package_versions(self, package):
         """
         Get the version list of one package.
@@ -280,12 +311,29 @@ class Bintray(object):
         Delete a version of one package
         """
         del_package_version_url = "/".join([self._api_url, "packages", self._subject, self._repo, package, "versions", version])
-        print del_package_version_url
         resp = self.session.delete(del_package_version_url)
         if resp.ok:
             print "Delete {0}/{1} successfully!".format(package, version)
         else:
             raise Exception("Failed to delete {0}/{1}\n {2}!".format(package, version, resp.text))
+
+    def get_package_versions_between_upload_time_range(self, package, begin_time, end_time):
+        """
+        Get the version list of one package.
+        """
+        assert begin_time <= end_time, "end_time must larger than begin_time"
+        versions_between_upload_time_range = []
+        try:
+            all_versions = self.get_package_versions(package)
+            for version in all_versions:
+                version_object = self.__get_package_version_object(package, version)
+                upload_time = parser.parse(version_object["updated"])
+                if begin_time < upload_time < end_time:
+                    versions_between_upload_time_range.append(version)
+        except Exception as e:
+            raise Exception("Failed to get package {0} version between {1} and {2}.\n{3}".format(package, begin_time, end_time, e))
+        return versions_between_upload_time_range
+
 
 class Dockerhub(object):
     """
@@ -321,22 +369,64 @@ class Dockerhub(object):
         else:
             raise Exception("Failed to retrive dockerhub token.\n{0}".format(resp.text))
 
+    def __get_package_tags_objects(self, package):
+        """
+        Get all tags objects of a package
+        """
+        assert package, "arg package is None!"
+
+        tags_objects = []
+        get_package_versions_url = "/".join([self.api_url, "repositories", self.repo, package, "tags"])
+
+        # dockerhub has paging mechanism
+        next_page = get_package_versions_url
+        while next_page:
+            resp = self.session.get(next_page)
+            next_page = None
+            if resp.ok:
+                resp_json = resp.json()
+                tags_objects.extend(resp_json["results"])
+                next_page = resp_json["next"]
+            elif resp.status_code == 404:
+                print "Package {0} does not exist.".format(package)
+            else:
+                raise Exception("Failed to get package tags objects: {0}\n{1}".format(package, resp.text))
+        return tags_objects
+
     def get_package_tags(self, package):
         """
         Get all tags of a package
         """
         assert package, "arg package is None!"
-        get_package_versions_url = "/".join([self.api_url, "repositories", self.repo, package, "tags"])
-        resp = self.session.get(get_package_versions_url)
         tags = []
-        if resp.ok:
-            for tag in resp.json()["results"]:
+        try:
+            tags_objects = self.__get_package_tags_objects(package)
+            for tag in tags_objects:
                 tags.append(tag["name"])
-        elif resp.status_code == 404:
-            print "Package {0} does not exist.".format(package)
-        else:
-            raise Exception("Failed to get package tags: {0}\n{1}".format(package, resp.text))
+        except Exception as e:
+            raise Exception("Failed to get package tags: {0}\n{1}".format(package, e))
         return tags
+
+    def get_package_tags_between_upload_time_range(self, package, begin_time, end_time):
+        """
+        Get tags of a package between date range
+        """
+        assert package, "arg package is None!"
+        assert begin_time, "arg begin_time is None!"
+        assert end_time, "arg end_time is None!"
+        assert begin_time <= end_time, "end_time must larger than begin_time"
+
+        tags_between_upload_time_range = []
+        try:
+            tags_objects = self.__get_package_tags_objects(package)
+            
+            for tag in tags_objects:
+                upload_time = parser.parse(tag["last_updated"])
+                if begin_time < upload_time < end_time:
+                    tags_between_upload_time_range.append(tag["name"])
+        except Exception as e:
+            raise Exception("Failed to get package {0} tags between {1} and {2}: {0}\n{3}".format(package, begin_time, end_time, e))
+        return tags_between_upload_time_range
 
     def del_package_tag(self, package, tag):
         """
