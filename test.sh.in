@@ -139,6 +139,7 @@ apiPackageModify() {
     pushd ${WORKSPACE}/on-http/extra
     sed -i "s/.*git symbolic-ref.*/ continue/g" make-deb.sh
     sed -i "/build-package.bash/d" make-deb.sh
+    sed -i "/GITCOMMITDATE/d" make-deb.sh
     sed -i "/mkdir/d" make-deb.sh
     sudo bash make-deb.sh
     popd
