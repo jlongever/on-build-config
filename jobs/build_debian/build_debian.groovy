@@ -16,8 +16,8 @@ node(build_debian_node){
                     checkout scm
                     shareMethod = load("jobs/shareMethod.groovy")
                 }
-                def url = "https://github.com/PengTian0/on-build-config.git"
-                def branch = "*/feature/test-pipeline2"
+                def url = "https://github.com/RackHD/on-build-config.git"
+                def branch = "*/master"
                 def targetDir = "on-build-config"
                 shareMethod.checkout(url, branch, targetDir)
 
