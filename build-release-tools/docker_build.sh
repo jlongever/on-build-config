@@ -78,12 +78,8 @@ doBuild() {
                     docker build -t rackhd/files$TAG .
                     repos_tags=files$TAG" "
             elif [ "$repo" != "on-core" ];then
-                    # Use the new sources.list
-                    sed -i "/^FROM/a RUN mv /etc/apt/sources.list /etc/apt/sources.list.bak\nADD $SOURCE_LIST /etc/apt/sources.list" Dockerfile
                     #Based on newly build upstream image to build
                     sed -i "/^FROM/ s/$/${PRE_TAG}/" Dockerfile
-                    # Recover the sources.list
-                    sed -i -e "\$aRUN mv /etc/apt/sources.list.bak /etc/apt/sources.list" Dockerfile
                     docker build -t rackhd/$repo$TAG .
             fi
             case $repo in
