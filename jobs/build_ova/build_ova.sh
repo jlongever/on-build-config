@@ -14,14 +14,12 @@ pkill vmware
 
 set -x
 
-
 cd $WORKSPACE/build/packer 
 
 export PACKER_CACHE_DIR=/tmp/packer_cache
 export BUILD_TYPE=vmware
 
-#exprot vars to build ova
-
+#export vars to build ova
 if [ "${IS_OFFICIAL_RELEASE}" == true ]; then
     export ANSIBLE_PLAYBOOK=rackhd_release
 else
@@ -32,9 +30,5 @@ export RACKHD_VERSION=$RACKHD_VERSION
 
 ./HWIMO-BUILD
 
-#cd $WORKSPACE/build/packer
-#curl http://rackhdci.lss.emc.com/job/BuildRelease/job/Build/job/ova-build/180/artifact/build/packer/rackhd-ubuntu-14.04-1.1.0-20170208UTC.ova -o rackhd-ubuntu-14.04.ova
-
 mv rackhd-${OS_VER}.ova rackhd-${OS_VER}-${RACKHD_VERSION}.ova
-#}
 

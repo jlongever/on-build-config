@@ -24,7 +24,7 @@ node(build_docker_node){
                         --RackHDDir $WORKSPACE/build \
                         --buildRecord $WORKSPACE/build_record
 
-                        echo $SUDO_PASSWORD |sudo -S chown -R $USER:$USER $WORKSPACE/rackhd               
+                        echo $SUDO_PASSWORD |sudo -S chown -R $USER:$USER $WORKSPACE/build 
                         '''
                     }
                 }

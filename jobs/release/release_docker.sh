@@ -1,5 +1,4 @@
 #!/bin/bash
-
 set -e
 # Environmental requirement:
 # docker service running and docker have already logged with Rackhd Dockerhub ID,
@@ -25,19 +24,16 @@ done < $WORKSPACE/build_record
 set +e
 set -x
 
-
-
 clean_up(){
-# parameter : the images keyword to be delete
-keyword=$1
-images=`docker images | grep ${keyword} | awk '{print $3}' | sort | uniq`
-if [ -n "$images" ]; then
+    # parameter : the images keyword to be delete
+    keyword=$1
+    images=`docker images | grep ${keyword} | awk '{print $3}' | sort | uniq`
+    if [ -n "$images" ]; then
         docker rmi -f $images
-fi
+    fi
 }
 
 docker images
-
 clean_up none
 # clean images by order, on-core should be last one because others depends on it
 clean_up on-taskgraph
@@ -52,6 +48,3 @@ clean_up on-wss
 clean_up on-statsd
 clean_up on-core
 clean_up rackhd
-
-
-

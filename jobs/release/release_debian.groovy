@@ -1,6 +1,6 @@
 node(build_debian_node){
     withEnv([
-        "BINTRAY_SUBJECT=pengtian0", 
+        "BINTRAY_SUBJECT=rackhd", 
         "BINTRAY_REPO=debian", 
         "BINTRAY_COMPONENT=main", 
         "BINTRAY_DISTRIBUTION=trusty", 

@@ -1,15 +1,13 @@
 #!/bin/bash +xe
 
-#fix bug
 delete_ova() {
-	ansible esxi -a "./vm_operation.sh -a delete ${ESXI_HOST_IP} 1 ova-for-post-test"
+    ansible esxi -a "./vm_operation.sh -a delete ${ESXI_HOST_IP} 1 ova-for-post-test"
     if [ $? = 0 ]; then
       echo "Delete ova-for-post-test successfully!"
     fi
 }
 delete_ova
 sleep 10
-
 
 PACKERDIR="$WORKSPACE/build/packer/"
 OVA="$PACKERDIR/rackhd-${OS_VER}-${RACKHD_VERSION}.ova"
