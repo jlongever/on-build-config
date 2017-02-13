@@ -22,6 +22,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
         # target.vm.network :public_network
         if ENV['WORKSPACE']
           target.vm.synced_folder "#{ENV['WORKSPACE']}/build-deps", "/home/vagrant/src/"
+          target.vm.synced_folder "#{ENV['WORKSPACE']}/build-config", "/home/vagrant/src/build-config"
           if ENV['MULTI'] =="true"
             target.vm.synced_folder "#{ENV['WORKSPACE']}/build", "/home/vagrant/src/build"
             for repo in ENV['REPO_NAME'].split(' ')
