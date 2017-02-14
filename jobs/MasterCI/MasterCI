@@ -22,7 +22,7 @@ node{
         }
     }
 
-    stage("Vagrant & OVA Build"){
+    stage("VM Images Build"){
 
         parallel 'vagrant build':{
  
@@ -50,21 +50,21 @@ node{
         }
     }
 
-    stage("Release"){
+    stage("Publish"){
 
-        parallel 'Release Debian':{
+        parallel 'Publish Debian':{
  
             load("jobs/release/release_debian.groovy")
 
-        }, 'Release Vagrant':{
+        }, 'Publish Vagrant':{
 
             load("jobs/release/release_vagrant.groovy")
  
-        }, 'Release Docker':{
+        }, 'Publish Docker':{
             
             load("jobs/release/release_docker.groovy")
 
-        }, 'Release NPM':{
+        }, 'Publish NPM':{
 
             load("jobs/release/release_npm.groovy")
 

@@ -16,11 +16,9 @@ curl --user $BINTRAY_CREDS -L "$MANIFEST_FILE_URL" -o rackhd-manifest
 
 rsync -r ./$CLONE_DIR/RackHD/ ./build/
 
-
-
 #build static files
 pushd ./$CLONE_DIR/on-imagebuilder
-#sudo ./build_all.sh
+sudo ./build_all.sh
 
 #copy to on-imagebuilder folder for docker build
 output_path=/tmp/on-imagebuilder
@@ -39,9 +37,7 @@ sudo chown -R $USER:$USER pxe
 popd
 
 #docker images build
-#test(){
 cd build-config/build-release-tools/
 ./docker_build.sh $WORKSPACE/$CLONE_DIR $IS_OFFICIAL_RELEASE
 mv $WORKSPACE/$CLONE_DIR/build_record $WORKSPACE
-#}
 

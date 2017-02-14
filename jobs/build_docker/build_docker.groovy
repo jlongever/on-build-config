@@ -14,8 +14,8 @@ node(build_docker_node){
                     shareMethod = load("jobs/shareMethod.groovy")
                 }
  
-                def url = "https://github.com/changev/on-build-config.git"
-                def branch = "*/workaround/commit_hash_as_pack_refs_and_1_run_of_apt_get_update"
+                def url = "https://github.com/RackHD/on-build-config.git"
+                def branch = "master"
                 def targetDir = "build-config"
                 shareMethod.checkout(url, branch, targetDir)
 

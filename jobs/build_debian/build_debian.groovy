@@ -21,6 +21,7 @@ node(build_debian_node){
                 def targetDir = "on-build-config"
                 shareMethod.checkout(url, branch, targetDir)
 
+                // credentials  are bingding to Jenkins Server
                 withCredentials([
                     usernameColonPassword(credentialsId: "ff7ab8d2-e678-41ef-a46b-dd0e780030e1", 
                                           variable: "SUDO_CREDS"),
