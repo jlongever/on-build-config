@@ -18,7 +18,8 @@ rsync -r ./$CLONE_DIR/RackHD/ ./build/
 
 #build static files
 pushd ./$CLONE_DIR/on-imagebuilder
-sudo ./build_all.sh
+
+echo $SUDO_PASSWORD |sudo -S ./build_all.sh
 
 #copy to on-imagebuilder folder for docker build
 output_path=/tmp/on-imagebuilder

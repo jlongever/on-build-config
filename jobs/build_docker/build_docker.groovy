@@ -20,6 +20,9 @@ node(build_docker_node){
                 shareMethod.checkout(url, branch, targetDir)
 
                 withCredentials([
+                    usernamePassword(credentialsId: 'ff7ab8d2-e678-41ef-a46b-dd0e780030e1',
+                                     passwordVariable: 'SUDO_PASSWORD',
+                                     usernameVariable: 'SUDO_USER'),
                     usernameColonPassword(credentialsId: 'a94afe79-82f5-495a-877c-183567c51e0b', 
                                           variable: 'BINTRAY_CREDS')]){
                     timeout(90){
