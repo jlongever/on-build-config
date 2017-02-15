@@ -1,0 +1,57 @@
+{
+    "build-name": "rackhd-devel", 
+    "build-requirements": "xenial", 
+    "downstream-jobs": [], 
+    "repositories": [
+        {
+            "branch": "", 
+            "commit-id": "",
+            "repository": "https://github.com/RackHD/on-core.git"
+        }, 
+        {
+            "branch": "", 
+            "commit-id": "",
+            "repository": "https://github.com/RackHD/on-dhcp-proxy.git"
+        }, 
+        {
+            "branch": "", 
+            "commit-id": "",
+            "repository": "https://github.com/RackHD/on-http.git"
+        }, 
+        {
+            "branch": "", 
+            "commit-id": "",
+            "repository": "https://github.com/RackHD/on-syslog.git"
+        }, 
+        {
+            "branch": "", 
+            "commit-id": "",
+            "repository": "https://github.com/RackHD/on-taskgraph.git"
+        }, 
+        {
+            "branch": "", 
+            "commit-id": "",
+            "repository": "https://github.com/RackHD/on-tasks.git"
+        }, 
+        {
+            "branch": "", 
+            "commit-id": "",
+            "repository": "https://github.com/RackHD/on-tftp.git"
+        }, 
+        {
+            "branch": "", 
+            "commit-id": "",
+            "repository": "https://github.com/RackHD/di.js.git"
+        }, 
+        {
+            "branch": "", 
+            "commit-id": "",
+            "repository": "https://github.com/RackHD/RackHD.git"
+        }, 
+        {
+            "branch": "", 
+            "commit-id": "",
+            "repository": "https://github.com/RackHD/on-build-config.git"
+        }
+    ]
+}
