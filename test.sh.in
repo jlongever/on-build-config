@@ -252,12 +252,35 @@ nodesCreate() {
   fi
 }
 
+vagrantSuspendAll() {
+ for box in `vagrant global-status --prune | awk '/running/{print $1}'`; do
+     vagrant suspend ${box}
+ done
+}
+
 CONFIG_PATH=${CONFIG_PATH-build-config/vagrant/config/mongo}
 vagrantUp() {
   cd ${WORKSPACE}/RackHD/example
   cp -rf ${WORKSPACE}/build-config/vagrant/* .
-  CONFIG_DIR=${CONFIG_PATH} WORKSPACE=${WORKSPACE} REPO_NAME="${REPO_NAME}" MULTI=${MULTI} vagrant up --provision
-  if [ $? -ne 0 ]; then 
+  result=0
+  for i in {1..2}
+  do
+      CONFIG_DIR=${CONFIG_PATH} WORKSPACE=${WORKSPACE} REPO_NAME="${REPO_NAME}" MULTI=${MULTI} vagrant up --provision
+      result=$?
+      if [ $result -ne 0 ]; then
+          echo "Vagrant up failed!! retry one more time"
+          vagrant destroy -f
+          #suspend all running instance
+          vagrantSuspendAll
+          #rmeove all VMs before retying
+          rm -rf "$HOME/VirtualBox VMs"
+          rm "$HOME/.config/VirtualBox/VirtualBox.xml"
+      else
+          echo "Vagrant up passed."
+          break
+      fi
+  done
+  if [ $result -ne 0 ]; then
       echo "Vagrant up failed."
       exit 1
   fi
@@ -272,12 +295,6 @@ vagrantDestroy() {
 vagrantHalt() {
   cd ${WORKSPACE}/RackHD/example
   vagrant halt
-}
-
-vagrantSuspendAll() {
-  for box in `vagrant global-status --prune | awk '/running/{print $1}'`; do
-    vagrant suspend ${box}
-  done
 }
 
 virtualBoxDestroyRunning() {
@@ -310,7 +327,15 @@ runTests() {
      cd ${WORKSPACE}/RackHD/test
      #TODO Parameterize FIT args
      python run_tests.py -test deploy/rackhd_stack_init.py -stack vagrant  -port 9090 -xunit
-     python run_tests.py -test tests -group smoke -stack vagrant -port 9090 -ora localhost -v 9 -xunit
+     if [ $? -ne 0 ]; then
+         echo "Test FIT failed running deploy/rackhd_stack_init.py"
+         exit 1
+     fi
+     python run_tests.py -test tests -group smoke -stack vagrant -port 9090 -v 9 -xunit
+     if [ $? -ne 0 ]; then
+         echo "Test FIT failed running smoke test"
+         exit 1
+     fi
      mkdir -p ${WORKSPACE}/xunit-reports
      cp *.xml ${WORKSPACE}/xunit-reports
   fi
@@ -372,7 +397,7 @@ if [ "$RUN_CIT_TEST" == true ] || [ "$RUN_FIT_TEST" == true ] ; then
   # time to make the env instead of doing sleeps...
   setupVirtualEnv
   waitForAPI
-  nodesOn
+  nodesOn &
   generateSolLog
   # Run tests
   runTests
