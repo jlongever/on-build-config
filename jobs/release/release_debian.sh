@@ -2,7 +2,6 @@
 set -ex
 echo "upload debian to bintray"
 
-
 if [ $IS_OFFICIAL_RELEASE == true ];
 then
 BINTRAY_COMPONENT=release

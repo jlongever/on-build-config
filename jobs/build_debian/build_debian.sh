@@ -1,11 +1,8 @@
 #!/bin/bash
 set -ex
-
 pushd $WORKSPACE
 
 curl --user $BINTRAY_CREDS -L "$MANIFEST_FILE_URL" -o rackhd-manifest
-
-
 ./on-build-config/build-release-tools/HWIMO-BUILD on-build-config/build-release-tools/application/make_debian_packages.py \
 --build-directory b \
 --manifest-file  rackhd-manifest \
@@ -14,9 +11,6 @@ curl --user $BINTRAY_CREDS -L "$MANIFEST_FILE_URL" -o rackhd-manifest
 --jobs 8 \
 --force \
 --is-official-release $IS_OFFICIAL_RELEASE
-
-
-
 
 ./on-build-config/build-release-tools/HWIMO-BUILD on-build-config/build-release-tools/application/release_debian_packages.py \
 --build-directory b/ \

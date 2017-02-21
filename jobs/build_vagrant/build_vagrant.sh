@@ -1,5 +1,4 @@
 #!/bin/bash
-
 ifconfig
 set +e
 packer -v
@@ -10,9 +9,7 @@ sed -i "s#https://dl.bintray.com/rackhd/debian trusty release#https://dl.bintray
 sed -i "s#https://dl.bintray.com/rackhd/debian trusty main#https://dl.bintray.com/rackhd-mirror/debian trusty main#" main.yml
 pkill packer
 cd ..
-
 cd $WORKSPACE/build/packer 
-
 #export vars to build virtualbox
 export PACKER_CACHE_DIR=/tmp/packer_cache
 if [ "${IS_OFFICIAL_RELEASE}" == "true" ]; then

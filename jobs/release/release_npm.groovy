@@ -3,19 +3,15 @@ node{
         "MANIFEST_FILE_URL=${env.MANIFEST_FILE_URL}",
         "IS_OFFICIAL_RELEASE=${env.IS_OFFICIAL_RELEASE}"
         ]) {
-
         def shareMethod
-        
         dir("Release_NPM_JFiles"){
             checkout scm
             shareMethod = load("jobs/shareMethod.groovy")
         }
-
         def url = "https://github.com/RackHD/on-build-config.git"
         def branch = "*/master"
         def targetDir = "build-config"
         shareMethod.checkout(url, branch, targetDir)
-
         withCredentials([
             usernameColonPassword(credentialsId: 'a94afe79-82f5-495a-877c-183567c51e0b', 
                                   variable: 'BINTRAY_CREDS'), 

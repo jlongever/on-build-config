@@ -4,11 +4,9 @@ node(create_manifest_node){
         "branch=${env.branch}",
         "date=${env.date}",
         "timezone=${env.timezone}",
-        "BINTRAY_SUBJECT=pengtian0",
+        "BINTRAY_SUBJECT=rackhd",
         "BINTRAY_REPO=binary"]){
-
         deleteDir()
-
         def shareMethod
         dir("Create_Manifest_JFiles"){
             checkout scm
@@ -18,7 +16,6 @@ node(create_manifest_node){
         def branch = "*/master"
         def targetDir = "on-build-config"
         shareMethod.checkout(url, branch, targetDir)
-
         withCredentials([
             usernamePassword(credentialsId: 'a94afe79-82f5-495a-877c-183567c51e0b', 
             passwordVariable: 'BINTRAY_API_KEY', 
@@ -28,9 +25,7 @@ node(create_manifest_node){
         }
         // inject properties file as environment variables
         if(fileExists ('downstream_file')) {
-
             def props = readProperties file: 'downstream_file'
-
             if(props['MANIFEST_FILE_URL']) {
                 env.MANIFEST_FILE_URL = "${props.MANIFEST_FILE_URL}"
             }

@@ -1,12 +1,10 @@
 #!/bin/bash +xe
-
 delete_ova() {
     ansible esxi -a "./vm_operation.sh -a delete ${ESXI_HOST_IP} 1 ova-for-post-test"
     if [ $? = 0 ]; then
       echo "Delete ova-for-post-test successfully!"
     fi
 }
-
 echo "Delete old OVA"
 delete_ova
 sleep 10

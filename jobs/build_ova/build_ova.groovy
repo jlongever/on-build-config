@@ -12,10 +12,8 @@ node(build_ova_node){ws{
                 "BINTRAY_COMPONENT=main", 
                 "BINTRAY_DISTRIBUTION=trusty", 
                 "BINTRAY_ARCHITECTURE=amd64"]){
-
                 def current_workspace = pwd()
                 deleteDir()
-
                 def shareMethod
                 dir("Build_OVA_JFiles"){
                     checkout scm
@@ -31,11 +29,8 @@ node(build_ova_node){ws{
                         sh './Build_OVA_JFiles/jobs/build_ova/build_ova.sh'
                     }
                 }
-
                 archiveArtifacts 'build/packer/*.ova, build/packer/*.log, build/packer/*.md5, build/packer/*.sha'
-                //archiveArtifacts 'build/packer/*.ova'
                 stash name: 'ova', includes: 'build/packer/*.ova'
-
                 env.OVA_WORKSPACE="${current_workspace}"
                 echo "${env.OVA_WORKSPACE}"
             }

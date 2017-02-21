@@ -6,7 +6,6 @@ set -e
 
 docker login -u $DOCKERHUB_USER -p $DOCKERHUB_PASS
 
-
 while read -r LINE; do
         echo $LINE
         for repo_tag in $LINE; do
@@ -18,7 +17,6 @@ while read -r LINE; do
         fi
     done
 done < $WORKSPACE/build_record
-
 
 #move the original clean up steps to post-build, avoid failure impacts build status.
 set +e

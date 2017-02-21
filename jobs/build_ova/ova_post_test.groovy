@@ -6,13 +6,11 @@ node(build_ova_node){
                 "IS_OFFICIAL_RELEASE=${env.IS_OFFICIAL_RELEASE}", 
                 "RACKHD_VERSION=${env.RACKHD_VERSION}",
                 "OS_VER=${env.OS_VER}"]){
-            
                 def shareMethod
                 dir("OVA_Post_Test_JFiles"){
                     checkout scm
                     shareMethod = load("jobs/shareMethod.groovy")
                 }
-
                 def url = 'https://github.com/RackHD/on-build-config.git'
                 def branch = '*/master'
                 def targetDir = 'build-config'
@@ -34,7 +32,6 @@ node(build_ova_node){
                     string(credentialsId: 'Deployed_OVA_admin_DNS', variable: 'OVA_Admin_DNS'), 
                     string(credentialsId: 'Deployed_OVA_Datastore', variable: 'ESXI_DataStore')
                     ]) {
-
                     timeout(90){
                         sh './OVA_Post_Test_JFiles/jobs/build_ova/ova_post_test.sh'
                     }

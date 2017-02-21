@@ -5,7 +5,6 @@ node(build_docker_node){
                 "MANIFEST_FILE_URL=${env.MANIFEST_FILE_URL}",
                 "IS_OFFICIAL_RELEASE=${env.IS_OFFICIAL_RELEASE}",
                 "CLONE_DIR=b"]){
-
                 deleteDir()
                 def current_workspace = pwd()
                 def shareMethod
@@ -13,7 +12,6 @@ node(build_docker_node){
                     checkout scm
                     shareMethod = load("jobs/shareMethod.groovy")
                 }
- 
                 def url = "https://github.com/RackHD/on-build-config.git"
                 def branch = "master"
                 def targetDir = "build-config"

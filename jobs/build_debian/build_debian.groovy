@@ -9,8 +9,7 @@ node(build_debian_node){
                 "BINTRAY_COMPONENT=main",
                 "BINTRAY_DISTRIBUTION=trusty", 
                 "BINTRAY_ARCHITECTURE=amd64"]) {
-
-                deleteDir();
+                deleteDir()
                 def shareMethod
                 dir("Build_Debian_JFiles"){
                     checkout scm
@@ -21,13 +20,12 @@ node(build_debian_node){
                 def targetDir = "on-build-config"
                 shareMethod.checkout(url, branch, targetDir)
 
-                // credentials  are bingding to Jenkins Server
+                // credentials are binding to Jenkins Server
                 withCredentials([
                     usernameColonPassword(credentialsId: "ff7ab8d2-e678-41ef-a46b-dd0e780030e1", 
                                           variable: "SUDO_CREDS"),
                     usernameColonPassword(credentialsId: "a94afe79-82f5-495a-877c-183567c51e0b", 
                                           variable:"BINTRAY_CREDS")]){
-
                     sh './Build_Debian_JFiles/jobs/build_debian/build_debian.sh'
                 }
 

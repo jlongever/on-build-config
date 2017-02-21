@@ -12,10 +12,8 @@ node(build_vagrant_node){
                 "BINTRAY_COMPONENT=main", 
                 "BINTRAY_DISTRIBUTION=trusty", 
                 "BINTRAY_ARCHITECTURE=amd64"]){
-
                 def current_workspace = pwd()
                 deleteDir()
-               
                 def shareMethod
                 dir("Build_Vagrant_JFiles"){
                     checkout scm
@@ -32,9 +30,7 @@ node(build_vagrant_node){
                     }
                 }
                 archiveArtifacts 'build/packer/*.box, build/packer/*.log'
-                //archiveArtifacts 'build/packer/*.box'
                 stash name: 'vagrant', includes: 'build/packer/*.box'
-
                 env.VAGRANT_WORKSPACE="${current_workspace}"
                 echo "${env.VAGRANT_WORKSPACE}"
             }

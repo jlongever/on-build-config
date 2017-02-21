@@ -1,7 +1,4 @@
 #!/bin/bash
-
-pwd
-
 #download manifest
 curl --user $BINTRAY_CREDS -L "$MANIFEST_FILE_URL" -o rackhd-manifest
 
