@@ -1,0 +1,47 @@
+node{
+    checkout scm
+    stage("Create Manifest"){
+        load("jobs/create_manifest/create_manifest.groovy")
+        def manifest_name=env.MANIFEST_FILE_URL.tokenize('/')[-1];
+        currentBuild.description = "<a href=${env.MANIFEST_FILE_URL}>${manifest_name}</a>";
+    }
+    stage("Build & Test"){
+        parallel 'Continus Functional Test':{
+            build job: 'Continuous-Test/Continuous-Functional', parameters: [string(name: 'MANIFEST_FILE_URL', value: env.MANIFEST_FILE_URL), booleanParam(name: 'IS_OFFICIAL_RELEASE', value: env.IS_OFFICIAL_RELEASE=="true")];
+        }, 'build debian':{
+            load("jobs/build_debian/build_debian.groovy")
+        }, 'build docker':{
+            load("jobs/build_docker/build_docker.groovy")
+        }
+    }
+
+    stage("VM Images Build"){
+        parallel 'vagrant build':{
+            load("jobs/build_vagrant/build_vagrant.groovy")
+        }, 'ova build':{
+            load("jobs/build_ova/build_ova.groovy")
+        }
+    }
+          
+    stage("Post Test"){
+        parallel 'vagrant post test':{
+            load("jobs/build_vagrant/vagrant_post_test.groovy")
+        }, 'ova post test':{
+            load("jobs/build_ova/ova_post_test.groovy")
+        }, 'docker post test':{
+            load("jobs/build_docker/docker_post_test.groovy")
+        }
+    }
+
+    stage("Publish"){
+        parallel 'Publish Debian':{
+            load("jobs/release/release_debian.groovy")
+        }, 'Publish Vagrant':{
+            load("jobs/release/release_vagrant.groovy")
+        }, 'Publish Docker':{
+            load("jobs/release/release_docker.groovy")
+        }, 'Publish NPM':{
+            load("jobs/release/release_npm.groovy")
+        }
+    }
+}
