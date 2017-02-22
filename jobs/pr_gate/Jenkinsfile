@@ -1,0 +1,26 @@
+node{
+    deleteDir()
+    def pull_id = env.ghprbPullLink.tokenize('/')[-1];
+    currentBuild.description = "<a href=${env.ghprbPullLink}> PR #${pull_id}: ${ghprbPullTitle}</a>";
+    dir("Jenkinsfile_Library"){
+        checkout scm
+    }
+    try{
+        stage("Parse Pull Request"){
+            load("Jenkinsfile_Library/jobs/pr_gate/pr_parser.groovy")
+        }
+        stage("Unit Test"){
+            load("Jenkinsfile_Library/jobs/unit_test/unit_test.groovy")
+        }
+        stage("Function Test"){
+            load("Jenkinsfile_Library/jobs/function_test/function_test.groovy")
+        }
+    } catch(error){
+        echo "Caught: ${error}"    
+        currentBuild.result = "FAILURE"
+    } finally{
+        stage("Write Back"){
+            load("Jenkinsfile_Library/jobs/write_back_github/write_back_github.groovy")
+        }
+    }
+}
