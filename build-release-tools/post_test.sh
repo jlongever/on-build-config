@@ -135,7 +135,7 @@ waitForAPI() {
     while [ ${timeout} != ${maxto} ]; do
         case $type in
           ova)
-           # ova northPort default to 8080
+           # ova Northbound Port default to 8080
            findRackHDService 1 1  localhost:8080/api/2.0/nodes
            ;;
           docker)
@@ -143,7 +143,7 @@ waitForAPI() {
            findRackHDService 1 1  http://172.31.128.1:9080/api/2.0/nodes
            ;;
           vagrant)
-           # ova northPort default to 9090
+           # ova Northbound Port default to 9090
            findRackHDService 1 1  localhost:9090/api/2.0/nodes
            ;;
         esac
