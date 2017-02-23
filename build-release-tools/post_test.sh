@@ -36,6 +36,7 @@
 # If build twice in one docker build job, the repos:tags of each build will be stored in each line
 ############################################
 
+set -e
 
 while [ "$1" != "" ];do
     case $1 in
@@ -102,43 +103,72 @@ while [ "$1" != "" ];do
     shift
 done
 
+#################
+# using wget to access RackHD API IP:port/api/2.0/nodes
+################
 findRackHDService() {
-    case $type in
-        ova)
-        service_normal_sentence="Authentication Failed"
-        # ova northPort default to 8080
-        api_test_result=`ansible ova-for-post-test -a "wget --retry-connrefused --waitretry=1 --read-timeout=20 --timeout=15 -t 1 --continue localhost:8080/api/2.0/nodes"`
-        echo $api_test_result | grep "$service_normal_sentence" > /dev/null  2>&1
-        ;;
-        docker)
-        # docker southPort default to 9080
-        wget --retry-connrefused --waitretry=1 --read-timeout=20 --timeout=15 -t 1 --continue http://172.31.128.1:9080/api/2.0/nodes
-        ;;
-        vagrant)
-        # Vagrantfile northPort default to 9090
-        curl 127.0.0.1:9090/api/2.0/nodes
-        ;;
-    esac
+    local retry_cnt=${1:-1} # default 1 time retry
+    local waitretry=${2:-1}  # default 1 time interval
+    local url=${3:-localhost:8080/api/2.0/nodes}
+    # NOTE : the '--waitretry' parameter doesn't work as expected for "Connection refused" error. so will have to do the retry outside this function.
+    wget --retry-connrefused --waitretry=${waitretry} --read-timeout=20 --timeout=15 -t ${retry_cnt} --continue ${url} || ERR_RET=$?
+    if [ -z "$ERR_RET" ] || [ "$ERR_RET" == "6" ]; then     # 6 means: "Authentication Failed"
+       return 0
+    else
+       return -1
+    fi
 }
 
 waitForAPI() {
-    #will be edit after build own ova
-    timeout=0
-    maxto=60
+    local flags=$-  # if use ```$(echo $-|grep e)```, the $- will run in a new shell session
+    # retrive old flag
+    if [ "$(echo $flags|grep e)" != "" ]; then
+        e_flag=true 
+    fi
+    # set +e, to tolerate the failure during retry http://www.davidpashley.com/articles/writing-robust-shell-scripts/
+    set +e
+
+    local maxto=60
+    local interval=10  # sleep second
+    local timeout=0
+
     while [ ${timeout} != ${maxto} ]; do
-        findRackHDService
+        case $type in
+          ova)
+           # ova Northbound Port default to 8080
+           findRackHDService 1 1  localhost:8080/api/2.0/nodes
+           ;;
+          docker)
+           # FIXME, original code treats "Authentication Failed" is not acceptable for docker, is it correct ?
+           findRackHDService 1 1  http://172.31.128.1:9080/api/2.0/nodes
+           ;;
+          vagrant)
+           # ova Northbound Port default to 9090
+           findRackHDService 1 1  localhost:9090/api/2.0/nodes
+           ;;
+        esac
+
         if [ $? = 0 ]; then
-          echo "RackHD services perform normally!"
+          echo "RackHD services perform normally! (total time = `expr $timeout \* $interval`s)."
           break
         fi
-        sleep 10
+        sleep ${interval}
         timeout=`expr ${timeout} + 1`
     done
+
     if [ ${timeout} == ${maxto} ]; then
-        echo "Timed out waiting for RackHD API service (duration=`expr $maxto \* 10`s)."
+        echo "Timed out waiting for RackHD API service (duration=`expr $maxto \* $interval`s)."
         exit 1
-      fi
+    fi
+
+    # restore the "set -e" flag if was set
+    if [ "$e_flag" == true ]; then
+       set -e
+    fi
+
 }
+
+
 
 checkRackHDVersion() {
     case $type in
@@ -203,6 +233,7 @@ post_test_vagrant() {
     create_vagrant_file
     vagrant destroy -f
     vagrant up --provision
+    trap "vagrant destroy -f" SIGINT SIGTERM SIGKILL EXIT
     waitForAPI
     checkRackHDVersion
     vagrant destroy -f
