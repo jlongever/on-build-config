@@ -18,7 +18,7 @@ while read -r LINE; do
     done
 done < $WORKSPACE/build_record
 
-#move the original clean up steps to post-build, avoid failure impacts build status.
+# Clean UP. (was in Jenkins job post-build, avoid failure impacts build status.)
 set +e
 set -x
 
@@ -31,7 +31,13 @@ clean_up(){
     fi
 }
 
+echo "Show local docker images"
+docker ps
 docker images
+echo "Stop & rm all docker running images " 
+docker stop $(docker ps -a -q)
+docker rm $(docker ps -a -q)
+echo "Clean Up all docker images in local repo"
 clean_up none
 # clean images by order, on-core should be last one because others depends on it
 clean_up on-taskgraph
@@ -46,3 +52,5 @@ clean_up on-wss
 clean_up on-statsd
 clean_up on-core
 clean_up rackhd
+
+exit 0 # this is a workaround. to avoid the cleanup failure makes whole workflow fail.don't worry, the set -e will ensure failure captured for necessary steps(those lines before set +e)
