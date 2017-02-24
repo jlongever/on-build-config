@@ -142,3 +142,47 @@ class SpecifyDayManifestGenerator(ManifestGenerator):
             if len(jenkins_commit) > 0:
                 newer_commit = self.repo_operator.get_newer_commit(repo_dir, jenkins_commit, merge_commit)
                 repo["commit-id"] = newer_commit
+
+class ExistDirManifestGenerator(ManifestGenerator):
+    def __init__(self, dest, builddir, git_credential=None, force=False, jobs=1):
+        self._jenkins_author = config.gitbit_identity["username"]
+        self._dest_manifest_file = dest
+        self._builddir = builddir
+        self._force = force
+        self._jobs = jobs
+        self._manifest = Manifest.instance_of_sample()
+        self.repo_operator = RepoOperator(git_credential)
+        self.check_builddir()
+
+    def check_builddir(self):
+        """
+        Checks the given builddir name and force flag.
+        Deletes exists directory if one already exists and --force is set
+        :return: None
+        """
+        if not os.path.exists(self._builddir):
+            print "The {0} doesn't exist".format(self._builddir)
+            sys.exit(1)
+
+    def update_manifest(self):
+        """
+        update the manifest with branch name
+        :return: None
+        """
+        repositories = self._manifest.repositories
+        downstream_jobs = self._manifest.downstream_jobs
+        self.update_repositories_commit(repositories)
+        self.update_repositories_branch(repositories)
+        self.update_repositories_commit(downstream_jobs)
+        self.update_repositories_branch(downstream_jobs)
+        self._manifest.validate_manifest()
+
+    def update_repositories_branch(self, repositories):
+        """
+        update the commit-id of repository with the latest commit id
+        :param repositories: a list of repository directory
+        :return: None
+        """
+        for repo in repositories:
+            repo_dir = self.directory_for_repo(repo)
+            repo["branch"] = self.repo_operator.get_current_branch(repo_dir)
