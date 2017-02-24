@@ -110,13 +110,28 @@ findRackHDService() {
     local retry_cnt=${1:-1} # default 1 time retry
     local waitretry=${2:-1}  # default 1 time interval
     local url=${3:-localhost:8080/api/2.0/nodes}
-    # NOTE : the '--waitretry' parameter doesn't work as expected for "Connection refused" error. so will have to do the retry outside this function.
-    wget --retry-connrefused --waitretry=${waitretry} --read-timeout=20 --timeout=15 -t ${retry_cnt} --continue ${url} || ERR_RET=$?
-    if [ -z "$ERR_RET" ] || [ "$ERR_RET" == "6" ]; then     # 6 means: "Authentication Failed"
-       return 0
-    else
-       return -1
-    fi
+    case $type in
+      ova)
+        service_normal_sentence="Authentication Failed"
+        # Note: the "ova-post-test" is defined locally on Jenkins slave's ansible host file.
+        api_test_result=`ansible ova-for-post-test -a "wget --retry-connrefused --waitretry=1 --read-timeout=20 --timeout=15 -t 1 --continue ${url}"`
+        echo $api_test_result | grep "$service_normal_sentence" > /dev/null  2>&1
+        if [ $? = 0 ]; then  # FIXME: original code only treat "Authentication Failed" as single successful criteria, this only applies to when auth=disable.
+           return 0
+        else
+           return -1
+        fi
+        ;;
+      docker|vagrant)
+        # NOTE : the '--waitretry' parameter doesn't work as expected for "Connection refused" error. so will have to do the retry outside this function.
+        wget --retry-connrefused --waitretry=${waitretry} --read-timeout=20 --timeout=15 -t ${retry_cnt} --continue ${url} || ERR_RET=$?
+        if [ -z "$ERR_RET" ] || [ "$ERR_RET" == "6" ]; then     # 6 means: "Authentication Failed"
+           return 0
+        else
+           return -1
+        fi
+        ;;
+    esac
 }
 
 waitForAPI() {
@@ -135,7 +150,7 @@ waitForAPI() {
     while [ ${timeout} != ${maxto} ]; do
         case $type in
           ova)
-           # ova Northbound Port default to 8080
+           # ova Northbound Port default to 8080, but it should be reached via ansible to OVA VM's IP
            findRackHDService 1 1  localhost:8080/api/2.0/nodes
            ;;
           docker)
