@@ -1,0 +1,32 @@
+node{
+    deleteDir()
+    checkout scm
+    if(TAG == "true"){
+        stage("Create Tag"){
+            load("jobs/SprintTag/create_tag.groovy")
+        }
+    }
+    def manifest_name=env.MANIFEST_FILE_URL.tokenize('/')[-1];
+    currentBuild.description = "<a href=${env.MANIFEST_FILE_URL}>${manifest_name}</a>";
+
+    def retry_times = Integer.valueOf(env.Test_Time);
+    int failed_times = 0
+    for (int i=0; i < retry_times; i++) {
+        try{
+            stage("Test${i}"){
+                load("jobs/function_test/function_test.groovy")
+            }
+        } catch(error){
+            echo "Caught: ${error}"
+            failed_times += 1
+        }
+    }
+
+    if(failed_times > 0 && failed_times == retry_times){
+        echo "All Tests failed"
+        sh 'exit 1'
+    }
+ 
+    def shareMethod = load("jobs/shareMethod.groovy")
+    shareMethod.buildAndPublish()
+}
