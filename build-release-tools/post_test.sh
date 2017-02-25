@@ -259,8 +259,13 @@ post_test_vagrant() {
 ############################################
 
 clean_all_containers() {
-    docker stop $(docker ps -a -q)
-    docker rm $(docker ps -a -q)
+    local containers=$(docker ps -a -q)
+    if [ "$containers" != "" ]; then
+        echo "Clean Up containers : " ${containers}
+        docker stop ${containers}
+        docker rm  ${containers}
+    fi
+
 }
 
 post_test_docker() {
