@@ -110,12 +110,14 @@ findRackHDService() {
     local retry_cnt=${1:-1} # default 1 time retry
     local waitretry=${2:-1}  # default 1 time interval
     local url=${3:-localhost:8080/api/2.0/nodes}
+    local ERR_RET=     # init it with undefined. otherwise, it will inherit old value of last run
     case $type in
       ova)
         service_normal_sentence="Authentication Failed"
         # Note: the "ova-post-test" is defined locally on Jenkins slave's ansible host file.
         api_test_result=`ansible ova-for-post-test -a "wget --retry-connrefused --waitretry=1 --read-timeout=20 --timeout=15 -t 1 --continue ${url}"`
         echo $api_test_result | grep "$service_normal_sentence" > /dev/null  2>&1
+        echo "[Debug] OVA ansible returns: $api_test_result"
         if [ $? = 0 ]; then  # FIXME: original code only treat "Authentication Failed" as single successful criteria, this only applies to when auth=disable.
            return 0
         else
@@ -125,6 +127,7 @@ findRackHDService() {
       docker|vagrant)
         # NOTE : the '--waitretry' parameter doesn't work as expected for "Connection refused" error. so will have to do the retry outside this function.
         wget --retry-connrefused --waitretry=${waitretry} --read-timeout=20 --timeout=15 -t ${retry_cnt} --continue ${url} || ERR_RET=$?
+        echo "[Debug] wget returns : $ERR_RET"
         if [ -z "$ERR_RET" ] || [ "$ERR_RET" == "6" ]; then     # 6 means: "Authentication Failed"
            return 0
         else
@@ -171,15 +174,17 @@ waitForAPI() {
         timeout=`expr ${timeout} + 1`
     done
 
+    # restore the "set -e" flag if was set
+    if [ "$e_flag" == true ]; then
+       set -e
+    fi
+
     if [ ${timeout} == ${maxto} ]; then
         echo "Timed out waiting for RackHD API service (duration=`expr $maxto \* $interval`s)."
         exit 1
     fi
 
-    # restore the "set -e" flag if was set
-    if [ "$e_flag" == true ]; then
-       set -e
-    fi
+
 
 }
 
