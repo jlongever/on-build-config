@@ -15,6 +15,18 @@ cat config.ini.in | sed -f sed.script > config.ini
 chmod oug+x config.ini
 rm sed.script
 
+echo "Generating test script file from template"
+if [ -e "${REPO_NAME}/test.sh.in" ]; then
+  env | sed 's/[\%]/\\&/g;s/\([^=]*\)=\(.*\)/s%${\1}%\2%/' > sed.script
+  cat ${REPO_NAME}/test.sh.in | sed -f sed.script > test.sh
+  chmod oug+x test.sh
+  rm sed.script
+else
+  env | sed 's/[\%]/\\&/g;s/\([^=]*\)=\(.*\)/s%${\1}%\2%/' > sed.script
+  cat test.sh.in | sed -f sed.script > test.sh
+  chmod oug+x test.sh
+  rm sed.script
+fi
 
 echo "Generating post deployment file from template"
 if [ -e "${REPO_NAME}/post-deploy.sh.in" ]; then

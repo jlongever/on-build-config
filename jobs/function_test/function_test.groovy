@@ -60,29 +60,39 @@ def function_test(String test_name, String node_name, String TEST_GROUP, Boolean
             ){
                 try{
                     timeout(50){
-                        sh 'on-build-config/test.sh'
+                        sh '''
+                        ./on-build-config/jobs/function_test/prepare.sh 
+                        ./build-config/test.sh
+                        '''
                     }
                     
                 } catch(error){
                     throw error
                 } finally{
-                    sh 'on-build-config/jobs/function_test/cleanup.sh'
                     def artifact_dir = test_name.replaceAll(' ', '-')
                     sh '''#!/bin/bash -ex
-                    ./build-config/post-deploy.sh
                     mkdir '''+"$artifact_dir"+'''
+                    cp RackHD/test/*.xml '''+"$artifact_dir" +'''
+                    ./build-config/jobs/function_test/cleanup.sh
+                    ./build-config/post-deploy.sh
                     cp build-deps/*.log '''+"$artifact_dir"+'''
-                    cp RackHD/test/*.xml '''+"$artifact_dir"
-
-                    archiveArtifacts "$artifact_dir/*.*"
-                    junit 'RackHD/test/*.xml'
-                    sh '''#!/bin/bash -ex
-                    find RackHD/test/ -name "*.xml" > files.txt
-                    files=$( paste -s -d ' ' files.txt )
-                    ./on-build-config/build-release-tools/application/parse_test_results.py \
-                    --test-result-file "$files"  \
-                    --parameters-file downstream_file
                     '''
+                    archiveArtifacts "$artifact_dir/*.*"
+
+                    sh '''#!/bin/bash -ex
+                    find RackHD/test/ -maxdepth 1 -name "*.xml" > files.txt
+                    files=$( paste -s -d ' ' files.txt )
+                    if [ -z "$files" ];then
+                        echo "No test result files generated, maybe it's aborted"
+                        exit 1
+                    else
+                        ./build-config/build-release-tools/application/parse_test_results.py \
+                        --test-result-file "$files"  \
+                        --parameters-file downstream_file
+                    fi
+                    '''
+
+                    junit 'RackHD/test/*.xml'
                     int failure_count = 0
                     int error_count = 0
                     if(fileExists ("downstream_file")) {
@@ -135,6 +145,7 @@ def reserve_resource(label_name){
 }
 
 node{
+    deleteDir()
     try{
         withEnv([
             "HTTP_STATIC_FILES=${env.HTTP_STATIC_FILES}",
