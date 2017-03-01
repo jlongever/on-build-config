@@ -7,5 +7,5 @@ echo "Running post-deploy script"
 #and move them to 'build' folder for publishing
 cd $WORKSPACE/build-deps
 for file in `ls *sol.log.raw`; do
-    ansi2html < $file > $WORKSPACE/build/${file%.*}
+    ansi2html < $file > $WORKSPACE/build-deps/${file%.*}
 done
