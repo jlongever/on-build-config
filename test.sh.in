@@ -7,6 +7,7 @@ if [ -z "${REPO_NAME}" ]; then
 fi
 
 REPOS=("on-http" "on-taskgraph" "on-dhcp-proxy" "on-tftp" "on-syslog")
+PYTHONREPOS=(${PYTHON_REPOS})
 
 HTTP_STATIC_FILES="${HTTP_STATIC_FILES}"
 TFTP_STATIC_FILES="${TFTP_STATIC_FILES}"
@@ -103,6 +104,14 @@ preparePackages() {
              cd ${i}
              git checkout ${GIT_REFSPEC}
              npm install --production
+         fi
+      done
+      for i in ${PYTHONREPOS[@]}; do
+         cd ${WORKSPACE}/build-deps
+         if [[ "${REPO_NAME}" != *"${i}"* ]]; then
+             git clone https://github.com/RackHD/${i}.git
+             cd ${i}
+             git checkout ${GIT_REFSPEC}
          fi
       done
 
