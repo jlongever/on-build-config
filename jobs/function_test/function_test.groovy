@@ -59,7 +59,7 @@ def function_test(String test_name, String node_name, String TEST_GROUP, Boolean
                 "NODE_NAME=${env.NODE_NAME}"]
             ){
                 try{
-                    timeout(50){
+                    timeout(60){
                         sh '''
                         ./on-build-config/jobs/function_test/prepare.sh 
                         ./build-config/test.sh

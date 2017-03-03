@@ -103,7 +103,6 @@ nodesOff() {
      sleep 5
   fi
 }
-
 nodesOn() {
   cd ${WORKSPACE}/build-config/deployment/
   if [ "${USE_VCOMPUTE}" != "false" ]; then
@@ -115,7 +114,6 @@ nodesOn() {
      sleep 5
   fi
 }
-
 nodesDelete() {
   cd ${WORKSPACE}/build-config/deployment/
   if [ "${USE_VCOMPUTE}" != "false" ]; then
@@ -124,7 +122,6 @@ nodesDelete() {
     done
   fi
 }
-
 nodesCreate() {
   cd ${WORKSPACE}/build-config/deployment/
   if [ "${USE_VCOMPUTE}" != "false" ]; then
@@ -137,13 +134,11 @@ nodesCreate() {
     nodesOff
   fi
 }
-
 vagrantSuspendAll() {
  for box in `vagrant global-status --prune | awk '/running/{print $1}'`; do
      vagrant suspend ${box}
  done
 }
-
 CONFIG_PATH=${CONFIG_PATH-build-config/vagrant/config/mongo}
 vagrantUp() {
   cd ${WORKSPACE}/RackHD/example
@@ -171,17 +166,14 @@ vagrantUp() {
       exit 1
   fi
 }
-
 vagrantDestroy() {
   cd ${WORKSPACE}/RackHD/example
   vagrant destroy -f
 }
-
 vagrantHalt() {
   cd ${WORKSPACE}/RackHD/example
   vagrant halt
 }
-
 virtualBoxDestroyAll() {
   set +e
   for uuid in `vboxmanage list vms | awk '{print $2}' | tr -d '{}'`; do
@@ -192,13 +184,11 @@ virtualBoxDestroyAll() {
   done
   set -e
 }
-
 generateSolLog(){
   cd ${WORKSPACE}/RackHD/example
   vagrant ssh -c 'cd /home/vagrant/src/build-config/; \
         bash generate-sol-log.sh' > ${WORKSPACE}/sol.log &
 }
-
 setupVirtualEnv(){
   pushd ${WORKSPACE}/RackHD/test
   rm -rf .venv/on-build-config
@@ -209,7 +199,6 @@ setupVirtualEnv(){
       apiPackageModify
   fi
 }
-
 BASE_REPO_URL="${BASE_REPO_URL}"
 runTests() {
   set +e
@@ -245,8 +234,6 @@ runTests() {
   fi
   set -e
 }
-
-
 waitForAPI() {
   timeout=0
   maxto=60
@@ -266,12 +253,10 @@ waitForAPI() {
     exit 1
   fi
 }
-
 if [ "$RUN_CIT_TEST" == true ] || [ "$RUN_FIT_TEST" == true ] ; then
-
   # register the signal handler to clean up( vagrantDestroy ), with process being killed
   trap cleanupVMs SIGINT SIGTERM SIGKILL
-
+  cleanupVMs
   # based on the assumption that in the same folder, the VMs has been exist normally. so don't destroy VM here.
   
   nodesCreate
@@ -289,12 +274,8 @@ if [ "$RUN_CIT_TEST" == true ] || [ "$RUN_FIT_TEST" == true ] ; then
   generateSolLog
   # Run tests
   runTests
-
   # Clean Up below
-
   #shutdown vagrant box and delete all resource (like removing vm disk files in "~/VirtualBox VMs/")
   cleanupVMs
   nodesDelete
-
 fi
-
