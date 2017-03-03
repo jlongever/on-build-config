@@ -1,0 +1,7 @@
+- name: Install packages for build deb
+  become: true
+  apt: name={{item}} state=present
+  with_items:
+    - devscripts 
+    - build-essential 
+    - debhelper

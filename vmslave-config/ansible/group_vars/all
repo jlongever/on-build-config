@@ -1,0 +1,2 @@
+# If not set, default: use roles/replace-apt-source/files/sources.list
+sources_list_url: http://**.**.**.**/static/misc/sources.list

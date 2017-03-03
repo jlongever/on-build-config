@@ -1,0 +1,11 @@
+---
+- hosts: prgate
+  roles:
+    - replace-apt-source
+    - install-fundamental-package
+    - install-package-for-build
+    - install-rackhd-dependency
+    - install-package-for-ci
+    - mount-isofarm
+    - setup-static-file-server
+    - fix-apt-dependency

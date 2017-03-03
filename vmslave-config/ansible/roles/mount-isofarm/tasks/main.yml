@@ -1,0 +1,8 @@
+- name: Mount isofarm
+  become: true
+  mount:
+    name: "{{ isofarm_path }}"
+    src: "{{ isofarm_src }}"
+    fstype: "{{ isofarm_fstype }}" 
+    opts: "{{ isofarm_mount_opts }}"
+    state: mounted
