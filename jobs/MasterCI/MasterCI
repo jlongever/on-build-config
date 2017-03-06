@@ -1,4 +1,5 @@
 node{
+    deleteDir()
     checkout scm
     stage("Create Manifest"){
         load("jobs/create_manifest/create_manifest.groovy")
