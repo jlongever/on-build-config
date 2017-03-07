@@ -5,6 +5,7 @@ node(build_debian_node){
         "BINTRAY_COMPONENT=main", 
         "BINTRAY_DISTRIBUTION=trusty", 
         "BINTRAY_ARCHITECTURE=amd64"]){
+        deleteDir()
         def shareMethod
         dir("Release_Debian_JFiles"){
             checkout scm

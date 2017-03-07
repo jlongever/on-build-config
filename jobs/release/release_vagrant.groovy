@@ -1,4 +1,5 @@
 node(build_vagrant_node){ws{
+    deleteDir()
     def shareMethod
     dir("Release_Vagrant_JFiles"){
         checkout scm

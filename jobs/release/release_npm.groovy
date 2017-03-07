@@ -3,6 +3,7 @@ node{
         "MANIFEST_FILE_URL=${env.MANIFEST_FILE_URL}",
         "IS_OFFICIAL_RELEASE=${env.IS_OFFICIAL_RELEASE}"
         ]) {
+        deleteDir()
         def shareMethod
         dir("Release_NPM_JFiles"){
             checkout scm
