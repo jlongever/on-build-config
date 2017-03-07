@@ -24,8 +24,8 @@ manifest_name=$(find -maxdepth 1 -name "$slicedBranch-[0-9]*" -printf "%f\n")
 
 MANIFEST_FILE_URL=https://dl.bintray.com/$BINTRAY_SUBJECT/$BINTRAY_REPO/$manifest_name
 echo "MANIFEST_FILE_URL=<a href=\"$MANIFEST_FILE_URL\">$manifest_name</a>"
-echo "MANIFEST_FILE_URL=$MANIFEST_FILE_URL" > downstream_file
-
+echo "MANIFEST_FILE_URL=$MANIFEST_FILE_URL" >> downstream_file
+echo "manifest_name=$manifest_name" >> downstream_file
 check_file_exist(){
     max_retry=200
     time=0

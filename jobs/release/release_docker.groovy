@@ -1,7 +1,7 @@
 node(build_docker_node){
     lock("docker"){
         timestamps{
-            dir("Release_Docker_JFiles"){
+            dir("on-build-config"){
                 checkout scm
             }
             withCredentials([
@@ -9,7 +9,7 @@ node(build_docker_node){
                                  passwordVariable: 'DOCKERHUB_PASS', 
                                  usernameVariable: 'DOCKERHUB_USER')]) {
                 timeout(120){
-                    sh './Release_Docker_JFiles/jobs/release/release_docker.sh'
+                    sh './on-build-config/jobs/release/release_docker.sh'
 
                 }
             }
