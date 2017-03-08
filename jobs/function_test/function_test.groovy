@@ -1,14 +1,12 @@
-@NonCPS
-def printParams() {
-  env.getEnvironment().each { name, value -> println "Name: $name -> Value $value" }
-}
-
-def TESTS=[:]
-TESTS["FIT"]=["TEST_GROUP":"smoke-tests","RUN_FIT_TEST":true,"RUN_CIT_TEST":false]
-TESTS["Install Centos 6.5"]=["TEST_GROUP":"centos-6-5-minimal-install.v1.1.test","RUN_FIT_TEST":false,"RUN_CIT_TEST":true]
-TESTS["CIT"]=["TEST_GROUP":"smoke-tests","RUN_FIT_TEST":false,"RUN_CIT_TEST":true]
-TESTS["Install Ubuntu 14.04"]=["TEST_GROUP":"ubuntu-minimal-install.v1.1.test","RUN_FIT_TEST":false,"RUN_CIT_TEST":true]
-TESTS["Install ESXI 6.0"]=["TEST_GROUP":"esxi-6-min-install.v1.1.test","RUN_FIT_TEST":false,"RUN_CIT_TEST":true]
+def SMOKE_TESTS=[:]
+def OS_INSTALL_TESTS=[:]
+def smoke_test_label = "smoke-test"
+def os_install_test_label = "prgate"
+SMOKE_TESTS["FIT"]=["TEST_GROUP":"smoke-tests","RUN_FIT_TEST":true,"RUN_CIT_TEST":false]
+SMOKE_TESTS["CIT"]=["TEST_GROUP":"smoke-tests","RUN_FIT_TEST":false,"RUN_CIT_TEST":true]
+OS_INSTALL_TESTS["Install Ubuntu 14.04"]=["TEST_GROUP":"ubuntu-minimal-install.v1.1.test","RUN_FIT_TEST":false,"RUN_CIT_TEST":true]
+OS_INSTALL_TESTS["Install ESXI 6.0"]=["TEST_GROUP":"esxi-6-min-install.v1.1.test","RUN_FIT_TEST":false,"RUN_CIT_TEST":true]
+OS_INSTALL_TESTS["Install Centos 6.5"]=["TEST_GROUP":"centos-6-5-minimal-install.v1.1.test","RUN_FIT_TEST":false,"RUN_CIT_TEST":true]
 
 def function_test(String test_name, String node_name, String TEST_GROUP, Boolean RUN_FIT_TEST, Boolean RUN_CIT_TEST){
     node(node_name){
@@ -56,7 +54,8 @@ def function_test(String test_name, String node_name, String TEST_GROUP, Boolean
                 "RUN_FIT_TEST=$RUN_FIT_TEST",
                 "SKIP_PREP_DEP=false",
                 "MANIFEST_FILE=${env.MANIFEST_FILE}",
-                "NODE_NAME=${env.NODE_NAME}"]
+                "NODE_NAME=${env.NODE_NAME}",
+                "PYTHON_REPOS=ucs-service"]
             ){
                 try{
                     timeout(60){
@@ -65,7 +64,6 @@ def function_test(String test_name, String node_name, String TEST_GROUP, Boolean
                         ./build-config/test.sh
                         '''
                     }
-                    
                 } catch(error){
                     throw error
                 } finally{
@@ -112,40 +110,65 @@ def function_test(String test_name, String node_name, String TEST_GROUP, Boolean
 }
 
 
-def run_test(TESTS, label_name){
-    def test_count = TESTS.size()
-    lock(label: label_name, quantity: test_count)
-    {
-        def test_branches = [:]
-        def lock_nodes=org.jenkins.plugins.lockableresources.LockableResourcesManager.class.get().getResourcesFromBuild(currentBuild.getRawBuild())
-        test_names = TESTS.keySet() as String[]
-        for(int i=0;i<test_count;i++){
-            def node_name = lock_nodes[i].getName()
-            def test_name = test_names[i]
-            def test_group = TESTS[test_name]["TEST_GROUP"]
-            def run_fit_test = TESTS[test_name]["RUN_FIT_TEST"]
-            def run_cit_test = TESTS[test_name]["RUN_CIT_TEST"]
-            test_branches[test_name] = {
-                function_test(test_name, node_name, test_group, run_fit_test, run_cit_test)
-            }
+def initial_test_branches(TESTS, lock_nodes, test_branches){
+    test_names = TESTS.keySet() as String[]
+    for(int i=0;i<test_names.size();i++){
+        def node_name = lock_nodes[i].getName()
+        def test_name = test_names[i]
+        def test_group = TESTS[test_name]["TEST_GROUP"]
+        def run_fit_test = TESTS[test_name]["RUN_FIT_TEST"]
+        def run_cit_test = TESTS[test_name]["RUN_CIT_TEST"]
+        test_branches[test_name] = {
+            function_test(test_name, node_name, test_group, run_fit_test, run_cit_test)
         }
-        parallel test_branches
+    }
+}
+def run_test(SMOKE_TESTS, smoke_test_label, OS_INSTALL_TESTS, os_install_test_label){
+    int smoke_test_total = SMOKE_TESTS.size()
+    int os_install_test_total = OS_INSTALL_TESTS.size()
+    def test_branches = [:]
+    lock(label: smoke_test_label , quantity: smoke_test_total)
+    {
+        def smoke_lock_nodes=org.jenkins.plugins.lockableresources.LockableResourcesManager.class.get().getResourcesFromBuild(currentBuild.getRawBuild())
+
+        lock(label: os_install_test_label, quantity: os_install_test_total){
+            def lock_nodes=org.jenkins.plugins.lockableresources.LockableResourcesManager.class.get().getResourcesFromBuild(currentBuild.getRawBuild())
+            def os_install_lock_nodes = lock_nodes - smoke_lock_nodes
+            initial_test_branches(SMOKE_TESTS, smoke_lock_nodes, test_branches)
+            initial_test_branches(OS_INSTALL_TESTS, os_install_lock_nodes,test_branches)
+            parallel test_branches
+        }
     }
 }
 
-def reserve_resource(label_name){
-    int free_count=0
-    while(free_count<=0){
-        free_count = org.jenkins.plugins.lockableresources.LockableResourcesManager.class.get().getFreeResourceAmount(label_name)
-        if(free_count == 0){
-            sleep 5
+def reserve_resources(SMOKE_TESTS, smoke_test_label, OS_INSTALL_TESTS, os_install_test_label){
+    int smoke_test_total = SMOKE_TESTS.size()
+    int os_install_test_total = OS_INSTALL_TESTS.size()
+    Boolean isReady = false
+    while(isReady != true){
+        int free_smoke_amount = 0
+        while(free_smoke_amount < smoke_test_total){
+            free_smoke_amount = get_free_resource_amount(smoke_test_label)
+        }
+        int free_os_install_amount = 0
+        while(free_os_install_amount < os_install_test_total){
+            free_os_install_amount = get_free_resource_amount(os_install_test_label) - smoke_test_total
+        }
+        free_smoke_amount = get_free_resource_amount(smoke_test_label)
+        free_os_install_amount = get_free_resource_amount(os_install_test_label) - smoke_test_total
+
+        if(free_smoke_amount >= smoke_test_total && free_os_install_amount >= os_install_test_total){
+            isReady = true
         }
     }
-    return free_count    
+}
+
+def get_free_resource_amount(label_name){
+    int free_count = org.jenkins.plugins.lockableresources.LockableResourcesManager.class.get().getFreeResourceAmount(label_name)
+    return free_count
 }
 
 node{
-    deleteDir()
     try{
         withEnv([
             "HTTP_STATIC_FILES=${env.HTTP_STATIC_FILES}",
@@ -174,12 +197,8 @@ node{
                 string(credentialsId: 'INTERNAL_HTTP_ZIP_FILE_URL', variable: 'INTERNAL_HTTP_ZIP_FILE_URL'),
                 string(credentialsId: 'INTERNAL_TFTP_ZIP_FILE_URL', variable: 'INTERNAL_TFTP_ZIP_FILE_URL')
                 ]) {
-                int total = TESTS.size()
-                int free_count = 0
-                while(free_count < total){
-                    free_count = reserve_resource("${env.FUNCTION_TEST_LABEL}")
-                }
-                run_test(TESTS, "${env.FUNCTION_TEST_LABEL}")
+                reserve_resources(SMOKE_TESTS, smoke_test_label, OS_INSTALL_TESTS, os_install_test_label)
+                run_test(SMOKE_TESTS, smoke_test_label, OS_INSTALL_TESTS, os_install_test_label)
             }
         }
     }catch(error){
