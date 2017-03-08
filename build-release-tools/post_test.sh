@@ -98,6 +98,7 @@ while [ "$1" != "" ];do
             shift
             rackhdVersion=$1;;
         *)
+        echo "[Error]: Unknown Parameter =$1"
         exit 1
     esac
     shift
@@ -110,13 +111,34 @@ findRackHDService() {
     local retry_cnt=${1:-1} # default 1 time retry
     local waitretry=${2:-1}  # default 1 time interval
     local url=${3:-localhost:8080/api/2.0/nodes}
-    # NOTE : the '--waitretry' parameter doesn't work as expected for "Connection refused" error. so will have to do the retry outside this function.
-    wget --retry-connrefused --waitretry=${waitretry} --read-timeout=20 --timeout=15 -t ${retry_cnt} --continue ${url} || ERR_RET=$?
-    if [ -z "$ERR_RET" ] || [ "$ERR_RET" == "6" ]; then     # 6 means: "Authentication Failed"
-       return 0
-    else
-       return -1
-    fi
+    local ERR_RET=     # init it with undefined. otherwise, it will inherit old value of last run
+    case $type in
+      ova)
+        service_normal_sentence="Authentication Failed"
+        # Note: the "ova-post-test" is defined locally on Jenkins slave's ansible host file.
+        api_test_result=`ansible ova-for-post-test -a "wget --retry-connrefused --waitretry=1 --read-timeout=20 --timeout=15 -t 1 --continue ${url}"`
+        echo $api_test_result | grep "$service_normal_sentence" > /dev/null  2>&1
+        if [ $? = 0 ]; then  # FIXME: original code only treat "Authentication Failed" as single successful criteria, this only applies to when auth=disable.
+           echo "[Debug] successful.        in this retry time: OVA ansible returns: $api_test_result"
+           return 0
+        else
+           echo "[Debug] no luck this time. in this retry time: OVA ansible returns: $api_test_result"
+           return -1
+        fi
+        ;;
+      docker|vagrant)
+        # NOTE : the '--waitretry' parameter doesn't work as expected for "Connection refused" error. so will have to do the retry outside this function.
+        wget --retry-connrefused --waitretry=${waitretry} --read-timeout=20 --timeout=15 -t ${retry_cnt} --continue ${url} || ERR_RET=$?
+        echo "[Debug] in this retry time: wget returns : $ERR_RET"
+        if [ -z "$ERR_RET" ] || [ "$ERR_RET" == "6" ]; then     # 6 means: "Authentication Failed"
+           echo "[Debug] successful retrieve rackhd API."
+           return 0
+        else
+           echo "[Debug] failing retrieve rackhd API."
+           return -1
+        fi
+        ;;
+    esac
 }
 
 waitForAPI() {
@@ -133,9 +155,10 @@ waitForAPI() {
     local timeout=0
 
     while [ ${timeout} != ${maxto} ]; do
+        echo "try RackHD API .. elapse : `expr $timeout \* $interval`s"
         case $type in
           ova)
-           # ova Northbound Port default to 8080
+           # ova Northbound Port default to 8080, but it should be reached via ansible to OVA VM's IP
            findRackHDService 1 1  localhost:8080/api/2.0/nodes
            ;;
           docker)
@@ -156,29 +179,43 @@ waitForAPI() {
         timeout=`expr ${timeout} + 1`
     done
 
+    # restore the "set -e" flag if was set
+    if [ "$e_flag" == true ]; then
+       set -e
+    fi
+
     if [ ${timeout} == ${maxto} ]; then
         echo "Timed out waiting for RackHD API service (duration=`expr $maxto \* $interval`s)."
         exit 1
     fi
 
-    # restore the "set -e" flag if was set
-    if [ "$e_flag" == true ]; then
-       set -e
-    fi
+
 
 }
 
 
 
 checkRackHDVersion() {
+    # since Docker images are build from source code, so no way available to check RackHD version via deb package.
     case $type in
         ova)
-        installed_version=`ansible ova-for-post-test -a "apt-cache policy rackhd" | grep Installed | awk '{print $2}'`
+            apt_cache=$(ansible ova-for-post-test -a "apt-cache policy rackhd")
+            if [ $? != 0 ]; then
+                echo "[Error] Ansible Error(ansible ova-for-post-test -a [apt-cache policy rackhd]), returns:  $apt_cache "
+                exit 2
+            fi
         ;;
         vagrant)
-        installed_version=`vagrant ssh -c "apt-cache policy rackhd" | grep Installed | awk '{print $2}'`
+            apt_cache=$(vagrant ssh -c "apt-cache policy rackhd" )
+            if [ $? != 0 ]; then
+                echo "[Error] Vagrant SSH(vagrant ssh -c [apt-cache policy rackhd]) Error, returns:  $apt_cache "
+                exit 2
+            fi
         ;;
     esac
+    echo "[Debug] rackhd installation candidates $apt_cache"
+    installed_version=$( echo "$apt_cache" | grep Installed | awk '{print $2}' )  # Tip: remember to use quote in echo "$apt_cache", to preserve line break
+    echo "[Debug] installed_version=$installed_version"
     if [ "$installed_version" != "$rackhdVersion" ]; then
         echo "Installed wrong rackhd version $installed_version"
         exit 1
@@ -200,6 +237,12 @@ deploy_ova() {
     --name=$deployName \
     ${ovaFile} \
     vi://${ntName}:${ntPass}@${vcenterHost}/Infrastructure@onrack.cn/host/${esxiHost}/
+    if [ $? = 0 ]; then
+        echo "[Info] Deploy OVA successfully".
+    else
+        echo "[Error] Deploy OVA failed."
+        exit 3
+    fi
     ssh-keygen -f "$HOME/.ssh/known_hosts" -R $adminIP
 }
 
@@ -211,7 +254,12 @@ delete_ova() {
 }
 
 post_test_ova() {
-    delete_ova
+#    delete_ova  
+#####################
+# Remove "delete_ova" above .Because ovftool --overwrite --powerOffTarget will delete old VM with same name.
+# ovftool will do the sync well by itself.
+# otherwise, will encounter issue: "Power Off Virtual machines : The  object has already been deleted or has not been completely created"
+####################
     deploy_ova
     waitForAPI
     checkRackHDVersion
@@ -244,8 +292,13 @@ post_test_vagrant() {
 ############################################
 
 clean_all_containers() {
-    docker stop $(docker ps -a -q)
-    docker rm $(docker ps -a -q)
+    local containers=$(docker ps -a -q)
+    if [ "$containers" != "" ]; then
+        echo "Clean Up containers : " ${containers}
+        docker stop ${containers}
+        docker rm  ${containers}
+    fi
+
 }
 
 post_test_docker() {

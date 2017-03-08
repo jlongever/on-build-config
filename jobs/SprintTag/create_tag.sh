@@ -22,6 +22,7 @@ echo "Start to create tag"
 --jobs 8 \
 tag
 
+
 echo "push the manifest of the tag ${tag_name} to bintray"
 arrNewTag=($(echo $tag_name | tr "/" "\n"))
 new_manifest=${arrNewTag[-1]}

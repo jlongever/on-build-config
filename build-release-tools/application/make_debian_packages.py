@@ -7,15 +7,17 @@ This program build debian packages for repositories
 which checked out based on the given manifest file.
 
 Usage:
-./on-tools/manifest-build-tools/HWIMO-BUILD on-tools/manifest-build-tools/application/make_debian_packages.py \
---build-directory b/ \
---manifest-file rackhd-devel \
---git-credential https://github.com,GITHUB \
+./on-build-config/build-release-tools/HWIMO-BUILD on-build-config/build-release-tools/application/make_debian_packages.py \
+--build-directory b \
+--manifest-file  rackhd-manifest \
+--sudo-credential SUDO_CREDS \
+--parameter-file downstream_file \
 --jobs 8 \
---is-official-release true\
---parameter-file downstream-files \
 --force \
---sudo-credential SUDO_CREDS
+--is-official-release $IS_OFFICIAL_RELEASE \
+--bintray-credential BINTRAY_CREDS \
+--bintray-subject $BINTRAY_SUBJECT \
+--bintray-repo $BINTRAY_REPO
 
 The required parameters:
 build-directory: A directory where all the repositories are cloned to. 
@@ -44,6 +46,7 @@ try:
     from update_dependencies import RackhdDebianControlUpdater
     from version_generator import VersionGenerator
     from DebianBuilder import DebianBuilder
+    from PlatformClients import Bintray
     import common
 except ImportError as import_err:
     print import_err
@@ -94,6 +97,21 @@ def parse_args(args):
     parser.add_argument('--force',
                         help="Overwrite a directory even if it exists",
                         action="store_true")
+
+    parser.add_argument('--bintray-credential',
+                        required=True,
+                        help="bintray credential for CI services: <Credentials>",
+                        action='store')
+
+    parser.add_argument('--bintray-subject',
+                        required=True,
+                        help="the Bintray subject, which is either a user or an organization",
+                        action='store')
+
+    parser.add_argument('--bintray-repo',
+                        required=True,
+                        help="the Bintary repository name",
+                        action='store')
 
     parsed_args = parser.parse_args(args)
     parsed_args.is_official_release = common.str2bool(parsed_args.is_official_release)
@@ -178,12 +196,11 @@ def checkout_repos(manifest, builddir, force, jobs, git_credential=None):
         print "Failed to checkout repositories according to manifest file {0} \ndue to {1}. Exiting now...".format(manifest, e)
         sys.exit(1)
 
-def build_debian_packages(build_directory, jobs, is_official_release, sudo_creds):
+def build_debian_packages(build_directory, jobs, is_official_release, sudo_creds, repos):
     """
     Build debian packages
     """
     try:
-        repos = get_build_repos(build_directory)
         for repo in repos:
             repo_dir = os.path.join(build_directory, repo)
             generate_version_file(repo_dir, is_official_release)
@@ -230,11 +247,30 @@ def write_downstream_parameter_file(build_directory, manifest_file, is_official_
             params['RACKHD_COMMIT'] = rackhd_commit
         else:
             raise RuntimeError("commit-id of RackHD is None. Please check the manifest {0}".format(manifest_file))
-            
+        
         # Write downstream parameters to downstream parameter file.
         common.write_parameters(parameter_file, params)
     except Exception, e:
         raise RuntimeError("Failed to write downstream parameter file \ndue to {0}".format(e))
+
+def create_packages_filter(bintray, build_directory, is_official_release):
+    # The filter will return True if the package of the version
+    # does not exist in bintray
+    def package_not_exist(repo):
+        try:
+            repo_dir = os.path.join(build_directory, repo)
+            version_generator = VersionGenerator(repo_dir)
+            version = version_generator.generate_package_version(is_official_release)
+            if version is None:
+                return True
+            version_object = bintray.get_package_version_object(repo, version)
+            if version_object:
+                return False
+        except Exception, e:
+            print "Failed to check the version {0} of {1} exists in bintray due to {2}".format(version, repo, e)
+        return True
+
+    return package_not_exist
 
 def main():
     """
@@ -242,8 +278,14 @@ def main():
     Exit on encountering any error.
     """
     args = parse_args(sys.argv[1:])
+    bintray = Bintray(args.bintray_credential, args.bintray_subject, args.bintray_repo)
+
     checkout_repos(args.manifest_file, args.build_directory, args.force, args.jobs, git_credential=args.git_credential)
-    build_debian_packages(args.build_directory, args.jobs, args.is_official_release, args.sudo_credential)
+    all_repos = get_build_repos(args.build_directory)
+    package_not_exist = create_packages_filter(bintray, args.build_directory, args.is_official_release)
+    package_need_build_repos = filter(package_not_exist, all_repos)
+
+    build_debian_packages(args.build_directory, args.jobs, args.is_official_release, args.sudo_credential, package_need_build_repos)
     write_downstream_parameter_file(args.build_directory, args.manifest_file, args.is_official_release, args.parameter_file)
 
 if __name__ == '__main__':

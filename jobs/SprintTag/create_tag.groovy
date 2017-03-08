@@ -4,8 +4,8 @@ node{
         "JUMP_VERSION=${JUMP_VERSION}",
         "IS_OFFICIAL_RELEASE=${env.IS_OFFICIAL_RELEASE}",
         "branch=${env.branch}",
-        "date=${env.date}",
-        "timezone=${env.timezone}",
+        "date=current",
+        "timezone=-0500",
         "BINTRAY_SUBJECT=rackhd",
         "BINTRAY_REPO=binary"])
     {
