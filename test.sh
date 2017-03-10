@@ -249,9 +249,9 @@ runTests() {
 
 waitForAPI() {
   timeout=0
-  maxto=60
-  url=http://localhost:9090/api/1.1/nodes
   set +e
+  maxto=30
+  url=http://localhost:9090/api/2.0/nodes
   while [ ${timeout} != ${maxto} ]; do
     wget --retry-connrefused --waitretry=1 --read-timeout=20 --timeout=15 -t 1 --continue ${url}
     if [ $? = 0 ]; then 

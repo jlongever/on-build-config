@@ -1,7 +1,5 @@
 #!/bin/bash -ex
-
 export VCOMPUTE=("${NODE_NAME}-Rinjin1","${NODE_NAME}-Rinjin2","${NODE_NAME}-Quanta")
-
 RUN_FIT_TEST="${RUN_FIT_TEST}"
 if [ ! -z "${4}" ]; then
   RUN_FIT_TEST=$4
@@ -103,6 +101,7 @@ nodesOff() {
      sleep 5
   fi
 }
+
 nodesOn() {
   cd ${WORKSPACE}/build-config/deployment/
   if [ "${USE_VCOMPUTE}" != "false" ]; then
@@ -114,6 +113,7 @@ nodesOn() {
      sleep 5
   fi
 }
+
 nodesDelete() {
   cd ${WORKSPACE}/build-config/deployment/
   if [ "${USE_VCOMPUTE}" != "false" ]; then
@@ -122,6 +122,7 @@ nodesDelete() {
     done
   fi
 }
+
 nodesCreate() {
   cd ${WORKSPACE}/build-config/deployment/
   if [ "${USE_VCOMPUTE}" != "false" ]; then
@@ -134,11 +135,13 @@ nodesCreate() {
     nodesOff
   fi
 }
+
 vagrantSuspendAll() {
  for box in `vagrant global-status --prune | awk '/running/{print $1}'`; do
      vagrant suspend ${box}
  done
 }
+
 CONFIG_PATH=${CONFIG_PATH-build-config/vagrant/config/mongo}
 vagrantUp() {
   cd ${WORKSPACE}/RackHD/example
@@ -166,14 +169,17 @@ vagrantUp() {
       exit 1
   fi
 }
+
 vagrantDestroy() {
   cd ${WORKSPACE}/RackHD/example
   vagrant destroy -f
 }
+
 vagrantHalt() {
   cd ${WORKSPACE}/RackHD/example
   vagrant halt
 }
+
 virtualBoxDestroyAll() {
   set +e
   for uuid in `vboxmanage list vms | awk '{print $2}' | tr -d '{}'`; do
@@ -184,11 +190,13 @@ virtualBoxDestroyAll() {
   done
   set -e
 }
+
 generateSolLog(){
   cd ${WORKSPACE}/RackHD/example
   vagrant ssh -c 'cd /home/vagrant/src/build-config/; \
         bash generate-sol-log.sh' > ${WORKSPACE}/sol.log &
 }
+
 setupVirtualEnv(){
   pushd ${WORKSPACE}/RackHD/test
   rm -rf .venv/on-build-config
@@ -199,6 +207,7 @@ setupVirtualEnv(){
       apiPackageModify
   fi
 }
+
 BASE_REPO_URL="${BASE_REPO_URL}"
 runTests() {
   set +e
@@ -234,11 +243,12 @@ runTests() {
   fi
   set -e
 }
+
 waitForAPI() {
   timeout=0
   maxto=60
-  url=http://localhost:9090/api/1.1/nodes
   set +e
+  url=http://localhost:9090/api/2.0/nodes
   while [ ${timeout} != ${maxto} ]; do
     wget --retry-connrefused --waitretry=1 --read-timeout=20 --timeout=15 -t 1 --continue ${url}
     if [ $? = 0 ]; then 
@@ -253,10 +263,13 @@ waitForAPI() {
     exit 1
   fi
 }
+
 if [ "$RUN_CIT_TEST" == true ] || [ "$RUN_FIT_TEST" == true ] ; then
+
   # register the signal handler to clean up( vagrantDestroy ), with process being killed
   trap cleanupVMs SIGINT SIGTERM SIGKILL
   cleanupVMs
+
   # based on the assumption that in the same folder, the VMs has been exist normally. so don't destroy VM here.
   
   nodesCreate
@@ -274,8 +287,11 @@ if [ "$RUN_CIT_TEST" == true ] || [ "$RUN_FIT_TEST" == true ] ; then
   generateSolLog
   # Run tests
   runTests
+
   # Clean Up below
+
   #shutdown vagrant box and delete all resource (like removing vm disk files in "~/VirtualBox VMs/")
   cleanupVMs
   nodesDelete
+
 fi
