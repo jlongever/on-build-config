@@ -1,41 +1,45 @@
-#!/bin/bash
+#!/bin/bash -e
 #download manifest
 curl --user $BINTRAY_CREDS -L "$MANIFEST_FILE_URL" -o rackhd-manifest
 
 #clone
 ./build-config/build-release-tools/HWIMO-BUILD ./build-config/build-release-tools/application/reprove.py \
-  --manifest rackhd-manifest \
-  --builddir ./$CLONE_DIR \
-  --jobs 8 \
-  --force \
-  checkout \
-  packagerefs-commit
+--manifest rackhd-manifest \
+--builddir ./$CLONE_DIR \
+--jobs 8 \
+--force \
+checkout \
+packagerefs-commit
 
 rsync -r ./$CLONE_DIR/RackHD/ ./build/
 
+on_imagebuilder_version=$( ./build-config/build-release-tools/HWIMO-BUILD ./build-config/build-release-tools/application/version_generator.py \
+--repo-dir ./$CLONE_DIR/on-imagebuilder \
+--is-official-release $IS_OFFICIAL_RELEASE )
+
+common_path=/var/renasar/on-http/static/http/common
+pxe_path=/var/renasar/on-tftp/static/tftp
+
+echo $SUDO_PASSWORD |sudo -S rm -rf /etc/apt/sources.list.d/rackhd.source.list
+echo "deb https://dl.bintray.com/rackhd-mirror/debian trusty main" | sudo tee -a /etc/apt/sources.list.d/rackhd.source.list
+echo $SUDO_PASSWORD |sudo -S apt-get update
+echo $SUDO_PASSWORD |sudo -S apt-get --yes --force-yes remove on-imagebuilder
+echo $SUDO_PASSWORD |sudo -S apt-get --yes --force-yes install on-imagebuilder=$on_imagebuilder_version
+
 #build static files
 pushd ./$CLONE_DIR/on-imagebuilder
-
-echo $SUDO_PASSWORD |sudo -S ./build_all.sh
-
-#copy to on-imagebuilder folder for docker build
-output_path=/tmp/on-imagebuilder
 rm -rf common pxe
 mkdir common
 mkdir pxe
-sudo chmod 644 $output_path/builds/*
-sudo chmod 644 $output_path/ipxe/*
-sudo chmod 644 $output_path/syslinux/*
-cp $output_path/builds/* common/
-cp $output_path/syslinux/* pxe/
-cp $output_path/ipxe/* pxe/
+cp $common_path/* common/
+cp $pxe_path/* pxe/
 sudo chown -R $USER:$USER common
 sudo chown -R $USER:$USER pxe
-
 popd
+
+echo $SUDO_PASSWORD |sudo -S apt-get --yes --force-yes remove on-imagebuilder
 
 #docker images build
 cd build-config/build-release-tools/
 ./docker_build.sh $WORKSPACE/$CLONE_DIR $IS_OFFICIAL_RELEASE
 mv $WORKSPACE/$CLONE_DIR/build_record $WORKSPACE
-
