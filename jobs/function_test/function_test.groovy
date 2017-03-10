@@ -1,29 +1,18 @@
-def getLockedResourceName(resources,label_name){
-    def resource_name=""
-    for(int i=0;i<resources.size();i++){
-        String labels = resources[i].getLabels();
-        List label_names = Arrays.asList(labels.split("\\s+"));
-        for(int j=0;j<label_names.size();j++){
-            if(label_names[j]==label_name){
-                resource_name=resources[i].getName();
-                return resource_name
-            }
-        }
-    }
-    return resource_name
-}
-
 def function_test(String test_name, String label_name, String TEST_GROUP, Boolean RUN_FIT_TEST, Boolean RUN_CIT_TEST){
-
+    def shareMethod = load("jobs/shareMethod.groovy")
     lock(label:label_name,quantity:1){
+        // The locked resources of the build
         def lock_resources=org.jenkins.plugins.lockableresources.LockableResourcesManager.class.get().getResourcesFromBuild(currentBuild.getRawBuild())
-        resource_name = getLockedResourceName(lock_resources,label_name)
+        // The locked resources of this step
+        resource_name = shareMethod.getLockedResourceName(lock_resources,label_name)
         node(resource_name){
             deleteDir()
         
             dir("on-build-config"){
                 checkout scm
             }
+
+            // Get the manifest file
             if("${stash_manifest_name}" != null && "${stash_manifest_name}" != "null"){
                 unstash "${stash_manifest_name}"
             }
@@ -38,6 +27,9 @@ def function_test(String test_name, String label_name, String TEST_GROUP, Boolea
                 error 'Please provide the manifest url or a stashed manifest'
             }
          
+            // If the manifest file contains PR of on-http and RackHD, 
+            // set the environment variable MODIFY_API_PACKAGE as true
+            // The test.sh script will install api package according to API_PACKAGE_LIST
             sh '''#!/bin/bash
             ./on-build-config/build-release-tools/HWIMO-BUILD ./on-build-config/build-release-tools/application/parse_manifest.py \
             --manifest-file $MANIFEST_FILE \
@@ -76,6 +68,7 @@ def function_test(String test_name, String label_name, String TEST_GROUP, Boolea
                     } catch(error){
                         throw error
                     } finally{
+                        
                         def artifact_dir = test_name.replaceAll(' ', '-')
                         sh '''#!/bin/bash -ex
                         mkdir '''+"$artifact_dir"+'''
@@ -120,6 +113,7 @@ def function_test(String test_name, String label_name, String TEST_GROUP, Boolea
 }
 
 def run_test(RUN_TESTS){
+    // Run test in parallel
     def test_branches = [:]
     test_names = RUN_TESTS.keySet() as String[]
     for(int i=0;i<RUN_TESTS.size();i++){
@@ -137,11 +131,14 @@ def run_test(RUN_TESTS){
 
 
 node{
+    deleteDir()
+    checkout scm
+
     try{
         withEnv([
             "HTTP_STATIC_FILES=${env.HTTP_STATIC_FILES}",
             "TFTP_STATIC_FILES=${env.TFTP_STATIC_FILES}",
-            "API_PACKAGE_LIST=on-http-api1.1 on-http-api2.0 on-http-redfish-1.0",
+            "API_PACKAGE_LIST=on-http-api2.0 on-http-redfish-1.0",
             "USE_VCOMPUTE=${env.USE_VCOMPUTE}",
             "stash_manifest_name=${env.stash_manifest_name}",
             "stash_manifest_path=${env.stash_manifest_path}",
@@ -170,9 +167,9 @@ node{
                 def ALL_TESTS=[:]
                 ALL_TESTS["FIT"]=["TEST_GROUP":"smoke-tests","RUN_FIT_TEST":true,"RUN_CIT_TEST":false,"label":"FIT"]
                 ALL_TESTS["CIT"]=["TEST_GROUP":"smoke-tests","RUN_FIT_TEST":false,"RUN_CIT_TEST":true,"label":"CIT"]
-                ALL_TESTS["Install Ubuntu 14.04"]=["TEST_GROUP":"ubuntu-minimal-install.v1.1.test","RUN_FIT_TEST":false,"RUN_CIT_TEST":true,"label":"os_ubuntu_14.04"]
-                ALL_TESTS["Install ESXI 6.0"]=["TEST_GROUP":"esxi-6-min-install.v1.1.test","RUN_FIT_TEST":false,"RUN_CIT_TEST":true,"label":"os_esxi_6.0"]
-                ALL_TESTS["Install Centos 6.5"]=["TEST_GROUP":"centos-6-5-minimal-install.v1.1.test","RUN_FIT_TEST":false,"RUN_CIT_TEST":true,"label":"os_centos_6.5"]
+                ALL_TESTS["Install Ubuntu 14.04"]=["TEST_GROUP":"ubuntu-minimal-install.v2.0.test","RUN_FIT_TEST":false,"RUN_CIT_TEST":true,"label":"os_ubuntu_14.04"]
+                ALL_TESTS["Install ESXI 6.0"]=["TEST_GROUP":"esxi-6-min-install.v2.0.test","RUN_FIT_TEST":false,"RUN_CIT_TEST":true,"label":"os_esxi_6.0"]
+                ALL_TESTS["Install Centos 6.5"]=["TEST_GROUP":"centos-6-5-minimal-install.v2.0.test","RUN_FIT_TEST":false,"RUN_CIT_TEST":true,"label":"os_centos_6.5"]
 
                 def RUN_TESTS=[:]
                 // TESTS is a checkbox parameter. 

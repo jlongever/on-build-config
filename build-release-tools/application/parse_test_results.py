@@ -1,5 +1,9 @@
 #!/usr/bin/env python
 
+###########################
+# parse the test result to get the count of failed cases, total cases, skipped cases
+###########################
+
 try:
     import xml.etree.cElementTree as ET
 except ImportError:
@@ -27,19 +31,15 @@ def parse_args(args):
     parsed_args = parser.parse_args(args)
     return parsed_args
 
+def get_value(root, key):
+    value = 0
+    if key in root.attrib:
+        value = int(root.get(key))
+    return value
+
 def get_summary(root, summary):
-    if "tests" in root.attrib:
-        summary["tests"] += int(root.get("tests"))
-    if "errors" in root.attrib:
-        summary["errors"] +=  int(root.get("errors"))
-    if "failures" in root.attrib:
-        summary["failures"] += int(root.get("failures"))
-    if "skip" in root.attrib:
-        summary["skip"] += int(root.get("skip"))
-    if "skipped" in root.attrib:
-        summary["skipped"] += int(root.get("skipped"))
-    if "time" in root.attrib:
-        summary["time"] += float(root.get("time"))
+    for key in ["tests", "errors", "failures", "skip", "skipped"]:
+        summary[key] += get_value(root, key)
     return summary
 
 def write_parameters(filename, params):

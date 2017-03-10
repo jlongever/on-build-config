@@ -4,6 +4,7 @@ node{
         checkout scm
     }
     stage("Generate Manifest"){
+        // Generate a manifest file according to the branch, date and timezone parameters if manifest file url is null
         if("${MANIFEST_FILE_URL}" == null || "${MANIFEST_FILE_URL}" == "null" || "${MANIFEST_FILE_URL}" == ""){
             timestamps{
                 withEnv([
@@ -33,6 +34,8 @@ node{
             sh 'curl -L $MANIFEST_FILE_URL -o manifest'
         }
 
+        // Name the manifest file with build number and the md5sum of the manifest file
+        // That helps to tell uses whether there is different with tested code between builds
         sh '''#!/bin/bash -ex
         file_hash=$( md5sum manifest | awk '{print $1}' )
         number="$BUILD_NUMBER"
@@ -47,6 +50,7 @@ node{
         env.stash_manifest_path = "${props.manifest_name}"
     }
     stage("Test"){
+        // Start to run test
         load("build-config/jobs/function_test/function_test.groovy")
     }
 }

@@ -1,5 +1,9 @@
 #!/usr/bin/env python
 
+###############################
+# parse a manifest file to get the repositories which is a PR
+###############################
+
 import json
 import sys
 import os
@@ -27,6 +31,9 @@ def parse_args(args):
     return parsed_args
 
 def get_repositories_under_test(manifest_file):
+    """
+    get repositories whose commit-id is somethint like: origin/pr/111/merge
+    """
     manifest = Manifest(manifest_file)
     repos_under_test = []
     for repo in manifest.repositories:
@@ -36,7 +43,7 @@ def get_repositories_under_test(manifest_file):
                 repos_under_test.append(repo_name)
     return repos_under_test
 
-def write_dowanstream_parameters(repos_under_test, parameters_file):
+def write_downstream_parameters(repos_under_test, parameters_file):
     params = {}
     params['REPOS_UNDER_TEST'] = ','.join(repos_under_test)
 
@@ -61,7 +68,7 @@ def write_dowanstream_parameters(repos_under_test, parameters_file):
 def main():
     args = parse_args(sys.argv[1:])
     repos_under_test = get_repositories_under_test(args.manifest_file)
-    write_dowanstream_parameters(repos_under_test, args.parameters_file)
+    write_downstream_parameters(repos_under_test, args.parameters_file)
 
 if __name__ == '__main__':
     main()
