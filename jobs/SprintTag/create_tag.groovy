@@ -1,11 +1,11 @@
 node{
     withEnv([
         "tag_name=${tag_name}",
-        "JUMP_VERSION=${JUMP_VERSION}",
         "IS_OFFICIAL_RELEASE=${env.IS_OFFICIAL_RELEASE}",
         "branch=${env.branch}",
         "date=current",
         "timezone=-0500",
+        "JUMP_VERSION=false",
         "BINTRAY_SUBJECT=rackhd",
         "BINTRAY_REPO=binary"])
     {
