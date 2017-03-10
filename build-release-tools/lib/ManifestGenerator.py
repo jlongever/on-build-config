@@ -60,7 +60,7 @@ class ManifestGenerator(object):
     def check_builddir(self):
         """
         Checks the given builddir name and force flag.
-        Deletes exists directory if one already exists and --force is set
+        Deletes existing directory if one already exists and --force is set
         :return: None
         """
         if os.path.exists(self._builddir):

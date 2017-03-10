@@ -4,13 +4,14 @@ export GITHUB_CREDS=$GITHUB_USERNAME:$GITHUB_PASSWORD
 
 set -x
 
-echo "start to generate manifest for tag"
+echo "Generate manifest with the latest commit of repositories under the build directory"
 ./build-config/build-release-tools/HWIMO-BUILD build-config/build-release-tools/application/generate_manifest.py \
 --builddir b \
 --dest-manifest new_manifest \
 --force \
 --jobs 8
 
+echo "Create tag to the latest commit of repositories under the build directory"
 ./build-config/build-release-tools/HWIMO-BUILD build-config/build-release-tools/application/reprove.py \
 --manifest new_manifest \
 --builddir b \

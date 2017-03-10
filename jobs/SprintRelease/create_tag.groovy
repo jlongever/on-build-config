@@ -24,7 +24,7 @@ node{
                 stage("Jump Version"){
                     sh '''#!/bin/bash -e
                     export GITHUB_CREDS=$GITHUB_USERNAME:$GITHUB_PASSWORD
-                    
+                    # Checkout code according to manifest file
                     curl --user $BINTRAY_USERNAME:$BINTRAY_API_KEY -L "$MANIFEST_FILE_URL" -o rackhd-manifest
                     ./build-config/build-release-tools/HWIMO-BUILD build-config/build-release-tools/application/reprove.py \
                     --manifest rackhd-manifest \
@@ -34,6 +34,7 @@ node{
                     --force \
                     checkout
 
+                    # Jump version of repositories which are just checked out.
                     version=`echo $tag_name | grep "[0-9.]*" -o`
                     ./build-config/build-release-tools/HWIMO-BUILD build-config/build-release-tools/application/jump_version.py \
                     --build-dir b \
