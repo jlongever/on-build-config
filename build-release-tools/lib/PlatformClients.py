@@ -282,7 +282,7 @@ class Bintray(object):
             raise RuntimeError("Failed to upload file {0} due to {1}".format(file_path, ex))
         return True
 
-    def __get_package_version_object(self, package, version):
+    def get_package_version_object(self, package, version):
         """
         Get a version object of one package
         """
@@ -330,7 +330,7 @@ class Bintray(object):
         try:
             all_versions = self.get_package_versions(package)
             for version in all_versions:
-                version_object = self.__get_package_version_object(package, version)
+                version_object = self.get_package_version_object(package, version)
                 upload_time = parser.parse(version_object["updated"])
                 if begin_time < upload_time < end_time:
                     versions_between_upload_time_range.append(version)

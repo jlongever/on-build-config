@@ -26,6 +26,7 @@ def buildAndPublish(){
             load("jobs/build_ova/build_ova.groovy")
         }, 'build docker':{
             load("jobs/build_docker/build_docker.groovy")
+           load("jobs/build_docker/build_docker.groovy")
         }
     }
 
