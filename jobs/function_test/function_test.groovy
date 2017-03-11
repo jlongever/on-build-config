@@ -1,5 +1,6 @@
 def function_test(String test_name, String label_name, String TEST_GROUP, Boolean RUN_FIT_TEST, Boolean RUN_CIT_TEST){
     def shareMethod = load("jobs/shareMethod.groovy")
+    shareMethod.waitForFreeResource(label_name,1)
     lock(label:label_name,quantity:1){
         // The locked resources of the build
         def lock_resources=org.jenkins.plugins.lockableresources.LockableResourcesManager.class.get().getResourcesFromBuild(currentBuild.getRawBuild())
@@ -7,11 +8,9 @@ def function_test(String test_name, String label_name, String TEST_GROUP, Boolea
         resource_name = shareMethod.getLockedResourceName(lock_resources,label_name)
         node(resource_name){
             deleteDir()
-        
             dir("on-build-config"){
                 checkout scm
             }
-
             // Get the manifest file
             if("${stash_manifest_name}" != null && "${stash_manifest_name}" != "null"){
                 unstash "${stash_manifest_name}"
@@ -133,7 +132,6 @@ def run_test(RUN_TESTS){
 node{
     deleteDir()
     checkout scm
-
     try{
         withEnv([
             "HTTP_STATIC_FILES=${env.HTTP_STATIC_FILES}",
