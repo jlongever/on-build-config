@@ -1,7 +1,5 @@
 #!/bin/bash -ex
-
 export VCOMPUTE=("${NODE_NAME}-Rinjin1","${NODE_NAME}-Rinjin2","${NODE_NAME}-Quanta")
-
 RUN_FIT_TEST="${RUN_FIT_TEST}"
 if [ ! -z "${4}" ]; then
   RUN_FIT_TEST=$4
@@ -65,7 +63,7 @@ execWithTimeout() {
   fi
   cmd="/bin/sh -c \"$1\""
   #timeout default to one minute
-  timeout=60
+  timeout=90
   retry=3
   result=0
   if [ ! -z "${2}" ]; then
@@ -246,11 +244,10 @@ runTests() {
   set -e
 }
 
-
 waitForAPI() {
   timeout=0
+  maxto=60
   set +e
-  maxto=30
   url=http://localhost:9090/api/2.0/nodes
   while [ ${timeout} != ${maxto} ]; do
     wget --retry-connrefused --waitretry=1 --read-timeout=20 --timeout=15 -t 1 --continue ${url}
@@ -271,6 +268,7 @@ if [ "$RUN_CIT_TEST" == true ] || [ "$RUN_FIT_TEST" == true ] ; then
 
   # register the signal handler to clean up( vagrantDestroy ), with process being killed
   trap cleanupVMs SIGINT SIGTERM SIGKILL
+  cleanupVMs
 
   # based on the assumption that in the same folder, the VMs has been exist normally. so don't destroy VM here.
   
@@ -297,4 +295,3 @@ if [ "$RUN_CIT_TEST" == true ] || [ "$RUN_FIT_TEST" == true ] ; then
   nodesDelete
 
 fi
-

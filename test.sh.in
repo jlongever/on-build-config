@@ -63,7 +63,7 @@ execWithTimeout() {
   fi
   cmd="/bin/sh -c \"$1\""
   #timeout default to one minute
-  timeout=60
+  timeout=90
   retry=3
   result=0
   if [ ! -z "${2}" ]; then
