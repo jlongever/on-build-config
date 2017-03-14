@@ -1,0 +1,20 @@
+- name: Check if node4 is installed
+  shell: |
+    node --version | grep v4
+  ignore_errors: yes
+  register: node4_check
+
+- name: Install node4 if it's not installed
+  become: true
+  shell: |
+    curl -sL https://deb.nodesource.com/setup_4.x | sudo -E bash -
+    apt-get install -y nodejs
+  when: node4_check.rc == 1
+
+- name: Install external dependent packages
+  become: true
+  apt: name={{item}} state=present
+  with_items:
+    - rabbitmq-server
+    - mongodb
+    - ipmitool

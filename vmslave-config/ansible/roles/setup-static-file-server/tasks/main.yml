@@ -1,0 +1,13 @@
+- name: Create apache2 files directory
+  become: yes
+  file:
+    state: directory
+    path: /var/www/html/isofarm
+
+- name: Link isofarm to apache2 files
+  become: true
+  file:
+    src: "{{ isofarm_path }}"
+    dest: /var/www/html/isofarm/repo
+    state: link
+  notify: restart apache2

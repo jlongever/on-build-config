@@ -1,0 +1,5 @@
+---
+- name: apt-get -f install
+  become: yes
+  shell: |
+    apt-get -f install

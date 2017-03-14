@@ -1,0 +1,13 @@
+- name: Install fundamental packages
+  become: true
+  apt: name={{item}} state=present
+  with_items:
+    - libssl-dev
+    - libkrb5-dev
+    - libffi-dev
+    - python-dev
+    - python-pip
+    - openjdk-7-jdk
+    - maven
+    - git
+    - expect
