@@ -225,7 +225,7 @@ class PrParser(object):
             repo, sha1, _ = pr
             repo_url = "https://github.com/{0}.git".format(repo)
             # uniform the repo_url case, make sure the url is completely consistent with repo in the manifest
-            repo_url = [url for url in repo_url_list if url.lower()== repo_url][0]
+            repo_url = [url for url in repo_url_list if url.lower() == repo_url][0]
             if repo in under_test_prs:
                 manifest.update_manifest(repo_url, "", sha1, True)
             else:
