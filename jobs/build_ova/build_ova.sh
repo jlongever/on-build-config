@@ -11,7 +11,7 @@ pkill packer
 pkill vmware
 set -x
 cd $WORKSPACE/build/packer 
-export PACKER_CACHE_DIR=/tmp/packer_cache
+export PACKER_CACHE_DIR=$HOME/.packer_cache
 export BUILD_TYPE=vmware
 #export vars to build ova
 if [ "${IS_OFFICIAL_RELEASE}" == true ]; then

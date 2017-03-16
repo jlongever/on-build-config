@@ -11,7 +11,7 @@ pkill packer
 cd ..
 cd $WORKSPACE/build/packer 
 #export vars to build virtualbox
-export PACKER_CACHE_DIR=/tmp/packer_cache
+export PACKER_CACHE_DIR=$HOME/.packer_cache
 if [ "${IS_OFFICIAL_RELEASE}" == "true" ]; then
     export ANSIBLE_PLAYBOOK=rackhd_release
 else
