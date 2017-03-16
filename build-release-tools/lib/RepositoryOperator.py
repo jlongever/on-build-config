@@ -67,6 +67,19 @@ class RepoCloner(ParallelTasks):
             reset_id = repo['tag']
         return reset_id
 
+    @staticmethod
+    def run_git_command(git, command, directory, results):
+        commands = results['commands']
+        return_code, out, err = git.run(command, directory)
+
+        commands.append({'command': command,
+                         'return_code': return_code,
+                         'stdout': out,
+                         'stderr': err
+                        })
+
+        if return_code != 0:
+            raise RuntimeError("Failed to run command " + " ".join(command))
 
     def do_one_task(self, name, data, results):
         """
@@ -105,7 +118,6 @@ class RepoCloner(ParallelTasks):
 
         # someplace to start storing results of the commands that will be run
         results['commands'] = []
-        commands = results['commands']
         git = GitBit(verbose=False)
         if 'credentials' in data and data['credentials'] is not None:
             for credential in data['credentials']:
@@ -135,16 +147,7 @@ class RepoCloner(ParallelTasks):
             destination_directory_name = repo['checked-out-directory-name']
             command.append(destination_directory_name)
 
-        return_code, out, err = git.run(command, data['builddir'])
-
-        commands.append({'command': command,
-                         'return_code': return_code,
-                         'stdout': out,
-                         'stderr': err
-                        })
-
-        if return_code != 0:
-            raise RuntimeError("Unable to clone the repository")
+        self.run_git_command(git,command,data['builddir'],results)
 
         # the clone has been performed -- now check to see if we need to move the HEAD
         # to point to a specific location within the tree history.   That will be true
@@ -155,13 +158,13 @@ class RepoCloner(ParallelTasks):
 
         if reset_id is not None:
             working_directory = os.path.join(data['builddir'], destination_directory_name)
-
+               
             command = ["fetch", "origin", "refs/pull/*:refs/remotes/origin/pr/*"]
+            self.run_git_command(git,command,working_directory,results)
 
-            run_command(command, directory=working_directory)
             command = ["reset", "--hard", reset_id]
-            run_command(command, directory=working_directory)
-
+            self.run_git_command(git,command,working_directory,results)
+   
         results['status'] = "success"
 
 
