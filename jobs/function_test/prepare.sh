@@ -22,7 +22,7 @@ dlHttpFiles() {
   mkdir -p ${dir} && cd ${dir}
   if [ -n "${INTERNAL_HTTP_ZIP_FILE_URL}" ]; then
     # use INTERNAL TEMP SOURCE
-    wget ${INTERNAL_HTTP_ZIP_FILE_URL} 
+    wget -c -t 5 ${INTERNAL_HTTP_ZIP_FILE_URL} 
     unzip common.zip && mv common/* . && rm -rf common
   else
     # pull down index from bintray repo and parse files from index
@@ -43,7 +43,7 @@ dlTftpFiles() {
   mkdir -p ${dir} && cd ${dir}
   if [ -n "${INTERNAL_TFTP_ZIP_FILE_URL}" ]; then
     # use INTERNAL TEMP SOURCE
-    wget ${INTERNAL_TFTP_ZIP_FILE_URL} 
+    wget -c -t 5 ${INTERNAL_TFTP_ZIP_FILE_URL} 
     unzip pxe.zip && mv pxe/* . && rm -rf pxe pxe.zip
   else
     # pull down index from bintray repo and parse files from index
