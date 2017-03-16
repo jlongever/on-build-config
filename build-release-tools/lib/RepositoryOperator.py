@@ -156,15 +156,11 @@ class RepoCloner(ParallelTasks):
         if reset_id is not None:
             working_directory = os.path.join(data['builddir'], destination_directory_name)
 
+            command = ["fetch", "origin", "refs/pull/*:refs/remotes/origin/pr/*"]
+
+            run_command(command, directory=working_directory)
             command = ["reset", "--hard", reset_id]
-            return_code, out, err = git.run(command, directory=working_directory)
-            commands.append({'command': command,
-                             'return_code': return_code,
-                             'stdout': out,
-                             'stderr': err
-                            })
-            if return_code != 0:
-                raise RuntimeError("unable to move to correct commit/tag")
+            run_command(command, directory=working_directory)
 
         results['status'] = "success"
 

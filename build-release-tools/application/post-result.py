@@ -1,37 +1,30 @@
+#!/usr/bin/env python
+
 import json
 import requests
 import os
 import subprocess
 import sys
 import argparse
+from manifest import Manifest
+import common
 
 '''
 Usage:
 python post-result.py \
---github_pr_url https://api.github.com/repos/RackHD/on-core/issues/${PullRequestId}/comments \
+--manifest_file manifest \
 --jenkins_url http://rackhdci.lss.emc.com \
 --build_url http://rackhdci.lss.emc.com/job/on-core/851/ \
---build_name '#851' \
 --public_jenkins_url http://147.178.202.18/
 '''
 
-with open('${HOME}/.ghtoken', 'r') as file:
-    TOKEN = file.read().strip('\n')
-
-HEADERS = {'Authorization': 'token %s' % TOKEN}
-
-GITHUB_PR_URL = ""
-JENKINS_URL = ""
-BUILD_URL = ""
-BUILD_NAME = ""
-PUBLIC_JENKINS_URL = ""
 FAIL_REPORTS = []
 
 def parse_args(args):
     parser = argparse.ArgumentParser()
-    parser.add_argument('--github_pr_url',
+    parser.add_argument('--manifest_file',
                         required=True,
-                        help="The url of the pull request in github",
+                        help="The manifest file path",
                         action="store")
     parser.add_argument('--jenkins_url',
                         required=True,
@@ -41,13 +34,13 @@ def parse_args(args):
                         required=True,
                         help="the url of the build in jenkins",
                         action="store")
-    parser.add_argument('--build_name',
-                        required=True,
-                        help="the name of the build in jenkins",
-                        action="store")
     parser.add_argument('--public_jenkins_url',
                         required=True,
                         help="the url of the public jenkins",
+                        action="store")
+    parser.add_argument('--ghtoken',
+                        required=True,
+                        help="the token of the github",
                         action="store")
 
     parsed_args = parser.parse_args(args)
@@ -134,8 +127,8 @@ def get_sub_builds(build_url, depth = 1):
                 output = ""
                 sub_build_name = subBuild['jobName'] + "  #" + str(subBuild['buildNumber'])
                 sub_build_result = subBuild['result']
-                sub_build_url = JENKINS_URL + "/" + subBuild['url']
-                public_sub_build_url = sub_build_url.replace(JENKINS_URL, PUBLIC_JENKINS_URL)
+                sub_build_url = jenkins_url + "/" + subBuild['url']
+                public_sub_build_url = sub_build_url.replace(jenkins_url, public_jenkins_url)
                 for x in range(depth):
                     output += "   "
                 output += "- ** BUILD [" + sub_build_name + "](" + public_sub_build_url + "): " + sub_build_result + "\n"
@@ -160,7 +153,7 @@ def get_sub_builds(build_url, depth = 1):
                         sub_build_name = subBuild['fullDisplayName']
                         sub_build_result = subBuild['result']
                         sub_build_url = subBuild['url']
-                        public_sub_build_url = sub_build_url.replace(JENKINS_URL, PUBLIC_JENKINS_URL)
+                        public_sub_build_url = sub_build_url.replace(jenkins_url, public_jenkins_url)
                         for x in range(depth):
                             output += "   "
                         output += "- ** BUILD [" + sub_build_name + "](" + public_sub_build_url + "): " + sub_build_result + "\n"
@@ -206,29 +199,63 @@ def post_comments_to_github(comments, github_pr_url, headers):
     else:
         print "Succeed to post comments to pull request {0}".format(github_pr_url)
         return
-                
+ 
+
+def get_prs(manifest):
+    PRs = {}
+    for repo in manifest.repositories:
+        if "under-test" in repo and repo["under-test"] == True:
+            pr_id = repo["commit-id"].split('/')[-2]
+            repo_name = common.strip_suffix(os.path.basename(repo["repository"]), ".git")
+            repo_owner = repo["repository"].split('/')[-2]
+            PRs[repo_name] = {"repo_owner": repo_owner, "pull_request_id": pr_id}
+    return PRs
+                      
 def main():
+    # parse arguments
+    args = parse_args(sys.argv[1:])
+    jenkins_url = args.jenkins_url
+    build_url = args.build_url
+    public_jenkins_url = args.public_jenkins_url
+    token = args.ghtoken
+
+    HEADERS = {'Authorization': 'token %s' % token}
+
+    manifest = Manifest(args.manifest_file)
+    pull_requests= get_prs(manifest)
+
+    for repo, pr in pull_requests.iteritems():
+        repo_owner = pr["repo_owner"]
+        pr_id = pr["pull_request_id"]
+        pr_url = "https://api.github.com/repos/{repo_owner}/{repo_name}/issues/{pr_id}/comments"\
+                 .format(repo_owner=repo_owner, repo_name=repo, pr_id=pr_id)
+        print pr_url
+        post_results(pr_url, jenkins_url, build_url, public_jenkins_url, HEADERS)
+
+
+def post_results(pr_url, jenkins_url, build_url, public_jenkins_url, HEADERS):
     OUTPUT = ""
-    job_name = BUILD_URL.split('/')[-3]
-    build_number = BUILD_URL.split('/')[-2]
-    public_build_url = BUILD_URL.replace(JENKINS_URL, PUBLIC_JENKINS_URL)
+    job_name = build_url.split('/')[-3]
+    build_number = build_url.split('/')[-2]
+    public_build_url = "{url}/blue/organizations/jenkins/{job_name}/detail/{job_name}/{build_number}/pipeline"\
+                       .format(url=public_jenkins_url, job_name=job_name, build_number=build_number)
+
     try:
-        build_data = get_build_data(BUILD_URL)
+        build_data = get_build_data(build_url)
         if build_data:
             build_name = build_data['fullDisplayName']
             build_result = build_data['result']
             OUTPUT +=  "BUILD [" + build_name + "](" + public_build_url + ") : " + build_result + "\n"
 
-            sub_build_outputs = get_sub_builds(BUILD_URL)
+            sub_build_outputs = get_sub_builds(build_url)
             for sub_output in sub_build_outputs:
                 OUTPUT += sub_output
-
         else:
             build_name = job_name + " #" + build_number
             OUTPUT += "*** BUILD [" + build_name + "](" + public_build_url + ") ***\n"
 
-            failure_report = generate_failure_report(BUILD_URL, build_name)
-            FAIL_REPORTS.append(failure_report)
+        failure_report = generate_failure_report(build_url, build_name)
+        FAIL_REPORTS.append(failure_report)
 
         if len(FAIL_REPORTS) > 0:
             for fail_report in FAIL_REPORTS:
@@ -243,15 +270,7 @@ def main():
             build_name = job_name + " #" + build_number
             OUTPUT += "*** BUILD [" + build_name + "](" + public_build_url + ") ***\n"
 
-        post_comments_to_github(OUTPUT, GITHUB_PR_URL, HEADERS)
+        post_comments_to_github(OUTPUT, pr_url, HEADERS)
 
 if __name__ == "__main__":
-    # parse arguments
-    parsed_args = parse_args(sys.argv[1:])
-    GITHUB_PR_URL = parsed_args.github_pr_url
-    JENKINS_URL = parsed_args.jenkins_url
-    BUILD_URL = parsed_args.build_url
-    BUILD_NAME = parsed_args.build_name
-    PUBLIC_JENKINS_URL = parsed_args.public_jenkins_url
-
     main()
