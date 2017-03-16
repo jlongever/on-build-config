@@ -14,5 +14,6 @@ fi
 #and move them to 'build' folder for publishing
 cd $WORKSPACE/build-deps
 for file in `ls *sol.log.raw`; do
-    ansi2html < $file > $WORKSPACE/build/${file%.*}
+    iconv -f "windows-1252" -t "UTF-8" $file -o new_$file
+    ansi2html < new_$file > $WORKSPACE/build/${file%.*}
 done
