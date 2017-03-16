@@ -11,7 +11,6 @@ import datetime
 
 from gitbits import GitBit
 
-manifest_sample = "manifest.json"
 class Manifest(object):
     def __init__(self, file_path, git_credentials = None):
         """
@@ -46,7 +45,7 @@ class Manifest(object):
         self.parse_manifest()
 
     @staticmethod
-    def instance_of_sample():
+    def instance_of_sample(manifest_sample="manifest.json"):
         repo_dir = os.path.dirname(sys.path[0])
         for subdir, dirs, files in os.walk(repo_dir):
             for file in files:
@@ -324,6 +323,97 @@ class Manifest(object):
         return False
 
     @staticmethod
+    def check_branch_changed(repo, repo_url, branch, commit):
+        """
+        Check whether the repository is changed based on its url, branch ,commit-id and arguments repo_url, branch, commit
+        :param repo: an repository entry of member _repositories or _downstream_jobs
+        :param repo_url: the url of the repository
+        :param branch: the branch of the repository
+        :param commit: the commit id of the repository
+        :return: True when the branch is different with argument branch
+                 and the url and commit is the same with the arguments repo_url, commit;
+                 otherwise, False
+        """
+
+        if (repo['repository'] == repo_url):
+            # If repo has "branch", compare "commit-id" in repo with the argument commit
+            # only when "branch" is the same with argument branch.
+
+            if 'commit-id' in repo:
+                if repo['commit-id'] != commit:
+                    return False
+            
+            # Exits with 1 if repo doesn't have "branch" and "commit-id"
+            elif 'branch' not in repo:
+                    raise KeyError("Neither commit-id nor branch is set for repository {0}".format(repo['repository']))
+
+            if 'branch' in repo:
+                print "checking the branch for {0} with commit {1} from {2} to {3}".format\
+                        (repo_url, commit, repo['branch'], branch )
+                sliced_repo_branch = repo['branch'].split("/")[-1]
+                sliced_branch = branch.split("/")[-1]
+                if (repo['branch'] != branch and
+                    repo['branch'] != sliced_branch and
+                    sliced_repo_branch != sliced_branch):
+                    print "   branch updated!"
+                    return True
+                else:
+                    print "   branch unchanged"
+                    return False
+            else:
+                print "add branch{0} for {1} with commit {2} ".format\
+                        (branch, repo_url, commit)
+                return True
+
+    @staticmethod
+    def check_under_test_changed(repo, repo_url, branch, commit, under_test):
+        """
+        Check whether the under_test is changed based on its url, branch ,commit-id and arguments repo_url, branch, commit
+        :param repo: an repository entry of member _repositories or _downstream_jobs
+        :param repo_url: the url of the repository
+        :param branch: the branch of the repository
+        :param commit: the commit id of the repository
+        :param under_test: the if under test of the repository
+        :return: True when the under-test is different with argument under_test
+                 and the url and commit, branch are the same with the arguments repo_url, commit, branch;
+                 otherwise, False
+        """
+
+        if (repo['repository'] == repo_url):
+            # If repo has "commit-id", and "branch", compare "under-test" in repo with the argument commit
+            # only when "commit-id" is the same with argument commit.
+
+            if 'commit-id' in repo:
+                if repo['commit-id'] != commit:
+                    return False
+
+            if 'branch' in repo:
+                sliced_repo_branch = repo['branch'].split("/")[-1]
+                sliced_branch = branch.split("/")[-1]
+                if (repo['branch'] != branch and
+                    repo['branch'] != sliced_branch and
+                    sliced_repo_branch != sliced_branch):
+                    return False
+
+            if 'commit-id' not in repo and 'branch' not in repo:
+                if 'under-test' not in repo:
+                    raise KeyError("Neither commit-id nor branch nor under test is set for repository {0}".format(repo['repository']))
+            
+            if 'under-test' not in repo:
+                print "add under-test {0} for {1} with commit {2} ".format\
+                (under_test, repo_url, commit)
+                return True
+            else:
+                if repo['under-test'] != under_test:
+                    print "   under_test updated!"
+                    return True
+                else:
+                    print "   under_test unchanged"
+                    return False
+
+
+
+    @staticmethod
     def update_downstream_jobs(downstream_jobs, repo_url, branch, commit):
         """
         update the instance of the class based on member:
@@ -348,7 +438,7 @@ class Manifest(object):
         return updated
 
     @staticmethod
-    def update_repositories(repositories, repo_url, branch, commit):
+    def update_repositories(repositories, repo_url, branch, commit, under_test=False):
         """
         update the instance of the class based on member:
         _repositories and provided arguments.
@@ -364,9 +454,16 @@ class Manifest(object):
             if Manifest.check_commit_changed(repo, repo_url, branch, commit):
                 repo['commit-id'] = commit
                 updated = True
+            if Manifest.check_branch_changed(repo, repo_url, branch, commit):
+                repo['branch'] = branch
+                updated = True
+            if under_test:
+                if Manifest.check_under_test_changed(repo, repo_url, branch, commit, under_test):
+                    repo['under-test'] = under_test
+                    updated = True
         return updated
 
-    def update_manifest(self, repo_url, branch, commit):
+    def update_manifest(self, repo_url, branch, commit, under_test=False):
         """
         update the instance of the class based on members
          _repositories , _downstream_jobs and provided arguments.
@@ -376,7 +473,7 @@ class Manifest(object):
         :return:
         """
         print "start updating  manifest file {0}".format(self._name)
-        if self.update_repositories(self._repositories, repo_url, branch, commit):
+        if self.update_repositories(self._repositories, repo_url, branch, commit, under_test):
             self._changed = True
 
         if self.update_downstream_jobs(self._downstream_jobs, repo_url, branch, commit):
