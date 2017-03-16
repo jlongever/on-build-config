@@ -8,7 +8,7 @@ node{
     }
 
     stage("Test"){
-        build job: 'Continuous-Test/Continuous-Functional', parameters: [string(name: 'MANIFEST_FILE_URL', value: env.MANIFEST_FILE_URL), booleanParam(name: 'IS_OFFICIAL_RELEASE', value: env.IS_OFFICIAL_RELEASE=="true")];
+        load("jobs/function_test/function_test.groovy")
     }
 
     def shareMethod = load("jobs/shareMethod.groovy")

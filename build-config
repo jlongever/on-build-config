@@ -1,19 +1,13 @@
-#!/bin/bash +xe
-if [ -z "${REPO_NAME}" ]; then
-  REPO_NAME=`pushd ${WORKSPACE}/build >/dev/null && git remote show origin -n | grep "Fetch URL:" | sed "s#^.*/\(.*\).git#\1#" && popd > /dev/null`
-fi
+#!/bin/bash -xe
+
+REPO_NAME="$1"
+
 if [ -e "${REPO_NAME}/sonar.properties.in" ]; then
   echo "Generating sonar.properties file from template"
   env | sed 's/[\%]/\\&/g;s/\([^=]*\)=\(.*\)/s%${\1}%\2%/' > sed.script
   cat ${REPO_NAME}/sonar.properties.in | sed -f sed.script > sonar.properties
   rm sed.script
 fi
-
-echo "Generating post-result.py file from template"
-env | sed 's/[\%]/\\&/g;s/\([^=]*\)=\(.*\)/s%${\1}%\2%/' > sed.script
-cat post-result.py.in | sed -f sed.script > post-result.py
-chmod oug+x post-result.py
-rm sed.script
 
 echo "Generating config.ini file from template"
 env | sed 's/[\%]/\\&/g;s/\([^=]*\)=\(.*\)/s%${\1}%\2%/' > sed.script
@@ -31,32 +25,6 @@ else
   env | sed 's/[\%]/\\&/g;s/\([^=]*\)=\(.*\)/s%${\1}%\2%/' > sed.script
   cat test.sh.in | sed -f sed.script > test.sh
   chmod oug+x test.sh
-  rm sed.script
-fi
-
-echo "Generating unit-test script file from template"
-if [ -e "${REPO_NAME}/unit-test.sh.in" ]; then
-  env | sed 's/[\%]/\\&/g;s/\([^=]*\)=\(.*\)/s%${\1}%\2%/' > sed.script
-  cat ${REPO_NAME}/unit-test.sh.in | sed -f sed.script > unit-test.sh
-  chmod oug+x unit-test.sh
-  rm sed.script
-else
-  env | sed 's/[\%]/\\&/g;s/\([^=]*\)=\(.*\)/s%${\1}%\2%/' > sed.script
-  cat unit-test.sh.in | sed -f sed.script > unit-test.sh
-  chmod oug+x unit-test.sh
-  rm sed.script
-fi
-
-echo "Generating pre deployment file from template"
-if [ -e "${REPO_NAME}/pre-deploy.sh.in" ]; then
-  env | sed 's/[\%]/\\&/g;s/\([^=]*\)=\(.*\)/s%${\1}%\2%/' > sed.script
-  cat ${REPO_NAME}/pre-deploy.sh.in | sed -f sed.script > pre-deploy.sh
-  chmod oug+x pre-deploy.sh
-  rm sed.script
-else
-  env | sed 's/[\%]/\\&/g;s/\([^=]*\)=\(.*\)/s%${\1}%\2%/' > sed.script
-  cat pre-deploy.sh.in | sed -f sed.script > pre-deploy.sh
-  chmod oug+x pre-deploy.sh
   rm sed.script
 fi
 
@@ -82,37 +50,6 @@ else
   env | sed 's/[\%]/\\&/g;s/\([^=]*\)=\(.*\)/s%${\1}%\2%/' > sed.script
   cat .nvmrc.in | sed -f sed.script > .nvmrc
   rm sed.script
-fi
-
-FORKURL=${FORKURL-https://github.com/RackHD/on-core.git}
-FORKURL="$(echo -e "${FORKURL}" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')"
-COMMIT="$(echo -e "${COMMIT}" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')"
-if [ "${FORKURL}" != "https://github.com/RackHD/on-core.git" ]; then
-  if [ -e "../build/package.json" ]; then
-    sed -i "s|"git+${FORKURL}"|"git+${FORKURL}"|" ../build/package.json
-  fi
-fi
-
-IFS=', ' read -r -a FORKURL_ARRAY <<< "${FORKURL}"
-IFS=', ' read -r -a COMMIT_ARRAY <<< "${COMMIT}"
-if [ "${#FORKURL_ARRAY[@]}" == 2 ]; then
-  if [ -e "../build/package.json" ]; then
-    if [ "${GIT_REFSPEC}" != "master" ]; then
-      sed -i "s|"git+${FORKURL_ARRAY[0]}#${GIT_REFSPEC}"|"git+${FORKURL_ARRAY[0]}#${COMMIT_ARRAY[0]}"|" ../build/package.json
-      sed -i "s|"git+${FORKURL_ARRAY[1]}#${GIT_REFSPEC}"|"git+${FORKURL_ARRAY[1]}#${COMMIT_ARRAY[1]}"|" ../build/package.json
-    else
-      sed -i "s|"git+${FORKURL_ARRAY[0]}"|"git+${FORKURL_ARRAY[0]}#${COMMIT_ARRAY[0]}"|" ../build/package.json
-      sed -i "s|"git+${FORKURL_ARRAY[1]}"|"git+${FORKURL_ARRAY[1]}#${COMMIT_ARRAY[1]}"|" ../build/package.json
-    fi
-  fi
-elif [ ! -z "${COMMIT}" ]; then
-    if [ -e "../build/package.json" ]; then
-      if [ "${GIT_REFSPEC}" != "master" ]; then
-        sed -i "s|"git+${FORKURL}#${GIT_REFSPEC}"|"git+${FORKURL}#${COMMIT}"|" ../build/package.json
-      else
-        sed -i "s|"git+${FORKURL}"|"git+${FORKURL}#${COMMIT}"|" ../build/package.json
-      fi
-    fi
 fi
 
 echo "Generating sol-log script file from template"
