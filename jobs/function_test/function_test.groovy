@@ -5,7 +5,7 @@ def function_test(String test_name, String label_name, String TEST_GROUP, Boolea
         // The locked resources of the build
         def lock_resources=org.jenkins.plugins.lockableresources.LockableResourcesManager.class.get().getResourcesFromBuild(currentBuild.getRawBuild())
         // The locked resources of this step
-        resource_name = shareMethod.getLockedResourceName(lock_resources,label_name)
+        resource_name = shareMethod.getLockedResourceName(lock_resources,label_name)[0]
         node(resource_name){
             deleteDir()
             dir("on-build-config"){
