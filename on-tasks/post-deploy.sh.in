@@ -15,5 +15,7 @@ fi
 cd $WORKSPACE/build-deps
 for file in `ls *sol.log.raw`; do
     iconv -f "windows-1252" -t "UTF-8" $file -o new_$file
-    ansi2html < new_$file > $WORKSPACE/build/${file%.*}
+    if [ -f new_$file ];then
+      ansi2html < new_$file > $WORKSPACE/build/${file%.*}
+    fi
 done
