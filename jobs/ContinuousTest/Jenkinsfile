@@ -3,54 +3,59 @@ node{
     dir("build-config"){
         checkout scm
     }
-    stage("Generate Manifest"){
-        // Generate a manifest file according to the branch, date and timezone parameters if manifest file url is null
-        if("${MANIFEST_FILE_URL}" == null || "${MANIFEST_FILE_URL}" == "null" || "${MANIFEST_FILE_URL}" == ""){
-            timestamps{
-                withEnv([
-                    "branch=${env.branch}",
-                    "date=current",
-                    "timezone=-0500"
-                ]){
-                    sh '''#!/bin/bash -ex
-                    pushd $WORKSPACE
-                    ./build-config/build-release-tools/HWIMO-BUILD build-config/build-release-tools/application/generate_manifest.py \
-                    --branch "$branch" \
-                    --date "$date" \
-                    --timezone "$timezone" \
-                    --builddir b \
-                    --force \
-                    --jobs 8
+    try{
+        stage("Generate Manifest"){
+            // Generate a manifest file according to the branch, date and timezone parameters if manifest file url is null
+            if("${MANIFEST_FILE_URL}" == null || "${MANIFEST_FILE_URL}" == "null" || "${MANIFEST_FILE_URL}" == ""){
+                timestamps{
+                    withEnv([
+                        "branch=${env.branch}",
+                        "date=current",
+                        "timezone=-0500"
+                    ]){
+                        sh '''#!/bin/bash -ex
+                        pushd $WORKSPACE
+                        ./build-config/build-release-tools/HWIMO-BUILD build-config/build-release-tools/application/generate_manifest.py \
+                        --branch "$branch" \
+                        --date "$date" \
+                        --timezone "$timezone" \
+                        --builddir b \
+                        --force \
+                        --jobs 8
 
-                    arrBranch=($(echo $branch | tr "/" "\n"))
-                    slicedBranch=${arrBranch[-1]}
-                    manifest_file=$(find -maxdepth 1 -name "$slicedBranch-[0-9]*" -printf "%f\n")
-                    mv $manifest_file manifest
-                    '''
+                        arrBranch=($(echo $branch | tr "/" "\n"))
+                        slicedBranch=${arrBranch[-1]}
+                        manifest_file=$(find -maxdepth 1 -name "$slicedBranch-[0-9]*" -printf "%f\n")
+                        mv $manifest_file manifest
+                        '''
+                    }
                 }
             }
-        }
-        else{
-            sh 'curl -L $MANIFEST_FILE_URL -o manifest'
-        }
+            else{
+                sh 'curl -L $MANIFEST_FILE_URL -o manifest'
+            }
 
-        // Name the manifest file with build number and the md5sum of the manifest file
-        // That helps to tell uses whether there is different with tested code between builds
-        sh '''#!/bin/bash -ex
-        file_hash=$( md5sum manifest | awk '{print $1}' )
-        number="$BUILD_NUMBER"
-        new_manifest="manifest_${number}_${file_hash}"
-        mv manifest $new_manifest
-        echo "manifest_name=$new_manifest" > downstream_file
-        '''
-        def props = readProperties file: 'downstream_file'
-        archiveArtifacts "${props.manifest_name}"
-        stash name: 'manifest', includes: "${props.manifest_name}"
-        env.stash_manifest_name = 'manifest'
-        env.stash_manifest_path = "${props.manifest_name}"
-    }
-    stage("Test"){
-        // Start to run test
-        load("build-config/jobs/function_test/function_test.groovy")
+            // Name the manifest file with build number and the md5sum of the manifest file
+            // That helps to tell uses whether there is different with tested code between builds
+            sh '''#!/bin/bash -ex
+            file_hash=$( md5sum manifest | awk '{print $1}' )
+            number="$BUILD_NUMBER"
+            new_manifest="manifest_${number}_${file_hash}"
+            mv manifest $new_manifest
+            echo "manifest_name=$new_manifest" > downstream_file
+            '''
+            def props = readProperties file: 'downstream_file'
+            archiveArtifacts "${props.manifest_name}"
+            stash name: 'manifest', includes: "${props.manifest_name}"
+            env.stash_manifest_name = 'manifest'
+            env.stash_manifest_path = "${props.manifest_name}"
+        }
+        stage("Test"){
+            // Start to run test
+            load("build-config/jobs/function_test/function_test.groovy")
+        }
+    } finally{
+        def shareMethod = load("build-config/jobs/shareMethod.groovy")
+        shareMethod.sendResult(true,true)
     }
 }
