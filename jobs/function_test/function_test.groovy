@@ -69,16 +69,24 @@ def function_test(String test_name, String label_name, String TEST_GROUP, Boolea
                     } finally{
                         
                         def artifact_dir = test_name.replaceAll(' ', '-')
-                        sh '''#!/bin/bash -ex
+                        sh '''#!/bin/bash -x
                         mkdir '''+"$artifact_dir"+'''
-                        cp RackHD/test/*.xml '''+"$artifact_dir" +'''
-                        ./build-config/jobs/function_test/cleanup.sh
                         ./build-config/post-deploy.sh
-                        cp build-deps/*.log '''+"$artifact_dir"+'''
+                        find build-deps/ -maxdepth 1 -name "*.log" > files.txt
+                        files=$( paste -s -d ' ' files.txt )
+                        if [ ! -z "$files" ];then
+                            cp build-deps/*.log '''+"$artifact_dir"+'''
+                        fi
+                        find RackHD/test/ -maxdepth 1 -name "*.xml" > files.txt
+                        files=$( paste -s -d ' ' files.txt )
+                        if [ ! -z "$files" ];then
+                            cp RackHD/test/*.xml '''+"$artifact_dir" +'''
+                        fi
                         '''
                         archiveArtifacts "$artifact_dir/*.*"
-
-                        sh '''#!/bin/bash -ex
+ 
+                        sh '''#!/bin/bash -x
+                        ./build-config/jobs/function_test/cleanup.sh
                         find RackHD/test/ -maxdepth 1 -name "*.xml" > files.txt
                         files=$( paste -s -d ' ' files.txt )
                         if [ -z "$files" ];then
