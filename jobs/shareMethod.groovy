@@ -41,7 +41,9 @@ def getLockedResourceName(resources,label_name){
 
 def buildAndPublish(){
     stage("Packages Build"){
-        load("jobs/build_debian/build_debian.groovy")
+        retry(3){
+            load("jobs/build_debian/build_debian.groovy")
+        }
     }
     waitForFreeResource("docker",1)
     // lock a docker resource from build to release
@@ -58,11 +60,17 @@ def buildAndPublish(){
 
         stage("Images Build"){
             parallel 'vagrant build':{
-                load("jobs/build_vagrant/build_vagrant.groovy")
+                retry(3){
+                    load("jobs/build_vagrant/build_vagrant.groovy")
+                }
             }, 'ova build':{
-                load("jobs/build_ova/build_ova.groovy")
+                retry(3){
+                    load("jobs/build_ova/build_ova.groovy")
+                }
             }, 'build docker':{
-                load("jobs/build_docker/build_docker.groovy")
+                retry(3){
+                    load("jobs/build_docker/build_docker.groovy")
+                }
             }
         }
 
