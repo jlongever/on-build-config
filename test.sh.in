@@ -54,6 +54,7 @@ if [ -z "${TEST_GROUP}" ]; then
 fi
 
 execWithTimeout() {
+  set +e
   # $1 command to execute
   # $2 timeout
   # $3 retries on timeout
@@ -89,6 +90,7 @@ execWithTimeout() {
        echo "execWithTimeout() command timed out $retry times after $timeout seconds"
        exit 1
   fi
+  set -e
 }
 nodesOff() {
   cd ${WORKSPACE}/build-config/deployment/
