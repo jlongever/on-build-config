@@ -40,8 +40,10 @@ def getLockedResourceName(resources,label_name){
 }
 
 def buildAndPublish(){
+    # retry times for package build and images build to avoid failing caused by network
+    int retry_times = 3
     stage("Packages Build"){
-        retry(3){
+        retry(retry_times){
             load("jobs/build_debian/build_debian.groovy")
         }
     }
@@ -60,15 +62,15 @@ def buildAndPublish(){
 
         stage("Images Build"){
             parallel 'vagrant build':{
-                retry(3){
+                retry(retry_times){
                     load("jobs/build_vagrant/build_vagrant.groovy")
                 }
             }, 'ova build':{
-                retry(3){
+                retry(retry_times){
                     load("jobs/build_ova/build_ova.groovy")
                 }
             }, 'build docker':{
-                retry(3){
+                retry(retry_times){
                     load("jobs/build_docker/build_docker.groovy")
                 }
             }
@@ -83,7 +85,7 @@ def buildAndPublish(){
                 load("jobs/build_docker/docker_post_test.groovy")
             }
         }
-  
+
         stage("Publish"){
             parallel 'Publish Debian':{
                 load("jobs/release/release_debian.groovy")
