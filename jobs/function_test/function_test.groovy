@@ -69,23 +69,18 @@ def function_test(String test_name, String label_name, String TEST_GROUP, Boolea
                     } finally{
                         
                         def artifact_dir = test_name.replaceAll(' ', '-')
-                        sh '''#!/bin/bash -x
+                        sh '''#!/bin/bash -ex
                         mkdir '''+"$artifact_dir"+'''
+                        cp RackHD/test/*.xml '''+"$artifact_dir" +'''
+                        ./build-config/jobs/function_test/cleanup.sh
                         ./build-config/post-deploy.sh
-                        files=$( ls build-deps/*.log )
-                        if [ ! -z "$files" ];then
-                            cp build-deps/*.log '''+"$artifact_dir"+'''
-                        fi
-                        files=$( ls RackHD/test/*.xml )
-                        if [ ! -z "$files" ];then
-                            cp RackHD/test/*.xml '''+"$artifact_dir" +'''
-                        fi
+                        cp build-deps/*.log '''+"$artifact_dir"+'''
                         '''
                         archiveArtifacts "$artifact_dir/*.*"
- 
-                        sh '''#!/bin/bash -x
-                        ./build-config/jobs/function_test/cleanup.sh
-                        files=$( ls RackHD/test/*.xml )
+
+                        sh '''#!/bin/bash -ex
+                        find RackHD/test/ -maxdepth 1 -name "*.xml" > files.txt
+                        files=$( paste -s -d ' ' files.txt )
                         if [ -z "$files" ];then
                             echo "No test result files generated, maybe it's aborted"
                             exit 1
