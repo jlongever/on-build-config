@@ -1,6 +1,6 @@
 #!/bin/bash 
 
-set -ex
+set -x
 pushd $WORKSPACE
 build_status="${status}"
 

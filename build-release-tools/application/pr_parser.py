@@ -32,6 +32,8 @@ class PrParser(object):
         self.__pr_list = [self.__repo]
         self.__pr_connectivity_map = collections.defaultdict(dict)
         self.__gh = Github(ghtoken)
+        self.__all_prs = []         
+
     def parse_pr(self, base_repo, base_pull_id):
         """
         get related prs according to the base pr
@@ -103,14 +105,7 @@ class PrParser(object):
                 except AssertionError as error:
                     print "ERROR: the pr url {0} is invalid.\n{1}".format(dep_pr_url, error)
                     sys.exit(1)
-                try:
-                    dep_pr = gh.get_repo(repo).get_pull(long(pull_id))
-                    if not dep_pr.mergeable:
-                        print "ERROR: the pr of {0} is unmergeable.\n{1}".format(dep_pr_url, pr.mergeable_state)
-                        sys.exit(1)
-                    sha = 'origin/pr/{0}/merge'.format(pull_id)
-                except Exception as error:
-                    print "ERROR: the pr of {0} doesn't exist.\n{1}".format(dep_pr_url, error)
+                sha = 'origin/pr/{0}/merge'.format(pull_id)
                 print "INFO: find one dependency pr, ({0}, {1}, {2})".format(repo, sha, pull_id)
                 related_prs.append((repo, sha, pull_id))
                 self.__pr_connectivity_map[base_repo][repo] = True
@@ -134,9 +129,11 @@ class PrParser(object):
         """
 
         #add base pr first
-        all_prs = []
+        if len(self.__all_prs) > 0:
+            return self.__all_prs
+
         base_pr = [(repo, sha, pull_id)]
-        all_prs.extend(base_pr)
+        self.__all_prs.extend(base_pr)
 
         #recursively find dependent pr
         while base_pr:
@@ -148,7 +145,7 @@ class PrParser(object):
                 #find 'Jenkins: ignore'
                 if dependent_prs == None:
                     #find 'Jenkins: ignore' in root trigger pr
-                    if len(all_prs) == 1:
+                    if len(self.__all_prs) == 1:
                         all_prs = []
                     else:
                         continue
@@ -157,11 +154,11 @@ class PrParser(object):
 
             #avoid endless loop
             if _tmp_pr:
-                _tmp_pr = [t for t in _tmp_pr if t not in all_prs]
-            all_prs.extend(_tmp_pr)
+                _tmp_pr = [t for t in _tmp_pr if t not in self.__all_prs]
+            self.__all_prs.extend(_tmp_pr)
             base_pr = _tmp_pr
-
-        return all_prs
+        
+        return self.__all_prs
 
     def get_under_test_prs(self):
         """
@@ -210,36 +207,54 @@ class PrParser(object):
         latest_commit = branch.commit.sha
         return latest_commit
 
+    def is_pr_mergable(self):
+        gh = self.__gh
+        is_mergable = True
+        all_prs = self.get_all_related_prs(self.__repo, self.__merge_commit_sha, self.__pull_id)
+        for pr in all_prs:
+            repo, sha, pull_id = pr
+            pr = gh.get_repo(repo).get_pull(long(pull_id))
+            if not pr.mergeable:
+                is_mergable = False
+                print("ERROR: the pr {0} of {1} is unmergeable.\n{1}".format(pull_id, repo,  pr.mergeable_state))
+
+        return is_mergable
+
     def wrap_manifest_file(self, file_path):
         """
         Generated manifest file
         """
-        all_prs = self.get_all_related_prs(self.__repo, self.__merge_commit_sha, self.__pull_id)
-        under_test_prs = self.get_under_test_prs()
-        # instance of manifest template
-        manifest = Manifest.instance_of_sample("manifest-pr-gate.json")
+        try:
+            all_prs = self.get_all_related_prs(self.__repo, self.__merge_commit_sha, self.__pull_id)
+            under_test_prs = self.get_under_test_prs()
+            # instance of manifest template
+            manifest = Manifest.instance_of_sample("manifest-pr-gate.json")
 
-        # wrap with pr
-        repo_url_list = [repo["repository"] for repo in manifest.repositories]
-        for pr in all_prs:
-            repo, sha1, _ = pr
-            repo_url = "https://github.com/{0}.git".format(repo)
-            # uniform the repo_url case, make sure the url is completely consistent with repo in the manifest
-            repo_url = [url for url in repo_url_list if url.lower() == repo_url][0]
-            if repo in under_test_prs:
-                manifest.update_manifest(repo_url, "", sha1, True)
-            else:
-                manifest.update_manifest(repo_url, "", sha1, False)
+            # wrap with pr
+            repo_url_list = [repo["repository"] for repo in manifest.repositories]
+            for pr in all_prs:
+                repo, sha1, _ = pr
+                repo_url = "https://github.com/{0}.git".format(repo)
+                # uniform the repo_url case, make sure the url is completely consistent with repo in the manifest
+                repo_url = [url for url in repo_url_list if url.lower() == repo_url][0]
+                if repo in under_test_prs:
+                    manifest.update_manifest(repo_url, "", sha1, True)
+                else:
+                    manifest.update_manifest(repo_url, "", sha1, False)
 
-        # fill in blank commit with latest commit sha
-        for repo in manifest.repositories:
-            if 'commit-id' in repo and repo['commit-id'] == "":
-                repo_name = "/".join(repo["repository"][:-4].split("/")[3:])
-                latest_commit = self.get_latest_commit(repo_name, self.__target_branch)
-                repo["commit-id"] = latest_commit
+            # fill in blank commit with latest commit sha
+            for repo in manifest.repositories:
+                if 'commit-id' in repo and repo['commit-id'] == "":
+                    repo_name = "/".join(repo["repository"][:-4].split("/")[3:])
+                    latest_commit = self.get_latest_commit(repo_name, self.__target_branch)
+                    repo["commit-id"] = latest_commit
 
-        manifest.validate_manifest()
-        manifest.dump_to_json_file(file_path)
+            manifest.validate_manifest()
+            manifest.dump_to_json_file(file_path)
+
+        except Exception as error:
+            print "ERROR occured in parse manifest: {0}".format(error)
+            sys.exit(1)
 
 def parse_args(args):
     """
@@ -271,6 +286,9 @@ def main():
     parsed_args = parse_args(sys.argv[1:])
     pr_parser = PrParser(parsed_args.change_url, parsed_args.target_branch, parsed_args.ghtoken)
     pr_parser.wrap_manifest_file(parsed_args.manifest_file_path)
+    if not pr_parser.is_pr_mergable():
+        print "PR is not mergable"
+        sys.exit(1)
 
 if __name__ == "__main__":
     main()
