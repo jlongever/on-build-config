@@ -72,11 +72,11 @@ def function_test(String test_name, String label_name, String TEST_GROUP, Boolea
                         sh '''#!/bin/bash -x
                         mkdir '''+"$artifact_dir"+'''
                         ./build-config/post-deploy.sh
-                        files=$( ls build-deps/*.log )
+                        files=$( ls build-deps/*.log | tr '\n' ' ' )
                         if [ ! -z "$files" ];then
                             cp build-deps/*.log '''+"$artifact_dir"+'''
                         fi
-                        files=$( ls RackHD/test/*.xml )
+                        files=$( ls RackHD/test/*.xml | tr '\n' ' ' )
                         if [ ! -z "$files" ];then
                             cp RackHD/test/*.xml '''+"$artifact_dir" +'''
                         fi
@@ -85,7 +85,7 @@ def function_test(String test_name, String label_name, String TEST_GROUP, Boolea
  
                         sh '''#!/bin/bash -x
                         ./build-config/jobs/function_test/cleanup.sh
-                        files=$( ls RackHD/test/*.xml )
+                        files=$( ls RackHD/test/*.xml | tr '\n' ' ' )
                         if [ -z "$files" ];then
                             echo "No test result files generated, maybe it's aborted"
                             exit 1
