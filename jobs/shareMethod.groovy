@@ -40,7 +40,7 @@ def getLockedResourceName(resources,label_name){
 }
 
 def buildAndPublish(){
-    # retry times for package build and images build to avoid failing caused by network
+    // retry times for package build and images build to avoid failing caused by network
     int retry_times = 3
     stage("Packages Build"){
         retry(retry_times){
