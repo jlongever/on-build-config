@@ -1,0 +1,9 @@
+- name: Install fundamental tools
+  become: true
+  apt: name={{item}} state=present
+  with_items:
+    - git
+    - expect
+    - unzip
+    - curl
+    - jq

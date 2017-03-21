@@ -1,0 +1,5 @@
+# packer build ova && virtual box deps
+packer_zip: "{{ lookup('env','PACKER_ZIP') }}"
+vmware_workstation_bundle: "{{ lookup('env','VMWARE_WORKSTATION_BUNDLE') }}"
+vagrant_deb: "{{ lookup('env','VAGRANT_DEB') }}"
+virtualbox_deb: "{{ lookup('env','VIRTUALBOX_DEB') }}"

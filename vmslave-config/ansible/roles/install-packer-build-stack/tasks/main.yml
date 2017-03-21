@@ -1,0 +1,67 @@
+- name: Check if packer is installed
+  shell: |
+    packer version
+  ignore_errors: yes
+  register: packer_check
+
+- name: Install packer
+  become: true
+  unarchive:
+    src: "{{ packer_zip }}"
+    dest: /usr/local/bin
+    remote_src: True
+  when: packer_check.rc != 0
+
+- name: Check if vmware workstation is installed
+  shell: |
+    vmware --version
+  ignore_errors: yes
+  register: vmware_check
+
+- name: Download vmware workstation
+  get_url:
+    url: "{{ vmware_workstation_bundle }}"
+    dest: /tmp/vmware_workstation.bundle
+    force: yes
+  when: vmware_check.rc !=0
+
+- name: Install vmware workstation
+  become: true
+  shell: |
+    set timeout -1
+    spawn bash /tmp/vmware_workstation.bundle
+    match_max 600
+    expect "*Press Enter to proceed."
+    send -- "\r"
+    expect "*--More--*"
+    send -- "q"
+    expect "*Do you agree?*"
+    send -- "yes\r"
+    expect "*Press Enter to proceed."
+    send -- "\r"
+    expect "*--More--*"
+    send -- "q"
+    expect "*Do you agree?*"
+    send -- "yes\r"
+    expect "*check for product updates on startup?*"
+    send -- "no\r"
+    expect "*anonymous system data and usage statistics to VMware?*"
+    send -- "yes\r"
+    expect "*Permissions*"
+    send -- "\r"
+    expect "*Please choose a directory for your shared virtual machines.*"
+    send -- "\r"
+    expect "*Please enter the port to use for https access to Workstation Server.*"
+    send -- "\r"
+    expect "*Enter license key. (optional) You can enter this information later.*"
+    send -- "\r"
+    expect "*installation or Ctrl-C to cancel.*"
+    send -- "\r"
+    expect eof
+    catch wait result
+    exit [lindex $result 3]
+  args:
+    executable: /usr/bin/expect
+  when: vmware_check.rc !=0
+
+
