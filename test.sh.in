@@ -30,7 +30,7 @@ apiPackageModify() {
     bash make-deb.sh
     popd
     for package in ${API_PACKAGE_LIST}; do
-      sudo pip uninstall -y ${package//./-}
+      sudo pip uninstall -y ${package//./-} || true
       pushd ${WORKSPACE}/build-deps/on-http/$package
         fail=true
         while $fail; do
