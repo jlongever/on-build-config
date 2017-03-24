@@ -107,7 +107,7 @@ def generate_failure_report(build_url, build_name):
     
     return None
 
-def get_sub_builds(build_url, FAIL_REPORTS, depth = 1):
+def get_sub_builds(build_url, fail_reports, depth = 1):
     '''
     get sub builds of a build
     :param build_url: the url of a build in jenkins
@@ -138,7 +138,7 @@ def get_sub_builds(build_url, FAIL_REPORTS, depth = 1):
                 outputs.append(output)
                 if sub_build_result != "SUCCESS":
                     failure_report = generate_failure_report(sub_build_url, sub_build_name)
-                    FAIL_REPORTS.append(failure_report)
+                    fail_reports.append(failure_report)
 
         if 'actions' in build_data:
             for action in build_data['actions']:
@@ -162,7 +162,7 @@ def get_sub_builds(build_url, FAIL_REPORTS, depth = 1):
                         outputs.append(output)
                         if sub_build_result != "SUCCESS":
                             failure_report = generate_failure_report(sub_build_url, sub_build_name)
-                            FAIL_REPORTS.append(failure_report)
+                            fail_reports.append(failure_report)
     return outputs
 
 def is_error_response(res):
@@ -233,7 +233,7 @@ def main():
 
 def post_results(pr_url, jenkins_url, build_url, public_jenkins_url, HEADERS):
     OUTPUT = ""
-    FAIL_REPORTS = []
+    fail_reports = []
     job_name = build_url.split('/')[-3]
     build_number = build_url.split('/')[-2]
     public_build_url = "{url}/blue/organizations/jenkins/{job_name}/detail/{job_name}/{build_number}/pipeline"\
@@ -246,7 +246,7 @@ def post_results(pr_url, jenkins_url, build_url, public_jenkins_url, HEADERS):
             build_result = build_data['result']
             OUTPUT +=  "BUILD [" + build_name + "](" + public_build_url + ") : " + build_result + "\n"
 
-            sub_build_outputs = get_sub_builds(build_url, FAIL_REPORTS)
+            sub_build_outputs = get_sub_builds(build_url, fail_reports)
             for sub_output in sub_build_outputs:
                 OUTPUT += sub_output
         else:
@@ -254,10 +254,10 @@ def post_results(pr_url, jenkins_url, build_url, public_jenkins_url, HEADERS):
             OUTPUT += "*** BUILD [" + build_name + "](" + public_build_url + ") ***\n"
 
         failure_report = generate_failure_report(build_url, build_name)
-        FAIL_REPORTS.append(failure_report)
+        fail_reports.append(failure_report)
 
-        if len(FAIL_REPORTS) > 0:
-            for fail_report in FAIL_REPORTS:
+        if len(fail_reports) > 0:
+            for fail_report in fail_reports:
                 if fail_report is not None:
                     OUTPUT += fail_report       
 
