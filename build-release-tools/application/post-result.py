@@ -18,8 +18,6 @@ python post-result.py \
 --public_jenkins_url http://147.178.202.18/
 '''
 
-FAIL_REPORTS = []
-
 def parse_args(args):
     parser = argparse.ArgumentParser()
     parser.add_argument('--manifest_file',
@@ -109,7 +107,7 @@ def generate_failure_report(build_url, build_name):
     
     return None
 
-def get_sub_builds(build_url, depth = 1):
+def get_sub_builds(build_url, FAIL_REPORTS, depth = 1):
     '''
     get sub builds of a build
     :param build_url: the url of a build in jenkins
@@ -235,6 +233,7 @@ def main():
 
 def post_results(pr_url, jenkins_url, build_url, public_jenkins_url, HEADERS):
     OUTPUT = ""
+    FAIL_REPORTS = []
     job_name = build_url.split('/')[-3]
     build_number = build_url.split('/')[-2]
     public_build_url = "{url}/blue/organizations/jenkins/{job_name}/detail/{job_name}/{build_number}/pipeline"\
@@ -247,7 +246,7 @@ def post_results(pr_url, jenkins_url, build_url, public_jenkins_url, HEADERS):
             build_result = build_data['result']
             OUTPUT +=  "BUILD [" + build_name + "](" + public_build_url + ") : " + build_result + "\n"
 
-            sub_build_outputs = get_sub_builds(build_url)
+            sub_build_outputs = get_sub_builds(build_url, FAIL_REPORTS)
             for sub_output in sub_build_outputs:
                 OUTPUT += sub_output
         else:
