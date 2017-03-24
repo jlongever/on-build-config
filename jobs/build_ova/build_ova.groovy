@@ -34,7 +34,8 @@ node(build_ova_node){ws{
                 archiveArtifacts 'build/packer/*.ova, build/packer/*.log, build/packer/*.md5, build/packer/*.sha'
                 stash name: 'ova', includes: 'build/packer/*.ova'
                 env.OVA_WORKSPACE="${current_workspace}"
-                echo "${env.OVA_WORKSPACE}"
+                env.OVA_STASH_NAME="ova"
+                env.OVA_PATH="build/packer/*.ova"
             }
         }
     }

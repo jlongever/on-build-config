@@ -12,6 +12,7 @@ String repo_dir
 String stash_manifest_name
 String stash_manifest_path
 String TESTS
+String TEST_TYPE
 
 def setTests(TESTS){
     this.TESTS = TESTS
@@ -19,9 +20,17 @@ def setTests(TESTS){
 def setRepoDir(repo_dir){
     this.repo_dir = repo_dir
 }
+def setType(test_type){
+    this.TEST_TYPE = test_type
+    env.TEST_TYPE = test_type
+}
 def setManifest(String manifest_name, String manifest_path){
     this.stash_manifest_name = manifest_name
     this.stash_manifest_path = manifest_path
+}
+def setOVA(String ova_stash_name, String ova_stash_path){
+    this.ova_stash_name = ova_stash_name
+    this.ova_stash_path = ova_stash_path
 }
 def functionTest(String test_name, String label_name, String TEST_GROUP, Boolean RUN_FIT_TEST, Boolean RUN_CIT_TEST, ArrayList<String> used_resources){
     def shareMethod = load(this.repo_dir + "/jobs/ShareMethod.groovy")
@@ -31,30 +40,33 @@ def functionTest(String test_name, String label_name, String TEST_GROUP, Boolean
         try{
             node(node_name){
                 deleteDir()
-                dir("on-build-config"){
+                dir("build-config"){
                     checkout scm
                 }
-                // Get the manifest file
-                unstash "$stash_manifest_name"
-                env.MANIFEST_FILE="$stash_manifest_path"
-         
-                // If the manifest file contains PR of on-http and RackHD, 
-                // set the environment variable MODIFY_API_PACKAGE as true
-                // The test.sh script will install api package according to API_PACKAGE_LIST
-                sh '''#!/bin/bash
-                ./on-build-config/build-release-tools/HWIMO-BUILD ./on-build-config/build-release-tools/application/parse_manifest.py \
-                --manifest-file $MANIFEST_FILE \
-                --parameters-file downstream_file
-                '''
 
-                env.MODIFY_API_PACKAGE = false
-                if(fileExists ('downstream_file')) {
-                    def props = readProperties file: 'downstream_file'
-                    if(props['REPOS_UNDER_TEST']) {
-                        env.REPOS_UNDER_TEST = "${props.REPOS_UNDER_TEST}"
-                        def repos = env.REPOS_UNDER_TEST.tokenize(',')
-                        if(repos.contains("on-http") && repos.contains("RackHD")){
-                            env.MODIFY_API_PACKAGE = true
+                if (this.TEST_TYPE == "manifest"){
+                    // Get the manifest file
+                    unstash "$stash_manifest_name"
+                    env.MANIFEST_FILE="$stash_manifest_path"
+            
+                    // If the manifest file contains PR of on-http and RackHD, 
+                    // set the environment variable MODIFY_API_PACKAGE as true
+                    // The test.sh script will install api package according to API_PACKAGE_LIST
+                    sh '''#!/bin/bash
+                    ./build-config/build-release-tools/HWIMO-BUILD ./build-config/build-release-tools/application/parse_manifest.py \
+                    --manifest-file $MANIFEST_FILE \
+                    --parameters-file downstream_file
+                    '''
+
+                    env.MODIFY_API_PACKAGE = false
+                    if(fileExists ('downstream_file')) {
+                        def props = readProperties file: 'downstream_file'
+                        if(props['REPOS_UNDER_TEST']) {
+                            env.REPOS_UNDER_TEST = "${props.REPOS_UNDER_TEST}"
+                            def repos = env.REPOS_UNDER_TEST.tokenize(',')
+                            if(repos.contains("on-http") && repos.contains("RackHD")){
+                                env.MODIFY_API_PACKAGE = true
+                            }
                         }
                     }
                 }
@@ -71,10 +83,39 @@ def functionTest(String test_name, String label_name, String TEST_GROUP, Boolean
                     ){
                         try{
                             timeout(60){
-                                sh '''
-                                ./on-build-config/jobs/FunctionTest/prepare.sh 
-                                ./build-config/test.sh
+                                // Prepare RackHD
+                                if(this.TEST_TYPE == "ova"){
+                                    // env vars in this sh are defined in jobs/build_ova/ova_post_test.groovy
+                                    unstash "$ova_stash_name"
+                                    env.OVA_PATH = "$ova_stash_path"
+                                    sh './build-config/jobs/build_ova/prepare_ova_post_test.sh'
+                                }
+
+                                if (this.TEST_TYPE == "manifest") {
+                                    // This scipts can be separated into manifest_src_prepare and common_prepare
+                                    sh './build-config/jobs/FunctionTest/prepare.sh'
+                                }
+
+                                // Pre-process assistant test scripts
+                                sh '''#!/bin/bash -x
+                                pushd build-config
+                                ./build-config
+                                popd
                                 '''
+
+                                // Get main test scripts for un-manifest-src test
+                                if (this.TEST_TYPE != "manifest") {
+                                    def exists = fileExists 'RackHD'
+                                    if( !exists ){
+                                        echo "Checkout RackHD for un-src test."
+                                        def url = "https://github.com/RackHD/RackHD.git"
+                                        def branch = "master"
+                                        def targetDir = "RackHD"
+                                        shareMethod.checkout(url, branch, targetDir)
+                                    }
+                                }
+                                // Run smoke test
+                                sh './build-config/test.sh'
                             }
                         } catch(error){
                             throw error
@@ -98,30 +139,40 @@ def functionTest(String test_name, String label_name, String TEST_GROUP, Boolean
                             // according to the member variable: TESTS
                             stash name: "$test_name", includes: "$artifact_dir/*.*"
     
+                            // Clean up test stack
                             sh '''#!/bin/bash -x
                             ./build-config/jobs/FunctionTest/cleanup.sh
+                            '''
+
+                            // [Based on junit xml log] Write test results to github
+                            sh '''#!/bin/bash -x
                             find RackHD/test/ -maxdepth 1 -name "*.xml" > files.txt
                             files=$( paste -s -d ' ' files.txt )
-                            if [ -z "$files" ];then
-                                echo "No test result files generated, maybe it's aborted"
-                                exit 1
-                            else
+                            if [ -n "$files" ];then
                                 ./build-config/build-release-tools/application/parse_test_results.py \
                                 --test-result-file "$files"  \
                                 --parameters-file downstream_file
+                            else
+                                echo "No test result files generated, maybe it's aborted"
+                                exit 1
                             fi
                             '''
 
-                            junit 'RackHD/test/*.xml'
-                            int failure_count = 0
-                            int error_count = 0
-                            if(fileExists ("downstream_file")) {
-                                def props = readProperties file: "downstream_file"
-                                failure_count = "${props.failures}".toInteger()
-                                error_count = "${props.errors}".toInteger()
-                            }
-                            if (failure_count > 0 || error_count > 0){
-                                error("there are failed test cases")
+                            // [Based on junit xml log] Determine pipeline status of this build, success or failure.
+                            def junitFiles = findFiles glob: 'RackHD/test/*.xml'
+                            boolean exists = junitFiles.length > 0
+                            if (exists){
+                                junit 'RackHD/test/*.xml'
+                                int failure_count = 0
+                                int error_count = 0
+                                if(fileExists ("downstream_file")) {
+                                    def props = readProperties file: "downstream_file"
+                                    failure_count = "${props.failures}".toInteger()
+                                    error_count = "${props.errors}".toInteger()
+                                }
+                                if (failure_count > 0 || error_count > 0){
+                                    error("there are failed test cases")
+                                }
                             }
                         }
                     }
@@ -139,8 +190,14 @@ def triggerTestsParallely(){
     // Its value is a string looks like:
     // CIT,FIT,Install Ubuntu 14.04,Install ESXI 6.0,Install Centos 6.5
     List tests = Arrays.asList(this.TESTS.split(','))
+    def SIGN = ""
+    if (this.TEST_TYPE == "ova"){
+        SIGN = "OVA "
+    }
     for(int i=0;i<tests.size();i++){
-        RUN_TESTS[tests[i]]=ALL_TESTS[tests[i]]
+        TEST_NAME = tests[i]
+        KEY = "$SIGN$TEST_NAME"
+        RUN_TESTS[KEY]=ALL_TESTS[tests[i]]
     }
     def used_resources = []
     def test_branches = [:]
@@ -183,11 +240,8 @@ def archiveArtifactsToTarget(target){
     }
 }
 
-def run(TESTS, String manifest_name, String manifest_path, String repo_dir){
+def runTest(){
     // Run test in parallel
-    setRepoDir(repo_dir)
-    setManifest(manifest_name, manifest_path)
-    setTests(TESTS)
     try{
         withEnv([
             "HTTP_STATIC_FILES=${env.HTTP_STATIC_FILES}",
@@ -221,6 +275,23 @@ def run(TESTS, String manifest_name, String manifest_path, String repo_dir){
         currentBuild.result = "FAILURE"
         throw error
     } 
+}
+
+
+def ovaPostTest(TESTS, ova_stash_name, ova_stash_path, repo_dir){
+    setRepoDir(repo_dir)
+    setOVA(ova_stash_name, ova_stash_path)
+    setTests(TESTS)
+    setType("ova")
+    runTest()
+}
+
+def manifestTest(TESTS, manifest_stash_name, manifest_stash_path, repo_dir){
+    setRepoDir(repo_dir)
+    setManifest(manifest_stash_name, manifest_stash_path)
+    setTests(TESTS)
+    setType("manifest")
+    runTest()
 }
 
 return this
