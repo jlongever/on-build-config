@@ -27,9 +27,14 @@ node(build_docker_node){
                         sh './build-config/jobs/build_docker/build_docker.sh'
                     }
                 }
+                archiveArtifacts 'rackhd_docker_images.tar, build_record'
+                stash name: 'docker', includes: 'rackhd_docker_images.tar, build_record'
+                env.DOCKER_WORKSPACE="${current_workspace}"
+                env.DOCKER_STASH_NAME="docker"
+                env.DOCKER_STASH_PATH="rackhd_docker_images.tar"
+                env.DOCKER_RECORD_STASH_PATH="build_record"
             }
             env.DOCKER_WORKSPACE="${current_workspace}"
         }
     }
 }
-

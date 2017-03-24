@@ -32,6 +32,7 @@ node{
 
             def repo_dir = pwd()
             def TESTS = "${env.TESTS}"
+            def test_type = "manifest"
             // Create an instance of UnitTest/UnitTest.groovy
             def unit_test = load("jobs/UnitTest/UnitTest.groovy")
             // Create an instance of FunctionTest/FunctionTest.groovy
@@ -44,11 +45,11 @@ node{
                 }
                 stage("Function Test"){
                     // Call the function run to run function test
-                    function_test.manifestTest(TESTS, env.stash_manifest_name, env.stash_manifest_path, repo_dir)
+                    function_test.manifestTest(TESTS, env.stash_manifest_name, env.stash_manifest_path, repo_dir, test_type)
                 }
             } finally{
                 unit_test.archiveArtifactsToTarget("UnitTest")
-                function_test.archiveArtifactsToTarget("FunctionTest")
+                function_test.archiveArtifactsToTarget("FunctionTest", TESTS, test_type)
             }
             Boolean create_tag = false
             Boolean publish = PUBLISH.toBoolean()

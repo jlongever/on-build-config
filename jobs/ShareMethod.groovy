@@ -79,7 +79,7 @@ def buildImages(String repo_dir){
             load(repo_dir + "/jobs/build_vagrant/vagrant_post_test.groovy")
         }, 'ova post test loader':{
             load(repo_dir + "/jobs/build_ova/ova_post_test.groovy")
-        }, 'docker post test':{
+        }, 'docker post test loader':{
             load(repo_dir + "/jobs/build_docker/docker_post_test.groovy")
         }
     }
@@ -107,26 +107,14 @@ def createTag(String repo_dir){
 
 def buildAndPublish(Boolean publish, Boolean tag, String repo_dir){
     buildPackage(repo_dir)
-    // lock a docker resource from build to release
-    lock(label:"docker",quantity:1){
-        def lock_resources=org.jenkins.plugins.lockableresources.LockableResourcesManager.class.get().getResourcesFromBuild(currentBuild.getRawBuild())       
-        docker_resources_name = getLockedResourceName(lock_resources,"docker")
-        if(docker_resources_name.size>0){
-            env.build_docker_node = docker_resources_name[0]
-        }
-        else{
-            echo "Failed to find resource with label docker"
-            currentBuild.result="FAILURE"
-        }
 
-        buildImages(repo_dir)
+    buildImages(repo_dir)
 
-        if(tag){
-            createTag(repo_dir)
-        }
-        if(publish){
-            publishImages(repo_dir)
-        }
+    if(tag){
+        createTag(repo_dir)
+    }
+    if(publish){
+        publishImages(repo_dir)
     }
 }
 

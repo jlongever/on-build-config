@@ -21,7 +21,7 @@ node{
     def unit_test = load("jobs/UnitTest/UnitTest.groovy")
     // Create an instance of FunctionTest/FunctionTest.groovy
     def function_test = load("jobs/FunctionTest/FunctionTest.groovy")
-
+    def test_type = "manifest"
     def retry_times = Integer.valueOf(env.Test_Time);
     int failed_times = 0
     for (int i=0; i < retry_times; i++) {
@@ -31,14 +31,14 @@ node{
                 unit_test.runTest(env.stash_manifest_name, env.stash_manifest_path, repo_dir)
             }
             stage("Function Test${i}"){
-                function_test.manifestTest(TESTS, env.stash_manifest_name, env.stash_manifest_path, repo_dir)
+                function_test.manifestTest(TESTS, env.stash_manifest_name, env.stash_manifest_path, repo_dir, test_type)
             }
         } catch(error){
             echo "Caught: ${error}"
             failed_times += 1
         } finally{
             unit_test.archiveArtifactsToTarget("UnitTest${i}")
-            function_test.archiveArtifactsToTarget("FunctionTest${i}")
+            function_test.archiveArtifactsToTarget("FunctionTest${i}", TESTS, test_type)
         }
     }
 

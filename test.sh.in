@@ -207,6 +207,7 @@ generateSysLog(){
   vagrant ssh -c 'dmesg > /home/vagrant/src/dmesg.log'
   vagrant ssh -c 'cp /var/log/syslog /home/vagrant/src/syslog.log'
 }
+
 setupVirtualEnv(){
   pushd ${WORKSPACE}/RackHD/test
   rm -rf .venv/on-build-config
@@ -280,11 +281,11 @@ waitForAPI() {
 portForwarding(){
     # forward ova to localhost
     # according to vagrant/mongo/config.json and cit/fit config
-    socat TCP4-LISTEN:9091,forever,reuseaddr,fork TCP4:${OVA_INTERNAL_IP}:5672 &
-    socat TCP4-LISTEN:9090,forever,reuseaddr,fork TCP4:${OVA_INTERNAL_IP}:8080 &
-    socat TCP4-LISTEN:9092,forever,reuseaddr,fork TCP4:${OVA_INTERNAL_IP}:9080 &
-    socat TCP4-LISTEN:9093,forever,reuseaddr,fork TCP4:${OVA_INTERNAL_IP}:8443 &
-    socat TCP4-LISTEN:2222,forever,reuseaddr,fork TCP4:${OVA_INTERNAL_IP}:22 &
+    socat TCP4-LISTEN:9091,forever,reuseaddr,fork TCP4:$1:5672 &
+    socat TCP4-LISTEN:9090,forever,reuseaddr,fork TCP4:$1:8080 &
+    socat TCP4-LISTEN:9092,forever,reuseaddr,fork TCP4:$1:9080 &
+    socat TCP4-LISTEN:9093,forever,reuseaddr,fork TCP4:$1:8443 &
+    socat TCP4-LISTEN:2222,forever,reuseaddr,fork TCP4:$1:22 &
     echo "Finished ova -> localhost port forwarding"
     echo "5672->9091"
     echo "8080->9090"
@@ -318,7 +319,7 @@ if [ "$RUN_CIT_TEST" == true ] || [ "$RUN_FIT_TEST" == true ] ; then
     
     # Prepare RackHD
     # Forward local host port to ova
-    portForwarding
+    portForwarding ${OVA_INTERNAL_IP}
 
     # We setup the virtual-environment here, since once we
     # call "nodesOn", it's a race to get to the first test
@@ -339,6 +340,36 @@ if [ "$RUN_CIT_TEST" == true ] || [ "$RUN_FIT_TEST" == true ] ; then
     # Remedial work
     # Specific remedial work
     fetchOVALog
+
+    # Clean Up below
+
+    #shutdown vagrant box and delete all resource (like removing vm disk files in "~/VirtualBox VMs/")
+    cleanupVMs
+    nodesDelete
+  elif [ "$TEST_TYPE" == "docker" ]; then
+    # based on the assumption that in the same folder, the VMs has been exist normally. so don't destroy VM here.
+    
+    nodesCreate
+    
+    # Prepare RackHD
+    # Forward local host port to ova
+    portForwarding localhost
+
+    # We setup the virtual-environment here, since once we
+    # call "nodesOn", it's a race to get to the first test
+    # before the nodes get booted far enough to start being
+    # seen by RackHD. Logically, it would be better IN runTests.
+    # We do it between the vagrant and waitForAPI to use the
+    # time to make the env instead of doing sleeps...
+    setupVirtualEnv
+    waitForAPI
+    nodesOn &
+    # Doesn't support ova smoke test now
+    # generateSolLog
+    # Run tests
+    runTests
+    # exit venv
+    deactivate
 
     # Clean Up below
 

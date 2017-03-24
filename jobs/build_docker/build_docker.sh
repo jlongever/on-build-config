@@ -40,6 +40,15 @@ popd
 echo $SUDO_PASSWORD |sudo -S apt-get --yes --force-yes remove on-imagebuilder
 
 #docker images build
-cd build-config/build-release-tools/
+pushd build-config/build-release-tools/
 ./docker_build.sh $WORKSPACE/$CLONE_DIR $IS_OFFICIAL_RELEASE
-mv $WORKSPACE/$CLONE_DIR/build_record $WORKSPACE
+cp $WORKSPACE/$CLONE_DIR/build_record $WORKSPACE
+popd
+
+# save docker image to tar
+image_list=`cat $WORKSPACE/$CLONE_DIR/build_record | xargs`
+
+docker save -o rackhd_docker_images.tar $image_list
+
+# copy build_record to current directory for stash
+cp $WORKSPACE/$CLONE_DIR/build_record .

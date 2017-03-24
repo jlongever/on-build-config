@@ -11,19 +11,17 @@ ALL_TESTS["Install Centos 6.5"]=["TEST_GROUP":"centos-6-5-minimal-install.v2.0.t
 String repo_dir
 String stash_manifest_name
 String stash_manifest_path
-String TESTS
-String TEST_TYPE
+String ova_stash_name
+String ova_stash_path
+String docker_stash_name
+String docker_stash_path
+String docker_record_stash_path
+@Field ArrayList<String> used_resources
+if (this.used_resources == null){
+    this.used_resources = []
+}
 
-def setTests(TESTS){
-    this.TESTS = TESTS
-}
-def setRepoDir(repo_dir){
-    this.repo_dir = repo_dir
-}
-def setType(test_type){
-    this.TEST_TYPE = test_type
-    env.TEST_TYPE = test_type
-}
+
 def setManifest(String manifest_name, String manifest_path){
     this.stash_manifest_name = manifest_name
     this.stash_manifest_path = manifest_path
@@ -32,19 +30,26 @@ def setOVA(String ova_stash_name, String ova_stash_path){
     this.ova_stash_name = ova_stash_name
     this.ova_stash_path = ova_stash_path
 }
-def functionTest(String test_name, String label_name, String TEST_GROUP, Boolean RUN_FIT_TEST, Boolean RUN_CIT_TEST, ArrayList<String> used_resources){
-    def shareMethod = load(this.repo_dir + "/jobs/ShareMethod.groovy")
+def setDocker(String docker_stash_name, String docker_stash_path, String docker_record_stash_path){
+    this.docker_stash_name = docker_stash_name
+    this.docker_stash_path = docker_stash_path
+    this.docker_record_stash_path = docker_record_stash_path
+}
+
+def functionTest(String test_name, String label_name, String TEST_GROUP, Boolean RUN_FIT_TEST, Boolean RUN_CIT_TEST, String repo_dir, String test_type){
+    def shareMethod = load(repo_dir + "/jobs/ShareMethod.groovy")
     lock(label:label_name,quantity:1){
         // Occupy an avaliable resource which contains the label
-        String node_name = shareMethod.occupyAvailableLockedResource(label_name, used_resources)
+        String node_name = shareMethod.occupyAvailableLockedResource(label_name, this.used_resources)
         try{
             node(node_name){
                 deleteDir()
                 dir("build-config"){
                     checkout scm
                 }
+                env.BUILD_CONFIG_DIR = "build-config"
 
-                if (this.TEST_TYPE == "manifest"){
+                if (test_type == "manifest"){
                     // Get the manifest file
                     unstash "$stash_manifest_name"
                     env.MANIFEST_FILE="$stash_manifest_path"
@@ -79,21 +84,33 @@ def functionTest(String test_name, String label_name, String TEST_GROUP, Boolean
                         "SKIP_PREP_DEP=false",
                         "MANIFEST_FILE=${env.MANIFEST_FILE}",
                         "NODE_NAME=${env.NODE_NAME}",
-                        "PYTHON_REPOS=ucs-service"]
+                        "PYTHON_REPOS=ucs-service",
+                        "TEST_TYPE=$test_type"]
                     ){
                         try{
                             timeout(60){
                                 // Prepare RackHD
-                                if(this.TEST_TYPE == "ova"){
-                                    // env vars in this sh are defined in jobs/build_ova/ova_post_test.groovy
-                                    unstash "$ova_stash_name"
-                                    env.OVA_PATH = "$ova_stash_path"
-                                    sh './build-config/jobs/build_ova/prepare_ova_post_test.sh'
+                                // Prepare common must before prepare all other preparations
+                                sh './build-config/jobs/FunctionTest/prepare_common.sh'
+
+                                // this step will overite current build-config and create RackHD dir
+                                if (test_type == "manifest") {
+                                    // This scipts can be separated into manifest_src_prepare and common_prepare
+                                    sh './build-config/jobs/FunctionTest/prepare_manifest.sh'
                                 }
 
-                                if (this.TEST_TYPE == "manifest") {
-                                    // This scipts can be separated into manifest_src_prepare and common_prepare
-                                    sh './build-config/jobs/FunctionTest/prepare.sh'
+                                // Get main test scripts for un-manifest-src test
+                                // must before ova and docker
+                                if (test_type != "manifest") {
+                                    def exists = fileExists 'RackHD'
+                                    if( !exists ){
+                                        echo "Checkout RackHD for un-src test."
+                                        def url = "https://github.com/RackHD/RackHD.git"
+                                        def branch = "master"
+                                        def targetDir = "RackHD"
+                                        env.RackHD_DIR = targetDir
+                                        shareMethod.checkout(url, branch, targetDir)
+                                    }
                                 }
 
                                 // Pre-process assistant test scripts
@@ -102,24 +119,33 @@ def functionTest(String test_name, String label_name, String TEST_GROUP, Boolean
                                 ./build-config
                                 popd
                                 '''
-
-                                // Get main test scripts for un-manifest-src test
-                                if (this.TEST_TYPE != "manifest") {
-                                    def exists = fileExists 'RackHD'
-                                    if( !exists ){
-                                        echo "Checkout RackHD for un-src test."
-                                        def url = "https://github.com/RackHD/RackHD.git"
-                                        def branch = "master"
-                                        def targetDir = "RackHD"
-                                        shareMethod.checkout(url, branch, targetDir)
-                                    }
+                                // next steps must run after above steps
+                                if(test_type == "ova"){
+                                    // env vars in this sh are defined in jobs/build_ova/ova_post_test.groovy
+                                    unstash "$ova_stash_name"
+                                    env.OVA_PATH = "$ova_stash_path"
+                                    sh './build-config/jobs/build_ova/prepare_ova_post_test.sh'
                                 }
+
+                                if(test_type == "docker"){
+                                    // env vars in this sh are defined in jobs/build_ova/ova_post_test.groovy
+                                    unstash "$docker_stash_name"
+                                    env.DOCKER_PATH = "$docker_stash_path"
+                                    env.DOCKER_RECORD_PATH = "$docker_record_stash_path"
+                                    sh './build-config/jobs/build_docker/prepare_docker_post_test.sh'
+                                }
+
                                 // Run smoke test
                                 sh './build-config/test.sh'
                             }
                         } catch(error){
                             throw error
                         } finally{
+                            // Clean up test stack
+                            sh '''#!/bin/bash -x
+                            ./build-config/jobs/FunctionTest/cleanup.sh
+                            '''
+
                             def artifact_dir = test_name.replaceAll(' ', '-') + "[$node_name]"
                             sh '''#!/bin/bash -x
                             mkdir '''+"$artifact_dir"+'''
@@ -139,11 +165,6 @@ def functionTest(String test_name, String label_name, String TEST_GROUP, Boolean
                             // according to the member variable: TESTS
                             stash name: "$test_name", includes: "$artifact_dir/*.*"
     
-                            // Clean up test stack
-                            sh '''#!/bin/bash -x
-                            ./build-config/jobs/FunctionTest/cleanup.sh
-                            '''
-
                             // [Based on junit xml log] Write test results to github
                             sh '''#!/bin/bash -x
                             find RackHD/test/ -maxdepth 1 -name "*.xml" > files.txt
@@ -179,38 +200,34 @@ def functionTest(String test_name, String label_name, String TEST_GROUP, Boolean
                 }
             }
         } finally{
-            used_resources.remove(node_name)
+            this.used_resources.remove(node_name)
         }
     }
 }
 
-def triggerTestsParallely(){
-    def RUN_TESTS=[:]
+def triggerTestsParallely(TESTS, test_type, repo_dir){
+    def RUN_TESTS_DICT=[:]
     // TESTS is a checkbox parameter.
     // Its value is a string looks like:
     // CIT,FIT,Install Ubuntu 14.04,Install ESXI 6.0,Install Centos 6.5
-    List tests = Arrays.asList(this.TESTS.split(','))
-    def SIGN = ""
-    if (this.TEST_TYPE == "ova"){
-        SIGN = "OVA "
-    }
+    List tests = Arrays.asList(TESTS.split(','))
     for(int i=0;i<tests.size();i++){
         TEST_NAME = tests[i]
-        KEY = "$SIGN$TEST_NAME"
-        RUN_TESTS[KEY]=ALL_TESTS[tests[i]]
+        KEY = "$test_type $TEST_NAME"
+        RUN_TESTS_DICT[KEY]=ALL_TESTS[tests[i]]
     }
-    def used_resources = []
+
     def test_branches = [:]
     
-    test_names = RUN_TESTS.keySet() as String[]
-    for(int i=0;i<RUN_TESTS.size();i++){
-        def test_name = test_names[i]
-        def label_name=RUN_TESTS[test_name]["label"]
-        def test_group = RUN_TESTS[test_name]["TEST_GROUP"]
-        def run_fit_test = RUN_TESTS[test_name]["RUN_FIT_TEST"]
-        def run_cit_test = RUN_TESTS[test_name]["RUN_CIT_TEST"]
+    def RUN_TESTS = RUN_TESTS_DICT.keySet() as String[]
+    for(int i=0;i<RUN_TESTS_DICT.size();i++){
+        def test_name = RUN_TESTS[i]
+        def label_name=RUN_TESTS_DICT[test_name]["label"]
+        def test_group = RUN_TESTS_DICT[test_name]["TEST_GROUP"]
+        def run_fit_test = RUN_TESTS_DICT[test_name]["RUN_FIT_TEST"]
+        def run_cit_test = RUN_TESTS_DICT[test_name]["RUN_CIT_TEST"]
         test_branches[test_name] = {
-            functionTest(test_name,label_name,test_group, run_fit_test, run_cit_test, used_resources)
+            functionTest(test_name,label_name,test_group, run_fit_test, run_cit_test, repo_dir, test_type)
         }
     }
     if(test_branches.size() > 0){
@@ -218,18 +235,19 @@ def triggerTestsParallely(){
     }
 }
 
-def archiveArtifactsToTarget(target){
+def archiveArtifactsToTarget(target, TESTS, test_type){
     // The function will archive artifacts to the target
     // 1. Create a directory with name target and go to it
     // 2. Unstash files according to the member variable: TESTS, for example: CIT.FIT
     //    The function functionTest() will stash log files after run test specified in the TESTS
     // 3. Archive the directory target
-    List tests = Arrays.asList(this.TESTS.split(','))
+    List tests = Arrays.asList(TESTS.split(','))
     if(tests.size() > 0){
         dir("$target"){
             for(int i=0;i<tests.size();i++){
                 try{
-                    def test_name = tests[i]
+                    test = tests[i]
+                    def test_name = "$test_type $test"
                     unstash "$test_name"
                 } catch(error){
                     echo "[WARNING]Caught error during archive artifact of function test: ${error}"
@@ -240,7 +258,7 @@ def archiveArtifactsToTarget(target){
     }
 }
 
-def runTest(){
+def runTest(TESTS, test_type, repo_dir){
     // Run test in parallel
     try{
         withEnv([
@@ -267,7 +285,7 @@ def runTest(){
                 string(credentialsId: 'INTERNAL_HTTP_ZIP_FILE_URL', variable: 'INTERNAL_HTTP_ZIP_FILE_URL'),
                 string(credentialsId: 'INTERNAL_TFTP_ZIP_FILE_URL', variable: 'INTERNAL_TFTP_ZIP_FILE_URL')
                 ]) {
-                triggerTestsParallely()
+                triggerTestsParallely(TESTS, test_type, repo_dir)
             }
         }
     } catch(error){
@@ -277,21 +295,19 @@ def runTest(){
     } 
 }
 
-
-def ovaPostTest(TESTS, ova_stash_name, ova_stash_path, repo_dir){
-    setRepoDir(repo_dir)
-    setOVA(ova_stash_name, ova_stash_path)
-    setTests(TESTS)
-    setType("ova")
-    runTest()
+def dockerPostTest(TESTS, docker_stash_name, docker_stash_path, docker_record_stash_path, repo_dir, test_type){
+    setDocker(docker_stash_name, docker_stash_path, docker_record_stash_path)
+    runTest(TESTS, test_type, repo_dir)
 }
 
-def manifestTest(TESTS, manifest_stash_name, manifest_stash_path, repo_dir){
-    setRepoDir(repo_dir)
+def ovaPostTest(TESTS, ova_stash_name, ova_stash_path, repo_dir, test_type){
+    setOVA(ova_stash_name, ova_stash_path)
+    runTest(TESTS, test_type, repo_dir)
+}
+
+def manifestTest(TESTS, manifest_stash_name, manifest_stash_path, repo_dir, test_type){
     setManifest(manifest_stash_name, manifest_stash_path)
-    setTests(TESTS)
-    setType("manifest")
-    runTest()
+    runTest(TESTS, test_type, repo_dir)
 }
 
 return this
