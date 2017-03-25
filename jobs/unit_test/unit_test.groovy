@@ -92,7 +92,9 @@ node{
                         unit_test(repo_name, "unittest", used_resource)   
                     }
                 }
-                parallel test_branches
+                if(test_branches.size() > 0){
+                    parallel test_branches
+                }
             }catch(error){
                 echo "Caught: ${error}"
                 currentBuild.result="FAILURE"
