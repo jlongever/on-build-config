@@ -440,8 +440,8 @@ class ManifestActions(object):
             repo_directory = self.directory_for_repo(repo)
             self.repo_operator.set_repo_tagname(repo_url, repo_directory, self._tag_name)
         except RuntimeError as error:
-            print "Exiting due to error: {0}".format(error)
-            sys.exit(1)
+            print "Failed to create tag {0} for {1} \ndue to error: {2}".format(self._tag_name, repo_url, error)
+            raise RuntimeError("Failed to create tag {0} for {1} \ndue to error: {2}".format(self._tag_name, repo_url, error))
 
     def push_changed_repositories(self, commit_message):
         repo_list = self._manifest.repositories
@@ -514,8 +514,8 @@ def main():
         manifest_actions = ManifestActions(args.manifest, args.builddir, force=args.force, git_credentials=args.git_credential, jobs=args.jobs, actions=args.action, branch_name=args.branch_name, tag_name=args.tag_name)
 
         manifest_actions.execute_actions()
-    except Exception,e:
-        print e
+    except (RuntimeError, ValueError, Exception) as err:
+        print err
         sys.exit(1)
 
 if __name__ == "__main__":

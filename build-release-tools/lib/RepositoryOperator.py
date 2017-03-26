@@ -79,6 +79,7 @@ class RepoCloner(ParallelTasks):
                         })
 
         if return_code != 0:
+            print "Failed to run command {0} \nError:{1}".format(" ".join(command), err)
             raise RuntimeError("Failed to run command " + " ".join(command))
 
     def do_one_task(self, name, data, results):
@@ -441,11 +442,16 @@ class RepoOperator(object):
 
         # Raise RuntimeError if tag already exists, otherwise create it
         if return_code == 0 and output != '':
-            raise RuntimeError("Error: Tag {0} already exists - exiting now...".format(output))
+            print "Tag {0} already exists in {1}".format(output, repo_url)
+            return
         else:
             print "Creating tag {0} for repo {1}".format(tag_name, repo_url)
-            self.git.run(["tag", "-a", tag_name, "-m", "\"Creating new tag\""], repo_dir)
-            self.git.run(["push", "origin", "--tags"], repo_dir)
+            return_code, output, error = self.git.run(["tag", "-a", tag_name, "-m", "\"Creating new tag\""], repo_dir)
+            if return_code != 0:
+                raise RuntimeError("Failed to create tag {0} for {1}.\nError: {2}".format(tag_name, repo_url, error))
+            return_code, output, error = self.git.run(["push", "origin", "--tags"], repo_dir)
+            if return_code != 0:
+                raise RuntimeError("Failed to push tag {0} for {1}.\nError: {2}".format(tag_name, repo_url, error))
 
     def create_repo_branch(self, repo_url, repo_dir, branch_name):
         """
@@ -490,26 +496,37 @@ class RepoOperator(object):
         :param commit_message: the message to be added to commit
         :return: None
         """
-
+        run_add = False
+        run_commit = False
         status_code, status_out, status_error = self.git.run(['status'], repo_dir)
         if status_code == 0:
-            if "nothing to commit, working directory clean" in status_out:
+            if "nothing to commit, working directory clean" in status_out and \
+               "Your branch is up-to-date with" in status_out :
                 print status_out
                 return
 
-        if push_all:
-            add_code, add_out, add_error = self.git.run(['add', '-A'], repo_dir)
-        else:
-            add_code, add_out, add_error = self.git.run(['add', '-u'], repo_dir)
+            if "Changes not staged for commit" in status_out:
+                run_add = True
+                run_commit = True
 
-        if add_code != 0:
-            raise RuntimeError('Unable to add files for commiting.\n{0}\n{1}\n{2}'.format\
-                                 (add_code, add_out, add_error))
+            if "Changes to be committed" in status_out:
+                run_commit = True
 
-        commit_code, commit_out, commit_error = self.git.run(['commit', '-m', commit_message], repo_dir)
-        if commit_code != 0:
-            raise RuntimeError('Unable to commit changes for pushing.\n{0}\n{1}\n{2}'.format\
-                                 (commit_code, commit_out, commit_error))
+        if run_add:
+            if push_all:
+                add_code, add_out, add_error = self.git.run(['add', '-A'], repo_dir)
+            else:
+                add_code, add_out, add_error = self.git.run(['add', '-u'], repo_dir)
+
+            if add_code != 0:
+                raise RuntimeError('Unable to add files for commiting.\n{0}\n{1}\n{2}'.format\
+                                  (add_code, add_out, add_error))
+
+        if run_commit:
+            commit_code, commit_out, commit_error = self.git.run(['commit', '-m', commit_message], repo_dir)
+            if commit_code != 0:
+                raise RuntimeError('Unable to commit changes for pushing.\n{0}\n{1}\n{2}'.format\
+                                  (commit_code, commit_out, commit_error))
 
         push_code, push_out, push_error = self.git.run(['push'], repo_dir)
         if push_code !=0:

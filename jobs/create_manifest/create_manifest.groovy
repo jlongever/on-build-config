@@ -4,7 +4,7 @@ node(create_manifest_node){
         "branch=${env.branch}",
         "date=${env.date}",
         "timezone=${env.timezone}",
-        "BINTRAY_SUBJECT=rackhd",
+        "BINTRAY_SUBJECT=${env.BINTRAY_SUBJECT}",
         "BINTRAY_REPO=binary"]){
         deleteDir()
         dir("on-build-config"){

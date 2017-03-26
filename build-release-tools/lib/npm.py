@@ -40,6 +40,24 @@ class NPM(object):
             raise ValueError("Failed to authenticate with {registry} due to {error}"\
                              .format(registry=self._registry, error=e))
 
+    @staticmethod
+    def get_current_version(package_dir):
+        """
+        Get the version field in package.json
+        """
+        try:
+            package_json_file = os.path.join(package_dir, "package.json")
+            if not os.path.exists(package_json_file):
+                # if there's no package.json file, there is nothing more for us to do here
+                return None
+            with open(package_json_file, "r") as fp:
+                package_data = json.load(fp)
+                fp.close()
+                version = package_data["version"]
+                return version
+        except Exception, e:
+            raise ValueError("Failed to get the version of package {package} due to {error}"\
+                             .format(package=package_dir, error=e))
 
     @staticmethod
     def update_version(package_dir, version=None):

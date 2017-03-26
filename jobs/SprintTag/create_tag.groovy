@@ -5,8 +5,7 @@ node{
         "branch=${env.branch}",
         "date=current",
         "timezone=-0500",
-        "JUMP_VERSION=false",
-        "BINTRAY_SUBJECT=rackhd",
+        "BINTRAY_SUBJECT=${env.BINTRAY_SUBJECT}",
         "BINTRAY_REPO=binary"])
     {
         deleteDir()
@@ -21,31 +20,12 @@ node{
                              passwordVariable: 'BINTRAY_API_KEY', 
                              usernameVariable: 'BINTRAY_USERNAME')
         ]){
-            if(JUMP_VERSION == "true"){
-                stage("Jump Version"){
-                    sh '''#!/bin/bash -ex
-                    export GITHUB_CREDS=${JENKINSRHD_GITHUB_CREDS}
-                    ./build-config/build-release-tools/HWIMO-BUILD build-config/build-release-tools/application/generate_manifest.py \
-                    --branch "$branch" \
-                    --date "$date" \
-                    --timezone "$timezone" \
-                    --builddir b \
-                    --force \
-                    --jobs 8
-
-                    version=`echo $tag_name | grep "[0-9.]*" -o`
-                    ./build-config/build-release-tools/HWIMO-BUILD build-config/build-release-tools/application/jump_version.py \
-                    --build-dir b \
-                    --version $version \
-                    --message "release $version" \
-                    --publish \
-                    --git-credential https://github.com,GITHUB_CREDS
-                    ''' 
-                }
-            }
-
             stage("Create Tag"){
-                sh './build-config/jobs/SprintTag/create_tag.sh'
+                retry(3){
+                    timeout(5){
+                        sh './build-config/jobs/SprintTag/create_tag.sh'
+                    }
+                }
             }
 	    // inject properties file as environment variables
             if(fileExists ('downstream_file')) {
