@@ -99,4 +99,18 @@ def buildAndPublish(){
         }
     }
 }
+
+def sendResult(boolean sendJenkinsBuildResults, boolean sendTestResults){
+    stage("Send Test Result"){
+        try{
+            if ("${currentBuild.result}" == null || "${currentBuild.result}" == "null"){
+                currentBuild.result = "SUCCESS"
+            }
+            step([$class: 'VTestResultsAnalyzerStep', sendJenkinsBuildResults: sendJenkinsBuildResults, sendTestResults: sendTestResults])
+        } catch(error){
+            echo "Caught: ${error}"
+        }
+    }
+}
+
 return this

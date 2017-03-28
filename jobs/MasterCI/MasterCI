@@ -1,16 +1,20 @@
 node{
     deleteDir()
     checkout scm
-    stage("Create Manifest"){
-        load("jobs/create_manifest/create_manifest.groovy")
-        def manifest_name=env.MANIFEST_FILE_URL.tokenize('/')[-1];
-        currentBuild.description = "<a href=${env.MANIFEST_FILE_URL}>${manifest_name}</a>";
-    }
-
-    stage("Test"){
-        load("jobs/function_test/function_test.groovy")
-    }
-
     def shareMethod = load("jobs/shareMethod.groovy")
-    shareMethod.buildAndPublish()
+    try{
+        stage("Create Manifest"){
+            load("jobs/create_manifest/create_manifest.groovy")
+            def manifest_name=env.MANIFEST_FILE_URL.tokenize('/')[-1];
+            currentBuild.description = "<a href=${env.MANIFEST_FILE_URL}>${manifest_name}</a>";
+        }
+
+        stage("Test"){
+            load("jobs/function_test/function_test.groovy")
+        }
+
+        shareMethod.buildAndPublish()
+    } finally{
+        shareMethod.sendResult(true, true)
+    }
 }

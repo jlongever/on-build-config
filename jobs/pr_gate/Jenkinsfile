@@ -22,5 +22,7 @@ node{
         stage("Write Back"){
             load("Jenkinsfile_Library/jobs/write_back_github/write_back_github.groovy")
         }
+        def shareMethod = load("Jenkinsfile_Library/jobs/shareMethod.groovy")
+        shareMethod.sendResult(true,true)
     }
 }
