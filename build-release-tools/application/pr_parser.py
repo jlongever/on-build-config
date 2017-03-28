@@ -27,23 +27,25 @@ class PrParser(object):
         url_segments = change_url.split("/")
         self.__repo = "/".join(change_url.split("/")[-4:-2]).lower()
         self.__target_branch = target_branch
-        self.__pull_id = url_segments[-1]
-        self.__merge_commit_sha = "origin/pr/{0}/merge".format(self.__pull_id)
+        self.__pr_number = url_segments[-1]
+        self.__merge_commit_sha = "origin/pr/{0}/merge".format(self.__pr_number)
         self.__pr_list = [self.__repo]
         self.__pr_connectivity_map = collections.defaultdict(dict)
         self.__gh = Github(ghtoken)
-    def parse_pr(self, base_repo, base_pull_id):
+        self.__all_prs = []         
+
+    def parse_pr(self, base_repo, base_pr_number):
         """
         get related prs according to the base pr
         :param repo: string, repo name associated with the pr to be parsed
-        :param pull_id: number in string, pull request id of the pr to be parsed
-        :return related_prs: list of tuple of string: [(repo, sha, pull_id, commit),...] 
+        :param pr_number: number in string, pull request number of the pr to be parsed
+        :return related_prs: list of tuple of string: [(repo, sha, pr_number, commit),...] 
         pr list which is the associated with base pr
         """
 
         #init github  and get related pr object
         gh = self.__gh
-        pr = gh.get_repo(base_repo).get_pull(long(base_pull_id))
+        pr = gh.get_repo(base_repo).get_pull(long(base_pr_number))
         
         #get all comments and description in the pr
         pr_texts = []
@@ -84,7 +86,7 @@ class PrParser(object):
             #find "ignore"
             if 'ignore' in pr_words[position+1]:
                 related_prs = None
-                print "INFO: \"Jenkins: ignore\" in repo: {0} pull_id: {1}".format(base_repo, base_pull_id)
+                print "INFO: \"Jenkins: ignore\" in repo: {0} pr_number: {1}".format(base_repo, base_pr_number)
                 break
 
             #find "depend"
@@ -98,57 +100,52 @@ class PrParser(object):
                 try:
                     repo = dep_pr_url[:dep_pr_url.rfind('/pull/')].replace('https//github.com/','')
                     assert len(repo.split('/')) == 2
-                    pull_id = dep_pr_url[dep_pr_url.rfind('/pull/')+6:]
-                    assert pull_id.isalnum() 
+                    pr_number = dep_pr_url[dep_pr_url.rfind('/pull/')+6:]
+                    assert pr_number.isalnum() 
                 except AssertionError as error:
                     print "ERROR: the pr url {0} is invalid.\n{1}".format(dep_pr_url, error)
                     sys.exit(1)
-                try:
-                    dep_pr = gh.get_repo(repo).get_pull(long(pull_id))
-                    if not dep_pr.mergeable:
-                        print "ERROR: the pr of {0} is unmergeable.\n{1}".format(dep_pr_url, pr.mergeable_state)
-                        sys.exit(1)
-                    sha = 'origin/pr/{0}/merge'.format(pull_id)
-                except Exception as error:
-                    print "ERROR: the pr of {0} doesn't exist.\n{1}".format(dep_pr_url, error)
-                print "INFO: find one dependency pr, ({0}, {1}, {2})".format(repo, sha, pull_id)
-                related_prs.append((repo, sha, pull_id))
+                sha = 'origin/pr/{0}/merge'.format(pr_number)
+                print "INFO: find one dependency pr, ({0}, {1}, {2})".format(repo, sha, pr_number)
+                related_prs.append((repo, sha, pr_number))
                 self.__pr_connectivity_map[base_repo][repo] = True
                 if not self.__pr_connectivity_map[repo].has_key(base_repo):
                     self.__pr_connectivity_map[repo][base_repo] = False
                 if repo not in self.__pr_list:
                     self.__pr_list.append(repo)
         
-        print "INFO: repo: {0}, pull_id: {1} parsing done, recursive parse may continue".format(base_repo, base_pull_id)
+        print "INFO: repo: {0}, pr_number: {1} parsing done, recursive parse may continue".format(base_repo, base_pr_number)
         return related_prs
 
 
-    def get_all_related_prs(self, repo, sha, pull_id):
+    def get_all_related_prs(self, repo, sha, pr_number):
         """
         RECURSIVELY get ALL related prs information according to the base pr
         :param repo: string, repo name associated with the pr to be parsed
         :param sha: string, the merge_commit_sha associated with the pr to be parsed
-        :param pull_id: number in string, pull request id of the pr to be parsed
-        :return all_prs: list of tuple of string: [(repo, sha, pull_id),...] 
+        :param pr_number: number in string, pull request number of the pr to be parsed
+        :return all_prs: list of tuple of string: [(repo, sha, pr_number),...] 
         which is the associated with base pr
         """
 
         #add base pr first
-        all_prs = []
-        base_pr = [(repo, sha, pull_id)]
-        all_prs.extend(base_pr)
+        if len(self.__all_prs) > 0:
+            return self.__all_prs
+
+        base_pr = [(repo, sha, pr_number)]
+        self.__all_prs.extend(base_pr)
 
         #recursively find dependent pr
         while base_pr:
             _tmp_pr=[]
             for item in base_pr:
-                repo, _, pull_id = item
-                dependent_prs = self.parse_pr(repo, pull_id)
+                repo, _, pr_number = item
+                dependent_prs = self.parse_pr(repo, pr_number)
 
                 #find 'Jenkins: ignore'
                 if dependent_prs == None:
                     #find 'Jenkins: ignore' in root trigger pr
-                    if len(all_prs) == 1:
+                    if len(self.__all_prs) == 1:
                         all_prs = []
                     else:
                         continue
@@ -157,11 +154,11 @@ class PrParser(object):
 
             #avoid endless loop
             if _tmp_pr:
-                _tmp_pr = [t for t in _tmp_pr if t not in all_prs]
-            all_prs.extend(_tmp_pr)
+                _tmp_pr = [t for t in _tmp_pr if t not in self.__all_prs]
+            self.__all_prs.extend(_tmp_pr)
             base_pr = _tmp_pr
-
-        return all_prs
+        
+        return self.__all_prs
 
     def get_under_test_prs(self):
         """
@@ -210,41 +207,59 @@ class PrParser(object):
         latest_commit = branch.commit.sha
         return latest_commit
 
+    def is_pr_mergable(self):
+        gh = self.__gh
+        is_mergable = True
+        all_prs = self.get_all_related_prs(self.__repo, self.__merge_commit_sha, self.__pr_number)
+        for pr in all_prs:
+            repo, sha, pr_number = pr
+            pr = gh.get_repo(repo).get_pull(long(pr_number))
+            if not pr.mergeable:
+                is_mergable = False
+                print("ERROR: the pull request #{0} of {1} is unmergeable.\n{1}".format(pr_number, repo,  pr.mergeable_state))
+
+        return is_mergable
+
     def wrap_manifest_file(self, file_path):
         """
         Generated manifest file
         """
-        all_prs = self.get_all_related_prs(self.__repo, self.__merge_commit_sha, self.__pull_id)
-        under_test_prs = self.get_under_test_prs()
-        # instance of manifest template
-        manifest = Manifest.instance_of_sample("manifest-pr-gate.json")
+        try:
+            all_prs = self.get_all_related_prs(self.__repo, self.__merge_commit_sha, self.__pr_number)
+            under_test_prs = self.get_under_test_prs()
+            # instance of manifest template
+            manifest = Manifest.instance_of_sample("manifest-pr-gate.json")
 
-        # wrap with pr
-        repo_url_list = [repo["repository"] for repo in manifest.repositories]
-        for pr in all_prs:
-            repo, sha1, _ = pr
-            repo_url = "https://github.com/{0}.git".format(repo)
-            # uniform the repo_url case, make sure the url is completely consistent with repo in the manifest
-            repo_url = [url for url in repo_url_list if url.lower() == repo_url][0]
-            if repo in under_test_prs:
-                manifest.update_manifest(repo_url, "", sha1, True)
-            else:
-                manifest.update_manifest(repo_url, "", sha1, False)
+            # wrap with pr
+            repo_url_list = [repo["repository"] for repo in manifest.repositories]
+            for pr in all_prs:
+                repo, sha1, _ = pr
+                repo_url = "https://github.com/{0}.git".format(repo)
+                # uniform the repo_url case, make sure the url is completely consistent with repo in the manifest
+                repo_url = [url for url in repo_url_list if url.lower() == repo_url][0]
+                if repo in under_test_prs:
+                    manifest.update_manifest(repo_url, "", sha1, True)
+                else:
+                    manifest.update_manifest(repo_url, "", sha1, False)
 
-        # fill in blank commit with latest commit sha
-        for repo in manifest.repositories:
-            if 'commit-id' in repo and repo['commit-id'] == "":
-                repo_name = "/".join(repo["repository"][:-4].split("/")[3:])
-                latest_commit = self.get_latest_commit(repo_name, self.__target_branch)
-                repo["commit-id"] = latest_commit
+            # fill in blank commit with latest commit sha
+            for repo in manifest.repositories:
+                if 'commit-id' in repo and repo['commit-id'] == "":
+                    repo_name = "/".join(repo["repository"][:-4].split("/")[3:])
+                    latest_commit = self.get_latest_commit(repo_name, self.__target_branch)
+                    repo["commit-id"] = latest_commit
 
-        manifest.validate_manifest()
-        manifest.dump_to_json_file(file_path)
+            manifest.validate_manifest()
+            manifest.dump_to_json_file(file_path)
+
+        except Exception as error:
+            print "ERROR occured in parse manifest: {0}".format(error)
+            sys.exit(1)
 
 def parse_args(args):
     """
     Take in values from the user.
-    Repo, branch, merge_commit_sha and pull_id are required. This exits if they are not given.
+    Repo, branch, merge_commit_sha and pr_number are required. This exits if they are not given.
     :return: Parsed args for assignment
     """
     parser = argparse.ArgumentParser()
@@ -271,6 +286,9 @@ def main():
     parsed_args = parse_args(sys.argv[1:])
     pr_parser = PrParser(parsed_args.change_url, parsed_args.target_branch, parsed_args.ghtoken)
     pr_parser.wrap_manifest_file(parsed_args.manifest_file_path)
+    if not pr_parser.is_pr_mergable():
+        print "PR is not mergable"
+        sys.exit(1)
 
 if __name__ == "__main__":
     main()
