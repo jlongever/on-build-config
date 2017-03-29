@@ -131,7 +131,9 @@ def run_test(RUN_TESTS){
             function_test(test_name,label_name,test_group, run_fit_test, run_cit_test)
         }
     }
-    parallel test_branches
+    if(test_branches.size() > 0){
+        parallel test_branches
+    }
 }
 
 
