@@ -32,7 +32,20 @@ class PrParser(object):
         self.__pr_list = [self.__repo]
         self.__pr_connectivity_map = collections.defaultdict(dict)
         self.__gh = Github(ghtoken)
-        self.__all_prs = []         
+        # If the prs of this build is valid, 
+        # -1 haven't parse pr, 0 is valid, 1 invalid
+        # unmergeable pr will set this var to 1
+        self.__valid_pr_group = -1
+
+    def pr_group_is_valid(self):
+        if self.__valid_pr_group == 0:
+            return True
+        if self.__valid_pr_group == 1:
+            return False
+        if self.__valid_pr_group == -1:
+            print "Can't get pr group status before parsing!"
+            sys.exit(1)
+
 
     def parse_pr(self, base_repo, base_pr_number):
         """
@@ -42,11 +55,11 @@ class PrParser(object):
         :return related_prs: list of tuple of string: [(repo, sha, pr_number, commit),...] 
         pr list which is the associated with base pr
         """
-
+        
         #init github  and get related pr object
         gh = self.__gh
         pr = gh.get_repo(base_repo).get_pull(long(base_pr_number))
-        
+        self.__valid_pr_group = 0
         #get all comments and description in the pr
         pr_texts = []
         pr_texts.append(pr.body)
@@ -105,7 +118,18 @@ class PrParser(object):
                 except AssertionError as error:
                     print "ERROR: the pr url {0} is invalid.\n{1}".format(dep_pr_url, error)
                     sys.exit(1)
-                sha = 'origin/pr/{0}/merge'.format(pr_number)
+                try:
+                    dep_pr = gh.get_repo(repo).get_pull(long(pr_number))
+                    if dep_pr.merged:
+                        continue
+                    if not dep_pr.mergeable:
+                        print "ERROR: the pr of {0} is unmergeable.\n{1}".format(dep_pr_url, pr.mergeable_state)
+                        self.__valid_pr_group = 1
+                    sha = 'origin/pr/{0}/merge'.format(pr_number)
+                except Exception as error:
+                    print "ERROR: the pr of {0} doesn't exist.\n{1}".format(dep_pr_url, error)
+                    self.__valid_pr_group = 1
+
                 print "INFO: find one dependency pr, ({0}, {1}, {2})".format(repo, sha, pr_number)
                 related_prs.append((repo, sha, pr_number))
                 self.__pr_connectivity_map[base_repo][repo] = True
@@ -113,7 +137,7 @@ class PrParser(object):
                     self.__pr_connectivity_map[repo][base_repo] = False
                 if repo not in self.__pr_list:
                     self.__pr_list.append(repo)
-        
+
         print "INFO: repo: {0}, pr_number: {1} parsing done, recursive parse may continue".format(base_repo, base_pr_number)
         return related_prs
 
@@ -129,15 +153,14 @@ class PrParser(object):
         """
 
         #add base pr first
-        if len(self.__all_prs) > 0:
-            return self.__all_prs
+        all_prs = []
 
         base_pr = [(repo, sha, pr_number)]
-        self.__all_prs.extend(base_pr)
+        all_prs.extend(base_pr)
 
         #recursively find dependent pr
         while base_pr:
-            _tmp_pr=[]
+            _tmp_pr = []
             for item in base_pr:
                 repo, _, pr_number = item
                 dependent_prs = self.parse_pr(repo, pr_number)
@@ -145,7 +168,7 @@ class PrParser(object):
                 #find 'Jenkins: ignore'
                 if dependent_prs == None:
                     #find 'Jenkins: ignore' in root trigger pr
-                    if len(self.__all_prs) == 1:
+                    if len(all_prs) == 1:
                         all_prs = []
                     else:
                         continue
@@ -154,11 +177,11 @@ class PrParser(object):
 
             #avoid endless loop
             if _tmp_pr:
-                _tmp_pr = [t for t in _tmp_pr if t not in self.__all_prs]
-            self.__all_prs.extend(_tmp_pr)
+                _tmp_pr = [t for t in _tmp_pr if t not in all_prs]
+            all_prs.extend(_tmp_pr)
             base_pr = _tmp_pr
-        
-        return self.__all_prs
+
+        return all_prs
 
     def get_under_test_prs(self):
         """
@@ -197,7 +220,7 @@ class PrParser(object):
                             tmp_tmp_under_test_prs.append(pr)
             tmp_under_test_prs = tmp_tmp_under_test_prs
         return under_test_prs
-    
+
     def get_latest_commit(self, repo, branch):
         """
         Get repo latest commit of the specific branch
@@ -206,19 +229,6 @@ class PrParser(object):
         branch = gh.get_repo(repo).get_branch(branch)
         latest_commit = branch.commit.sha
         return latest_commit
-
-    def is_pr_mergable(self):
-        gh = self.__gh
-        is_mergable = True
-        all_prs = self.get_all_related_prs(self.__repo, self.__merge_commit_sha, self.__pr_number)
-        for pr in all_prs:
-            repo, sha, pr_number = pr
-            pr = gh.get_repo(repo).get_pull(long(pr_number))
-            if not pr.mergeable:
-                is_mergable = False
-                print("ERROR: the pull request #{0} of {1} is unmergeable.\n{1}".format(pr_number, repo,  pr.mergeable_state))
-
-        return is_mergable
 
     def wrap_manifest_file(self, file_path):
         """
@@ -286,8 +296,8 @@ def main():
     parsed_args = parse_args(sys.argv[1:])
     pr_parser = PrParser(parsed_args.change_url, parsed_args.target_branch, parsed_args.ghtoken)
     pr_parser.wrap_manifest_file(parsed_args.manifest_file_path)
-    if not pr_parser.is_pr_mergable():
-        print "PR is not mergable"
+    if not pr_parser.pr_group_is_valid:
+        print "There are unmergable PRs!"
         sys.exit(1)
 
 if __name__ == "__main__":
