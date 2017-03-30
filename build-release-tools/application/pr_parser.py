@@ -33,14 +33,14 @@ class PrParser(object):
         self.__pr_connectivity_map = collections.defaultdict(dict)
         self.__gh = Github(ghtoken)
         # If the prs of this build is valid, 
-        # -1 haven't parse pr, 0 is valid, 1 invalid
+        # -1 haven't parse pr, 1 is valid, 0 invalid
         # unmergeable pr will set this var to 1
         self.__valid_pr_group = -1
 
     def pr_group_is_valid(self):
-        if self.__valid_pr_group == 0:
-            return True
         if self.__valid_pr_group == 1:
+            return True
+        if self.__valid_pr_group == 0:
             return False
         if self.__valid_pr_group == -1:
             print "Can't get pr group status before parsing!"
@@ -59,7 +59,7 @@ class PrParser(object):
         #init github  and get related pr object
         gh = self.__gh
         pr = gh.get_repo(base_repo).get_pull(long(base_pr_number))
-        self.__valid_pr_group = 0
+        self.__valid_pr_group = 1
         #get all comments and description in the pr
         pr_texts = []
         pr_texts.append(pr.body)
@@ -124,11 +124,11 @@ class PrParser(object):
                         continue
                     if not dep_pr.mergeable:
                         print "ERROR: the pr of {0} is unmergeable.\n{1}".format(dep_pr_url, pr.mergeable_state)
-                        self.__valid_pr_group = 1
+                        self.__valid_pr_group = 0
                     sha = 'origin/pr/{0}/merge'.format(pr_number)
                 except Exception as error:
                     print "ERROR: the pr of {0} doesn't exist.\n{1}".format(dep_pr_url, error)
-                    self.__valid_pr_group = 1
+                    self.__valid_pr_group = 0
 
                 print "INFO: find one dependency pr, ({0}, {1}, {2})".format(repo, sha, pr_number)
                 related_prs.append((repo, sha, pr_number))
