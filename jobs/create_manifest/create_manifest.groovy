@@ -1,4 +1,4 @@
-node(create_manifest_node){
+node{
     withEnv([
         "IS_OFFICIAL_RELEASE=${env.IS_OFFICIAL_RELEASE}",
         "branch=${env.branch}",
