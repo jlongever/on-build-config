@@ -7,28 +7,49 @@
 #
 # Usage: 
 # post_test.sh \
-# --type ova, vagrant or docker
+# --type             ova, vagrant or docker
+# --rackhdVersion    the desired RackHD version, it's to be compared with the actual install version.
+
 #
-# ova-post-test need some special parameter of net config and target esxi server
-# --adminIP ***.***.***.***
-# --adminGateway ***.***.***.***
-# --adminNetmask 255.255.255.0
-# --adminDNS ***.***.***.***
-# --net "ADMIN"="External Connection"
-# --datastore some-datastore
-# --deployName ova-for-post-test
-# --ovaFile /someDir/some.ova
-# --vcenterHost ***.***.***.***
-# --ntName user
-# --ntPass password
-# --esxiHost ***.***.***.***
+#--------------------------------------------------
+# 1.ova-post-test need some special parameter of net config and target esxi server
 #
-# vagrant-post-test need some special parameter of boxFile and controlNetwork name
+#  1.1) ova-post-test's case #1, if there's no DHCP for target vSphere/vCenter, then we need to specific a static IP, so that we can talk with the OVA
+#   Parameter Group for Case #1
+#   --adminIP ***.***.***.***
+#   --adminGateway ***.***.***.***
+#   --adminNetmask 255.255.255.0
+#   --adminDNS ***.***.***.***
+#   --net "ADMIN"="External Connection"
+#   --datastore some-datastore
+#   --deployName ova-for-post-test
+#   --ovaFile /someDir/some.ova
+#   --vcenterHost ***.***.***.***
+#   --ntName user of vCenter
+#   --ntPass password of vCenter
+#   --esxiHostUser:  ESXi vsphere user name
+#   --esxiHostPass:  ESXi vsphere password
+#   --esxiHost ***.***.***.***
+#
+#  1.2) ova-post-test's case #2, if there's DHCP available for target vSphere, we don't need to specific target IP. but we need to wait for IP then retrieve it. so in this case, vSphere(ESXi) is enough.
+#   Parameter Group for Case #2
+#   --net "ADMIN"="External Connection"
+#   --datastore some-datastore
+#   --deployName ova-for-post-test
+#   --ovaFile /someDir/some.ova
+#   --esxiHostUser:  ESXi vsphere user name
+#   --esxiHostPass:  ESXi vsphere password
+#   --esxiHost ***.***.***.***
+#--------------------------------------------------
+#
+# 2.vagrant-post-test need some special parameter of boxFile and controlNetwork name
 # --boxFile ./someDir/some.box
 # --controlNetwork vmnet*
 # --vagrantfile ./someFile
 #
-# docker-post-test need some special parameter of docker build record file and cloned RackHD repo
+#--------------------------------------------------
+
+# 3.docker-post-test need some special parameter of docker build record file and cloned RackHD repo
 # --RackHDDir ./someDir/RackHD
 # --buildRecord ./record_file
 # A recorde_file contains repo:tag of all rackhd repos which build in one docker build, its format is like this:
@@ -37,6 +58,17 @@
 ############################################
 
 set -e
+
+#####################################
+#
+# the default OVA/Vagrant login user/password are both `vagrant`
+# which was specified in https://github.com/RackHD/RackHD/blob/master/packer/http/preseed.cfg
+#
+####################################
+rackhd_default_usr=vagrant
+rackhd_default_pwd=vagrant
+
+
 
 while [ "$1" != "" ];do
     case $1 in
@@ -79,6 +111,12 @@ while [ "$1" != "" ];do
         --esxiHost)
             shift
             esxiHost=$1;;
+         --esxiHostUser)
+            shift
+            esxiHostUser=$1;;
+        --esxiHostPass)
+            shift
+            esxiHostPass=$1;;
         --boxFile)
             shift
             boxFile=$1;;
@@ -115,8 +153,12 @@ findRackHDService() {
     case $type in
       ova)
         service_normal_sentence="Authentication Failed"
-        # Note: the "ova-post-test" is defined locally on Jenkins slave's ansible host file.
-        api_test_result=`ansible ova-for-post-test -a "wget --retry-connrefused --waitretry=1 --read-timeout=20 --timeout=15 -t 1 --continue ${url}"`
+        TMP_LOG_FILE=./tmp_check_rackhd_api.txt
+        rm -f $TMP_LOG_FILE
+        check_api_command="wget --retry-connrefused --waitretry=1 --read-timeout=20 --timeout=15 -t 1 --continue ${url}"
+        sshpass -p ${rackhd_default_pwd} ssh ${rackhd_default_usr}@${adminIP}  -o StrictHostKeyChecking=no  ${check_api_command}  > $TMP_LOG_FILE 2>&1
+        api_test_result=$(cat $TMP_LOG_FILE )
+        rm -f $TMP_LOG_FILE # Clean Up
         echo $api_test_result | grep "$service_normal_sentence" > /dev/null  2>&1
         if [ $? = 0 ]; then  # FIXME: original code only treat "Authentication Failed" as single successful criteria, this only applies to when auth=disable.
            echo "[Debug] successful.        in this retry time: OVA ansible returns: $api_test_result"
@@ -196,10 +238,19 @@ waitForAPI() {
 
 
 checkRackHDVersion() {
+
+    if [ "$rackhdVersion" == "" ]; then
+        echo "[Error] rackhdVersion parameter is blank, Abort!"
+        exit 2
+    fi
+
     # since Docker images are build from source code, so no way available to check RackHD version via deb package.
     case $type in
         ova)
-            apt_cache=$(ansible ova-for-post-test -a "apt-cache policy rackhd")
+            apt_cache=$( sshpass -p ${rackhd_default_pwd} ssh ${rackhd_default_usr}@${adminIP}  -o StrictHostKeyChecking=no   'apt-cache policy rackhd' )
+            # above command will use SSH usr/pwd to remote execute shell command in adminIP
+            # -o StrictHostKeyChecking=no will auto added the adminIP into known_host without asking.
+            
             if [ $? != 0 ]; then
                 echo "[Error] Ansible Error(ansible ova-for-post-test -a [apt-cache policy rackhd]), returns:  $apt_cache "
                 exit 2
@@ -213,11 +264,14 @@ checkRackHDVersion() {
             fi
         ;;
     esac
-    echo "[Debug] rackhd installation candidates $apt_cache"
+    echo "[Debug] RackHD installation candidates in remote apt cache as below : ------------START----------"
+    echo "$apt_cache"
+    echo "[Debug] RackHD installation candidates in remote apt cache as above ------------- END-----------"
     installed_version=$( echo "$apt_cache" | grep Installed | awk '{print $2}' )  # Tip: remember to use quote in echo "$apt_cache", to preserve line break
     echo "[Debug] installed_version=$installed_version"
+
     if [ "$installed_version" != "$rackhdVersion" ]; then
-        echo "Installed wrong rackhd version $installed_version"
+        echo "Installed wrong rackhd version $installed_version, desired version is $rackhdVersion"
         exit 1
     else
         echo "Installed correct rackhd version $installed_version"
@@ -229,14 +283,33 @@ checkRackHDVersion() {
 ############################################
 
 deploy_ova() {
-    echo yes | ovftool \
-    --prop:adminIP=$adminIP  --prop:adminGateway=$adminGateway --prop:adminNetmask=$adminNetmask  --prop:adminDNS=$adminDNS \
-    --overwrite --powerOffTarget --powerOn --skipManifestCheck \
-    --net:"$net" \
-    --datastore=$datastore \
-    --name=$deployName \
-    ${ovaFile} \
-    vi://${ntName}:${ntPass}@${vcenterHost}/Infrastructure@onrack.cn/host/${esxiHost}/
+    if [ -n "${adminIP}" ]; then # if $adminIP not given, it means we are using vCenter pre-set IP deployment
+        echo "[Info] Deploy OVA with Pre-Configured IP Address to vCenter. it's suitable for enviroment without DHCP."
+        echo yes | ovftool \
+        --prop:adminIP=$adminIP  --prop:adminGateway=$adminGateway --prop:adminNetmask=$adminNetmask  --prop:adminDNS=$adminDNS \
+        --overwrite --powerOffTarget --powerOn --skipManifestCheck \
+        --net:"$net" \
+        --datastore=$datastore \
+        --name=$deployName \
+        ${ovaFile} \
+        vi://${ntName}:${ntPass}@${vcenterHost}/Infrastructure@onrack.cn/host/${esxiHost}/
+    else
+        echo "[Info] Deploy OVA with DHCP , it's suitable for  enviroment with DHCP."
+        TMP_FILE=tmp_ovf_result.txt
+        rm -f ${TMP_FILE}
+        echo yes | ovftool \
+        --X:waitForIp \
+        --overwrite --powerOffTarget --powerOn --skipManifestCheck \
+        --net:"$net" \
+        --datastore=$datastore \
+        --name=$deployName \
+        ${ovaFile} \
+        vi://${esxiHostUser}:${esxiHostPass}@${esxiHost}/ > ${TMP_FILE}
+        adminIP=$( grep "Received IP address:"   ${TMP_FILE} | awk '{print $7}') # with parameter 'waitForIp', the ovftool will dump in stdout like "Received IP address: 10.111.222.1"
+        rm -f ${TMP_FILE} # Clean Up
+
+    fi
+
     if [ $? = 0 ]; then
         echo "[Info] Deploy OVA successfully".
     else
@@ -247,9 +320,11 @@ deploy_ova() {
 }
 
 delete_ova() {
-	ansible esxi -a "./vm_operation.sh -a delete ${esxiHost} 1 $deployName"
+    sshpass -p ${esxiHostPass} ssh ${esxiHostUser}@${esxiHost}  -o StrictHostKeyChecking=no   "./vm_operation.sh -a delete ${esxiHost} 1 $deployName"
     if [ $? = 0 ]; then
       echo "Delete $deployName successfully!"
+    else
+      echo "[Warning] the deployed OVA still lives on ESXi Host, it failed to be deleted automaticlly, please remove it manually."
     fi
 }
 

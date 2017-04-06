@@ -27,5 +27,7 @@ bash ./build-config/build-release-tools/post_test.sh \
 --ntName ${VCENTER_NT_USER} \
 --ntPass ${VCENTER_NT_PASSWORD} \
 --esxiHost ${ESXI_HOST_IP} \
+--esxiHostUser ${ESXI_USER} \
+--esxiHostPass ${ESXI_PASS} \
 --net "ADMIN"="External Connection" \
 --rackhdVersion $RACKHD_VERSION
