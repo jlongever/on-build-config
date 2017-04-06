@@ -72,16 +72,17 @@ class ChangelogUpdater(object):
 
     def link_debianstatic(self):
         """
-        Handle repository which contains debianstatic/repository_name folder,
-        for example: debianstatic/on-http
+        Handle repository which contains debianstatic/repository_name folder.
+        Create a soft link of debianstatic/repository_name to debian
+        for example: ln -s debianstatic/on-http debian
         """
         repo_name = self.get_repo_name()
         linked = False
-        for filename in os.listdir(self._repo_dir):
-            if filename == "debianstatic":
+        for dir_name in os.listdir(self._repo_dir):
+            if dir_name == "debianstatic":
                 debianstatic_dir = os.path.join(self._repo_dir, "debianstatic")
-                for debianstatic_filename in os.listdir(debianstatic_dir):
-                    if debianstatic_filename == repo_name:
+                for debianstatic_dir_name in os.listdir(debianstatic_dir):
+                    if debianstatic_dir_name == repo_name:
                         debianstatic_repo_dir = "debianstatic/{0}".format(repo_name)
                         common.link_dir(debianstatic_repo_dir, "debian", self._repo_dir)
                         linked = True
@@ -106,8 +107,6 @@ class ChangelogUpdater(object):
         debian_exist = self.debian_exist()
         linked = False
         if not debian_exist:
-            # Handle repository which contains debianstatic/repository_name folder, 
-            # for example: debianstatic/on-http
             linked = self.link_debianstatic()
 
         if not debian_exist and not linked:
@@ -121,7 +120,8 @@ class ChangelogUpdater(object):
             version = self.get_current_version()
             # TBD: check whether the commit in manifest is the commit to jump version
             if version == self._version:
-                print "The version of {0} is already {1}".format(repo_name, self._version)
+                print "[WARNING] The version of {0} is already {1}, skip the version bump action in debian/changelog for {0}"\
+                      .format(repo_name, self._version)
                 return
 
             print "start to update changelog of {0}".format(self._repo_dir)
@@ -175,7 +175,8 @@ class NPMVersionUpdater(object):
             current_version = NPM.get_current_version(self._repo_dir)
             # TBD: check whether the commit in manifest is the commit to jump version
             if current_version == self._version:
-                print "The version of {0} is already {1}".format(self._repo_dir, self._version)
+                print "[WARNING] The version of {0} is already {1}, skip the version bump action in package.json for {0}"\
+                      .format(self._repo_dir, self._version)
                 return
 
             print "start to update version of {0}".format(self._repo_dir)

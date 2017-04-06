@@ -440,7 +440,7 @@ class RepoOperator(object):
         # See if that tag exists for the repo
         return_code, output, error  = self.git.run(["tag", "-l", tag_name], repo_dir)
 
-        # Raise RuntimeError if tag already exists, otherwise create it
+        # Return if tag already exists, otherwise create it
         if return_code == 0 and output != '':
             print "Tag {0} already exists in {1}".format(output, repo_url)
             return
