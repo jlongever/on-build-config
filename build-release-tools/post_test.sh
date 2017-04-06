@@ -157,6 +157,7 @@ findRackHDService() {
         rm -f $TMP_LOG_FILE
         check_api_command="wget --retry-connrefused --waitretry=1 --read-timeout=20 --timeout=15 -t 1 --continue ${url}"
         sshpass -p ${rackhd_default_pwd} ssh ${rackhd_default_usr}@${adminIP}  -o StrictHostKeyChecking=no  ${check_api_command}  > $TMP_LOG_FILE 2>&1
+        sed -i  "s/Warning: Permanently added.*//g" $TMP_LOG_FILE  # Remove the senstive IP info in the log.
         api_test_result=$(cat $TMP_LOG_FILE )
         rm -f $TMP_LOG_FILE # Clean Up
         echo $api_test_result | grep "$service_normal_sentence" > /dev/null  2>&1
@@ -316,7 +317,7 @@ deploy_ova() {
         echo "[Error] Deploy OVA failed."
         exit 3
     fi
-    ssh-keygen -f "$HOME/.ssh/known_hosts" -R $adminIP
+    ssh-keygen -f "$HOME/.ssh/known_hosts" -R $adminIP > /dev/null 2>&1  # to avoid IP exposing
 }
 
 delete_ova() {
