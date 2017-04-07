@@ -4,7 +4,7 @@ node(build_debian_node){
             withEnv([
                 "MANIFEST_FILE_URL=${env.MANIFEST_FILE_URL}",
                 "IS_OFFICIAL_RELEASE=${env.IS_OFFICIAL_RELEASE}",
-                "BINTRAY_SUBJECT=rackhd",
+                "BINTRAY_SUBJECT=${env.BINTRAY_SUBJECT}",
                 "BINTRAY_REPO=debian",
                 "CI_BINTRAY_SUBJECT=rackhd-mirror",
                 "CI_BINTRAY_REPO=debian",

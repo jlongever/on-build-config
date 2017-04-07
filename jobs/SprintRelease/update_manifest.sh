@@ -1,32 +1,16 @@
 #!/bin/bash -ex
-export GITHUB_CREDS=${JENKINSRHD_GITHUB_CREDS}
-echo "start to generate manifest for tag"
+echo "Generate manifest with the latest commit of repositories under the build directory"
 ./build-config/build-release-tools/HWIMO-BUILD build-config/build-release-tools/application/generate_manifest.py \
---branch "$branch" \
---date "$date" \
---timezone "$timezone" \
 --builddir b \
+--dest-manifest new_manifest \
 --force \
 --jobs 8
-
-arrBranch=($(echo $branch | tr "/" "\n"))
-slicedBranch=${arrBranch[-1]}
-manifest_file=$(find -maxdepth 1 -name "$slicedBranch-[0-9]*")
-
-echo "Start to create tag"
-./build-config/build-release-tools/HWIMO-BUILD build-config/build-release-tools/application/reprove.py \
---manifest $manifest_file \
---builddir b \
---tag-name $tag_name \
---git-credential https://github.com,GITHUB_CREDS \
---jobs 8 \
-tag
 
 echo "push the manifest of the tag ${tag_name} to bintray"
 arrNewTag=($(echo $tag_name | tr "/" "\n"))
 new_manifest=${arrNewTag[-1]}
 
-mv $manifest_file $new_manifest
+mv new_manifest $new_manifest
 ./build-config/build-release-tools/pushToBintray.sh \
 --user $BINTRAY_USERNAME \
 --api_key $BINTRAY_API_KEY \
@@ -54,4 +38,6 @@ check_file_exist(){
     done
     return 1
 }
+
 check_file_exist
+

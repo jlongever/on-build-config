@@ -1,7 +1,7 @@
 node(build_debian_node){
     withEnv([
-        "BINTRAY_SUBJECT=rackhd", 
-        "BINTRAY_REPO=debian", 
+        "BINTRAY_SUBJECT=${env.BINTRAY_SUBJECT}",
+        "BINTRAY_REPO=debian",
         "BINTRAY_COMPONENT=main", 
         "BINTRAY_DISTRIBUTION=trusty", 
         "BINTRAY_ARCHITECTURE=amd64"]){

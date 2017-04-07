@@ -70,6 +70,32 @@ class ChangelogUpdater(object):
         repo_name = common.strip_suffix(os.path.basename(repo_url), ".git")
         return repo_name
 
+    def link_debianstatic(self):
+        """
+        Handle repository which contains debianstatic/repository_name folder.
+        Create a soft link of debianstatic/repository_name to debian
+        for example: ln -s debianstatic/on-http debian
+        """
+        repo_name = self.get_repo_name()
+        linked = False
+        for dir_name in os.listdir(self._repo_dir):
+            if dir_name == "debianstatic":
+                debianstatic_dir = os.path.join(self._repo_dir, "debianstatic")
+                for debianstatic_dir_name in os.listdir(debianstatic_dir):
+                    if debianstatic_dir_name == repo_name:
+                        debianstatic_repo_dir = "debianstatic/{0}".format(repo_name)
+                        common.link_dir(debianstatic_repo_dir, "debian", self._repo_dir)
+                        linked = True
+        return linked
+
+    def get_current_version(self):
+        """
+        return the current version 
+        """
+        cmd_args = ["dpkg-parsechangelog", "--show-field", "Version"]
+        version = common.run_command(cmd_args, directory=self._repo_dir)
+        return version
+
     def update_changelog(self, message=None):
         """
         add an entry to changelog
@@ -81,26 +107,24 @@ class ChangelogUpdater(object):
         debian_exist = self.debian_exist()
         linked = False
         if not debian_exist:
-            # Handle repository which contains debianstatic/repository_name folder, 
-            # for example: debianstatic/on-http
-            for filename in os.listdir(self._repo_dir):
-                if filename == "debianstatic":
-                    debianstatic_dir = os.path.join(self._repo_dir, "debianstatic")
-                    for debianstatic_filename in os.listdir(debianstatic_dir):
-                        if debianstatic_filename == repo_name:
-                            debianstatic_repo_dir = "debianstatic/{0}".format(repo_name)
-                            common.link_dir(debianstatic_repo_dir, "debian", self._repo_dir)
-                            linked = True
+            linked = self.link_debianstatic()
 
         if not debian_exist and not linked:
-            return False
+            return
 
-        print "start to update changelog of {0}".format(self._repo_dir)
         # -v: Add a new changelog entry with version number specified
         # -b: Force a version to be less than the current one
         # -m: Don't change (maintain) the trailer line in the changelog entry; i.e.
         #     maintain the maintainer and date/time details
         try:
+            version = self.get_current_version()
+            # TBD: check whether the commit in manifest is the commit to jump version
+            if version == self._version:
+                print "[WARNING] The version of {0} is already {1}, skip the version bump action in debian/changelog for {0}"\
+                      .format(repo_name, self._version)
+                return
+
+            print "start to update changelog of {0}".format(self._repo_dir)
             cmd_args = ["dch", "-v", self._version, "-b", "-m"]
             if message is None:
                 message = "new release {0}".format(self._version)
@@ -110,7 +134,7 @@ class ChangelogUpdater(object):
             if linked:
                 os.remove(os.path.join(self._repo_dir, "debian"))
 
-            return True
+            return
         except Exception, err:
             raise RuntimeError("Failed to add an entry for {0} in debian/changelog due to {1}".format(self._version, err))
 
@@ -146,11 +170,18 @@ class NPMVersionUpdater(object):
         package_exist = self.package_exist()
         if not package_exist:
             print "No package.json under {0}".format(self._repo_dir)
-            return False
+            return
         try:
+            current_version = NPM.get_current_version(self._repo_dir)
+            # TBD: check whether the commit in manifest is the commit to jump version
+            if current_version == self._version:
+                print "[WARNING] The version of {0} is already {1}, skip the version bump action in package.json for {0}"\
+                      .format(self._repo_dir, self._version)
+                return
+
             print "start to update version of {0}".format(self._repo_dir)
             NPM.update_version(self._repo_dir, version=self._version)
-            return True
+            return
         except Exception, e:
             raise RuntimeError("Failed to update the version of package.json under {0}\ndue to {1}"\
                                .format(self._repo_dir, e))
@@ -200,13 +231,12 @@ def main():
                 repo_dir = os.path.join(args.build_dir, filename)
                 changelog_updater = ChangelogUpdater(repo_dir, args.version)
                 npm_package_updater = NPMVersionUpdater(repo_dir, args.version)
-                package_updated = npm_package_updater.update_package_json()
-                changelog_updated = changelog_updater.update_changelog(message = args.message)
-                if changelog_updated or package_updated:
-                    if args.publish:
-                        print "start to push changes in {0}".format(repo_dir)
-                        commit_message = "jump version for new release {0}".format(args.version)
-                        repo_operator.push_repo_changes(repo_dir, commit_message)
+                npm_package_updater.update_package_json()
+                changelog_updater.update_changelog(message = args.message)
+                if args.publish:
+                    print "start to push changes in {0}".format(repo_dir)
+                    commit_message = "jump version for new release {0}".format(args.version)
+                    repo_operator.push_repo_changes(repo_dir, commit_message)
             except Exception,e:
                 print "Failed to jump version of {0} due to {1}".format(filename, e)
                 sys.exit(1)
