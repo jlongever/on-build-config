@@ -5,8 +5,8 @@ packer -v
 vagrant -v
 
 cd $WORKSPACE/build/packer/ansible/roles/rackhd-builds/tasks
-sed -i "s#https://dl.bintray.com/rackhd/debian trusty release#https://dl.bintray.com/${env.CI_BINTRAY_SUBJECT}/debian trusty main#" main.yml
-sed -i "s#https://dl.bintray.com/rackhd/debian trusty main#https://dl.bintray.com/${env.CI_BINTRAY_SUBJECT}/debian trusty main#" main.yml
+sed -i "s#https://dl.bintray.com/rackhd/debian trusty release#https://dl.bintray.com/$CI_BINTRAY_SUBJECT/debian trusty main#" main.yml
+sed -i "s#https://dl.bintray.com/rackhd/debian trusty main#https://dl.bintray.com/$CI_BINTRAY_SUBJECT/debian trusty main#" main.yml
 pkill packer
 cd ..
 cd $WORKSPACE/build/packer 
