@@ -6,7 +6,7 @@ node(build_debian_node){
                 "IS_OFFICIAL_RELEASE=${env.IS_OFFICIAL_RELEASE}",
                 "BINTRAY_SUBJECT=${env.BINTRAY_SUBJECT}",
                 "BINTRAY_REPO=debian",
-                "CI_BINTRAY_SUBJECT=rackhd-mirror",
+                "CI_BINTRAY_SUBJECT=${env.CI_BINTRAY_SUBJECT}",
                 "CI_BINTRAY_REPO=debian",
                 "BINTRAY_COMPONENT=main",
                 "BINTRAY_DISTRIBUTION=trusty", 

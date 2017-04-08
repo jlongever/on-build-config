@@ -3,6 +3,13 @@ node(build_docker_node){
         withEnv([
             "MANIFEST_FILE_URL=${env.MANIFEST_FILE_URL}",
             "IS_OFFICIAL_RELEASE=${env.IS_OFFICIAL_RELEASE}",
+            "BINTRAY_SUBJECT=${env.BINTRAY_SUBJECT}",
+            "BINTRAY_REPO=debian",
+            "CI_BINTRAY_SUBJECT=${env.CI_BINTRAY_SUBJECT}",
+            "CI_BINTRAY_REPO=debian",
+            "BINTRAY_COMPONENT=main",
+            "BINTRAY_DISTRIBUTION=trusty",
+            "BINTRAY_ARCHITECTURE=amd64",
             "CLONE_DIR=b"]){
             deleteDir()
             def current_workspace = pwd()
