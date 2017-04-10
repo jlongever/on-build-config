@@ -1,6 +1,5 @@
 def unit_test(String repo_name, String label_name, ArrayList<String> used_resource){
     def shareMethod = load("build-config/jobs/shareMethod.groovy")
-    shareMethod.waitForFreeResource(label_name,1)
     def node_name=""
     lock(label:label_name,quantity:1){
         def lock_resources=org.jenkins.plugins.lockableresources.LockableResourcesManager.class.get().getResourcesFromBuild(currentBuild.getRawBuild())

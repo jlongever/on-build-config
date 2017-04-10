@@ -14,16 +14,6 @@ def checkout(String url){
     checkout(url, "master")
 }
 
-def waitForFreeResource(label_name,quantity){
-    int free_count=0
-    while(free_count<quantity){
-        free_count = org.jenkins.plugins.lockableresources.LockableResourcesManager.class.get().getFreeResourceAmount(label_name)
-        if(free_count == 0){
-            sleep 5
-        }
-    }
-}
-
 def getLockedResourceName(resources,label_name){
     // Get the resource name whose label contains the parameter label_name
     def resources_name=[]
@@ -47,7 +37,6 @@ def buildAndPublish(){
             load("jobs/build_debian/build_debian.groovy")
         }
     }
-    waitForFreeResource("docker",1)
     // lock a docker resource from build to release
     lock(label:"docker",quantity:1){
         def lock_resources=org.jenkins.plugins.lockableresources.LockableResourcesManager.class.get().getResourcesFromBuild(currentBuild.getRawBuild())       
