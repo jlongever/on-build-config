@@ -17,7 +17,7 @@ node(build_vagrant_node){
                 def shareMethod
                 dir("Build_Vagrant_JFiles"){
                     checkout scm
-                    shareMethod = load("jobs/shareMethod.groovy")
+                    shareMethod = load("jobs/ShareMethod.groovy")
                 }
                 def url = "https://github.com/RackHD/RackHD.git"
                 def branch = "${env.RACKHD_COMMIT}"

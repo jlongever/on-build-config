@@ -10,7 +10,7 @@ node{
             load("Jenkinsfile_Library/jobs/pr_gate/pr_parser.groovy")
         }
         stage("Unit Test"){
-            load("Jenkinsfile_Library/jobs/unit_test/unit_test.groovy")
+            load("Jenkinsfile_Library/jobs/pr_gate/unit_test.groovy")
         }
         stage("Function Test"){
             load("Jenkinsfile_Library/jobs/function_test/function_test.groovy")
@@ -22,7 +22,7 @@ node{
         stage("Write Back"){
             load("Jenkinsfile_Library/jobs/write_back_github/write_back_github.groovy")
         }
-        def shareMethod = load("Jenkinsfile_Library/jobs/shareMethod.groovy")
+        def shareMethod = load("Jenkinsfile_Library/jobs/ShareMethod.groovy")
         shareMethod.sendResult(true,true)
     }
 }

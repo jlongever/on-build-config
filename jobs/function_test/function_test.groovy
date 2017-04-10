@@ -1,5 +1,5 @@
 def function_test(String test_name, String label_name, String TEST_GROUP, Boolean RUN_FIT_TEST, Boolean RUN_CIT_TEST){
-    def shareMethod = load("jobs/shareMethod.groovy")
+    def shareMethod = load("jobs/ShareMethod.groovy")
     shareMethod.waitForFreeResource(label_name,1)
     lock(label:label_name,quantity:1){
         // The locked resources of the build
