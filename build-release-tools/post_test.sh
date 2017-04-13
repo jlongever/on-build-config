@@ -1,5 +1,4 @@
 #!/bin/bash
-
 ############################################
 # Post-Test scripts for ova, vagrantBox and docker.
 # This script will up/deploy ova, box and docker images,
@@ -321,7 +320,9 @@ deploy_ova() {
 }
 
 delete_ova() {
-    sshpass -p ${esxiHostPass} ssh ${esxiHostUser}@${esxiHost}  -o StrictHostKeyChecking=no   "./vm_operation.sh -a delete ${esxiHost} 1 $deployName"
+    pushd ./build-config/deployment/
+    ./vm_control.sh "${esxiHost},${esxiHostUser},${esxiHostPass},delete,1,$deployName"
+    popd
     if [ $? = 0 ]; then
       echo "Delete $deployName successfully!"
     else
