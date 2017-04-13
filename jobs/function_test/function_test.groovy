@@ -1,12 +1,9 @@
-def function_test(String test_name, String label_name, String TEST_GROUP, Boolean RUN_FIT_TEST, Boolean RUN_CIT_TEST){
+def function_test(String test_name, String label_name, String TEST_GROUP, Boolean RUN_FIT_TEST, Boolean RUN_CIT_TEST, ArrayList<String> used_resources){
     def shareMethod = load("jobs/ShareMethod.groovy")
     shareMethod.waitForFreeResource(label_name,1)
     lock(label:label_name,quantity:1){
-        // The locked resources of the build
-        def lock_resources=org.jenkins.plugins.lockableresources.LockableResourcesManager.class.get().getResourcesFromBuild(currentBuild.getRawBuild())
-        // The locked resources of this step
-        resource_name = shareMethod.getLockedResourceName(lock_resources,label_name)[0]
-        node(resource_name){
+        node_name = shareMethod.occupyAvailableLockedResource(label_name, used_resources)
+        node(node_name){
             deleteDir()
             dir("on-build-config"){
                 checkout scm
@@ -23,7 +20,7 @@ def function_test(String test_name, String label_name, String TEST_GROUP, Boolea
                 env.MANIFEST_FILE = "manifest"
             }
             else{
-                error 'Please provide the manifest url or a stashed manifest'
+                error("Please provide the manifest url or a stashed manifest")
             }
          
             // If the manifest file contains PR of on-http and RackHD, 
@@ -106,9 +103,7 @@ def function_test(String test_name, String label_name, String TEST_GROUP, Boolea
                             error_count = "${props.errors}".toInteger()
                         }
                         if (failure_count > 0 || error_count > 0){
-                            currentBuild.result = "SUCCESS"
-                            echo "there are failed test cases"
-                            sh 'exit 1'
+                            error("there are failed test cases")
                         }
                     }
                 }
@@ -119,6 +114,7 @@ def function_test(String test_name, String label_name, String TEST_GROUP, Boolea
 
 def run_test(RUN_TESTS){
     // Run test in parallel
+    def used_resources = []
     def test_branches = [:]
     test_names = RUN_TESTS.keySet() as String[]
     for(int i=0;i<RUN_TESTS.size();i++){
@@ -128,7 +124,7 @@ def run_test(RUN_TESTS){
         def run_fit_test = RUN_TESTS[test_name]["RUN_FIT_TEST"]
         def run_cit_test = RUN_TESTS[test_name]["RUN_CIT_TEST"]
         test_branches[test_name] = {
-            function_test(test_name,label_name,test_group, run_fit_test, run_cit_test)
+            function_test(test_name,label_name,test_group, run_fit_test, run_cit_test, used_resources)
         }
     }
     if(test_branches.size() > 0){
@@ -171,11 +167,11 @@ node{
                 ]) {
 
                 def ALL_TESTS=[:]
-                ALL_TESTS["FIT"]=["TEST_GROUP":"smoke-tests","RUN_FIT_TEST":true,"RUN_CIT_TEST":false,"label":"FIT"]
-                ALL_TESTS["CIT"]=["TEST_GROUP":"smoke-tests","RUN_FIT_TEST":false,"RUN_CIT_TEST":true,"label":"CIT"]
-                ALL_TESTS["Install Ubuntu 14.04"]=["TEST_GROUP":"ubuntu-minimal-install.v2.0.test","RUN_FIT_TEST":false,"RUN_CIT_TEST":true,"label":"os_ubuntu_14.04"]
-                ALL_TESTS["Install ESXI 6.0"]=["TEST_GROUP":"esxi-6-min-install.v2.0.test","RUN_FIT_TEST":false,"RUN_CIT_TEST":true,"label":"os_esxi_6.0"]
-                ALL_TESTS["Install Centos 6.5"]=["TEST_GROUP":"centos-6-5-minimal-install.v2.0.test","RUN_FIT_TEST":false,"RUN_CIT_TEST":true,"label":"os_centos_6.5"]
+                ALL_TESTS["FIT"]=["TEST_GROUP":"smoke-tests","RUN_FIT_TEST":true,"RUN_CIT_TEST":false,"label":"smoke_test"]
+                ALL_TESTS["CIT"]=["TEST_GROUP":"smoke-tests","RUN_FIT_TEST":false,"RUN_CIT_TEST":true,"label":"smoke_test"]
+                ALL_TESTS["Install Ubuntu 14.04"]=["TEST_GROUP":"ubuntu-minimal-install.v2.0.test","RUN_FIT_TEST":false,"RUN_CIT_TEST":true,"label":"os_install"]
+                ALL_TESTS["Install ESXI 6.0"]=["TEST_GROUP":"esxi-6-min-install.v2.0.test","RUN_FIT_TEST":false,"RUN_CIT_TEST":true,"label":"os_install"]
+                ALL_TESTS["Install Centos 6.5"]=["TEST_GROUP":"centos-6-5-minimal-install.v2.0.test","RUN_FIT_TEST":false,"RUN_CIT_TEST":true,"label":"os_install"]
 
                 def RUN_TESTS=[:]
                 // TESTS is a checkbox parameter. 

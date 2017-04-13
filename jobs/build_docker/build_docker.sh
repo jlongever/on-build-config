@@ -21,7 +21,7 @@ common_path=/var/renasar/on-http/static/http/common
 pxe_path=/var/renasar/on-tftp/static/tftp
 
 echo $SUDO_PASSWORD |sudo -S rm -rf /etc/apt/sources.list.d/rackhd.source.list
-echo "deb https://dl.bintray.com/rackhd-mirror/debian trusty main" | sudo tee -a /etc/apt/sources.list.d/rackhd.source.list
+echo "deb https://dl.bintray.com/$CI_BINTRAY_SUBJECT/debian trusty main" | sudo tee -a /etc/apt/sources.list.d/rackhd.source.list
 echo $SUDO_PASSWORD |sudo -S apt-get update
 echo $SUDO_PASSWORD |sudo -S apt-get --yes --force-yes remove on-imagebuilder
 echo $SUDO_PASSWORD |sudo -S apt-get --yes --force-yes install on-imagebuilder=$on_imagebuilder_version

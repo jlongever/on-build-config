@@ -16,7 +16,7 @@ node{
                 }
                 else{
                     sh '''
-                    echo "Please provider argument stash_manifest_path if you provided argument stash_manifest_name"
+                    echo "Please provide argument stash_manifest_path if you provided argument stash_manifest_name"
                     exit 1
                     '''
                 }
@@ -25,7 +25,7 @@ node{
                 stash name: "unittest_manifest", includes: "manifest"
                 prgate_unit_test.runTest("unittest_manifest", "manifest", repo_dir)
             } else{
-                error 'Please provide the manifest url or a stashed manifest'
+                error("Please provide the manifest url or a stashed manifest")
             }
 
         }catch(error){

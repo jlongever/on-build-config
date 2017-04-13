@@ -24,7 +24,7 @@ def setTestRepos(test_repos){
 }
 
 def unitTest(repo_name, used_resources){
-    def shareMethod = load(repo_dir + "/jobs/shareMethod.groovy")
+    def shareMethod = load(repo_dir + "/jobs/ShareMethod.groovy")
     def node_name = ""
     lock(label:label_name,quantity:1){
         node_name = shareMethod.occupyAvailableLockedResource(label_name, used_resources)
@@ -55,11 +55,7 @@ def unitTest(repo_name, used_resources){
                         failure_count = "${props.failures}".toInteger()
                     }
                     if (failure_count > 0){
-                        currentBuild.result = "SUCCESS"
-                        sh '''
-                        echo "There are failed test cases"
-                        exit 1
-                        '''
+                        error("There are failed test cases")
                     }
                 }
             }

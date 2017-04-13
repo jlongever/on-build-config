@@ -34,8 +34,7 @@ node{
     }
 
     if(failed_times > 0 && failed_times == retry_times){
-        echo "All Tests failed"
-        sh 'exit 1'
+        error("All Tests failed")
     }
  
     shareMethod.buildAndPublish()
