@@ -1,7 +1,7 @@
 def function_test(String test_name, String label_name, String TEST_GROUP, Boolean RUN_FIT_TEST, Boolean RUN_CIT_TEST, ArrayList<String> used_resources){
     def shareMethod = load("jobs/ShareMethod.groovy")
-    shareMethod.waitForFreeResource(label_name,1)
     lock(label:label_name,quantity:1){
+        def node_name = ""
         node_name = shareMethod.occupyAvailableLockedResource(label_name, used_resources)
         node(node_name){
             deleteDir()
@@ -64,8 +64,7 @@ def function_test(String test_name, String label_name, String TEST_GROUP, Boolea
                     } catch(error){
                         throw error
                     } finally{
-                        
-                        def artifact_dir = test_name.replaceAll(' ', '-')
+                        def artifact_dir = test_name.replaceAll(' ', '-') + "[$node_name]"
                         sh '''#!/bin/bash -x
                         mkdir '''+"$artifact_dir"+'''
                         ./build-config/post-deploy.sh

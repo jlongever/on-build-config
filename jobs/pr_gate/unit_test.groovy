@@ -15,10 +15,7 @@ node{
                     prgate_unit_test.runTest("${stash_manifest_name}", "${stash_manifest_path}", repo_dir)
                 }
                 else{
-                    sh '''
-                    echo "Please provide argument stash_manifest_path if you provided argument stash_manifest_name"
-                    exit 1
-                    '''
+                    error("Please provide argument stash_manifest_path if you provided argument stash_manifest_name")
                 }
             } else if("${MANIFEST_FILE_URL}" != null && "${MANIFEST_FILE_URL}" != "null"){
                 sh 'curl $MANIFEST_FILE_URL -o manifest'

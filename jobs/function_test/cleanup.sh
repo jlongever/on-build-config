@@ -1,4 +1,4 @@
-#!/bin/bash -ex
+#!/bin/bash -x
 
 export VCOMPUTE=("${NODE_NAME}-Rinjin1","${NODE_NAME}-Rinjin2","${NODE_NAME}-Quanta")
 VCOMPUTE="${VCOMPUTE}"
@@ -29,14 +29,12 @@ vagrantDestroy() {
 }
 
 virtualBoxDestroyAll() {
-  set +e
   for uuid in `vboxmanage list vms | awk '{print $2}' | tr -d '{}'`; do
     echo "shutting down vm ${uuid}"
     vboxmanage controlvm ${uuid} poweroff
     echo "deleting vm ${uuid}"
     vboxmanage unregistervm ${uuid}
   done
-  set -e
 }
 
 nodesDelete() {
