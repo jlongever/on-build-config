@@ -199,6 +199,11 @@ generateSolLog(){
         bash generate-sol-log.sh' > ${WORKSPACE}/sol.log &
 }
 
+generateSysLog(){
+  cd ${WORKSPACE}/RackHD/example
+  vagrant ssh -c 'dmesg > /home/vagrant/src/dmesg.log'
+  vagrant ssh -c 'cp /var/log/syslog /home/vagrant/src/syslog.log'
+}
 setupVirtualEnv(){
   pushd ${WORKSPACE}/RackHD/test
   rm -rf .venv/on-build-config
@@ -289,6 +294,8 @@ if [ "$RUN_CIT_TEST" == true ] || [ "$RUN_FIT_TEST" == true ] ; then
   generateSolLog
   # Run tests
   runTests
+
+  generateSysLog
 
   # Clean Up below
 
