@@ -1,6 +1,7 @@
 def function_test(String test_name, String label_name, String TEST_GROUP, Boolean RUN_FIT_TEST, Boolean RUN_CIT_TEST, ArrayList<String> used_resources){
     def shareMethod = load("jobs/shareMethod.groovy")
     lock(label:label_name,quantity:1){
+        def node_name = ""
         // The locked resources of the build
         def lock_resources=org.jenkins.plugins.lockableresources.LockableResourcesManager.class.get().getResourcesFromBuild(currentBuild.getRawBuild())
         // The locked resources of this step
@@ -77,8 +78,7 @@ def function_test(String test_name, String label_name, String TEST_GROUP, Boolea
                     } catch(error){
                         throw error
                     } finally{
-                        
-                        def artifact_dir = test_name.replaceAll(' ', '-')
+                        def artifact_dir = test_name.replaceAll(' ', '-') + "[$node_name]"
                         sh '''#!/bin/bash -x
                         mkdir '''+"$artifact_dir"+'''
                         ./build-config/post-deploy.sh
