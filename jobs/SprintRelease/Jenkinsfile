@@ -18,12 +18,14 @@ node{
     env.stash_manifest_path = "${manifest_name}"
 
     def repo_dir = pwd()
+    // Create an instance of UnitTest/UnitTest.groovy   
     def unit_test = load("jobs/UnitTest/UnitTest.groovy")
     def retry_times = Integer.valueOf(env.Test_Time);
     int failed_times = 0
     for (int i=0; i < retry_times; i++) {
         try{
             stage("Unit Test${i}"){
+                // Call the function runTest to run unit test
                 unit_test.runTest(env.stash_manifest_name, env.stash_manifest_path, repo_dir)
             }
 

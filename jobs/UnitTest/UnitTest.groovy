@@ -1,5 +1,8 @@
 import groovy.transform.Field;
 
+// It's a class for Unit Test
+// load will return a instance of the class
+
 String stash_manifest_name
 String stash_manifest_path
 String repo_dir
@@ -49,6 +52,7 @@ def unitTest(repo_name, used_resources){
                     --test-result-file xunit-reports/'''+"${repo_name}"+'''.xml  \
                     --parameters-file downstream_file
                     '''
+                    // Use downstream_file to pass environment variables from shell to groovy
                     int failure_count = 0
                     if(fileExists ("downstream_file")) {
                         def props = readProperties file: "downstream_file"

@@ -1,3 +1,5 @@
+// It's a class of pr gate unit test
+// It uses an instance of UnitTest to reuse function of UnitTest
 String stash_manifest_name
 String stash_manifest_path
 String repo_dir
@@ -22,6 +24,12 @@ def setTestRepos(){
         unstash "$stash_manifest_name"
     }
     env.MANIFEST_FILE_PATH = repo_dir + "/${this.stash_manifest_path}"
+
+    // Parse manifest to get the repositories which should run unit test
+    // For a PR of on-core, 
+    // the test_repos=["on-core", "on-tasks", "on-http", "on-taskgraph", "on-dhcp-proxy", "on-tftp", "on-syslog"]
+    // For an independent PR of on-http
+    // the test_repos=["on-http"]
     sh '''#!/bin/bash
     pushd ''' + "$repo_dir" + '''
     ./build-release-tools/HWIMO-BUILD ./build-release-tools/application/parse_manifest.py \

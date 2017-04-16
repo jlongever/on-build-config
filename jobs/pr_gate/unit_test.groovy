@@ -7,7 +7,7 @@ node{
         try{
             deleteDir()
             checkout scm
-
+            // Call UnitTest/PRGateUnitTest.groovy to run unit test
             def repo_dir = pwd()
             def prgate_unit_test = load("jobs/UnitTest/PRGateUnitTest.groovy")
             if("${stash_manifest_name}" != null && "${stash_manifest_name}" != "null"){
