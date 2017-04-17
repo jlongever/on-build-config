@@ -95,6 +95,8 @@ class DebianBuilder(object):
             version_path = os.path.abspath(os.path.join(path, version_file))
             if os.path.exists(version_path):
                 task['data']['env_file'] = version_path
+
+            print "[Info] Execute command {0} for repo {1}.".format( command_name, repo )
             tasks.append(task)
 
         return tasks

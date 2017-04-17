@@ -3,13 +3,11 @@ node(build_debian_node){
         withEnv([
             "MANIFEST_FILE_URL=${env.MANIFEST_FILE_URL}",
             "IS_OFFICIAL_RELEASE=${env.IS_OFFICIAL_RELEASE}",
-            "BINTRAY_SUBJECT=${env.BINTRAY_SUBJECT}",
-            "BINTRAY_REPO=debian",
-            "CI_BINTRAY_SUBJECT=${env.CI_BINTRAY_SUBJECT}",
-            "CI_BINTRAY_REPO=debian",
-            "BINTRAY_COMPONENT=main",
-            "BINTRAY_DISTRIBUTION=trusty", 
-            "BINTRAY_ARCHITECTURE=amd64"]) {
+            "ARTIFACTORY_URL=${env.ARTIFACTORY_URL}",
+            "STAGE_REPO_NAME=${env.STAGE_REPO_NAME}",
+            "DEB_COMPONENT=${env.DEB_COMPONENT}",
+            "DEB_DISTRIBUTION=trusty",
+            "DEB_ARCHITECTURE=amd64"]) {
             deleteDir()
             dir("on-build-config"){
                 checkout scm
@@ -17,6 +15,10 @@ node(build_debian_node){
 
             // credentials are binding to Jenkins Server
             withCredentials([
+                usernamePassword(credentialsId: 'MN_ARTIFACTORY_CRED',
+                                 passwordVariable: 'ARTIFACTORY_PWD',
+                                 usernameVariable: 'ARTIFACTORY_USR'),
+
                 usernameColonPassword(credentialsId: "ff7ab8d2-e678-41ef-a46b-dd0e780030e1", 
                                       variable: "SUDO_CREDS"),
                 usernameColonPassword(credentialsId: "a94afe79-82f5-495a-877c-183567c51e0b", 

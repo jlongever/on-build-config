@@ -1,6 +1,7 @@
 #!/bin/bash -e
 #download manifest
 curl --user $BINTRAY_CREDS -L "$MANIFEST_FILE_URL" -o rackhd-manifest
+echo using artifactory : $ARTIFACTORY_URL
 
 #clone
 ./build-config/build-release-tools/HWIMO-BUILD ./build-config/build-release-tools/application/reprove.py \

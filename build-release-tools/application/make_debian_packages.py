@@ -17,7 +17,11 @@ Usage:
 --is-official-release $IS_OFFICIAL_RELEASE \
 --bintray-credential BINTRAY_CREDS \
 --bintray-subject $BINTRAY_SUBJECT \
---bintray-repo $BINTRAY_REPO
+--bintray-repo $BINTRAY_REPO \
+--artifactory-repo $ARTIFACTORY_REPO \
+--artifactory-url  $ARTIFACTORY_URL\
+--artifactory-user $_username \
+--artifactory-password $_password
 
 The required parameters:
 build-directory: A directory where all the repositories are cloned to. 
@@ -47,6 +51,7 @@ try:
     from version_generator import VersionGenerator
     from DebianBuilder import DebianBuilder
     from PlatformClients import Bintray
+    from ArtifactoryTools  import JFrogArtifactory
     import common
 except ImportError as import_err:
     print import_err
@@ -111,6 +116,26 @@ def parse_args(args):
     parser.add_argument('--bintray-repo',
                         required=True,
                         help="the Bintary repository name",
+                        action='store')
+
+    parser.add_argument('--artifactory-url',
+                        required=True,
+                        help="the Artifactory URL",
+                        action='store')
+
+    parser.add_argument('--artifactory-repo',
+                        required=True,
+                        help="the Artifactory repository name",
+                        action='store')
+
+    parser.add_argument('--artifactory-username',
+                        required=True,
+                        help="the Artifactory Use Name",
+                        action='store')
+                       
+    parser.add_argument('--artifactory-password',
+                        required=True,
+                        help="the Artifactory repository password",
                         action='store')
 
     parsed_args = parser.parse_args(args)
@@ -253,22 +278,54 @@ def write_downstream_parameter_file(build_directory, manifest_file, is_official_
     except Exception, e:
         raise RuntimeError("Failed to write downstream parameter file \ndue to {0}".format(e))
 
-def create_packages_filter(bintray, build_directory, is_official_release):
+def create_packages_filter(bintray, artifactory, artifactory_repo_name, build_directory, is_official_release):
     # The filter will return True if the package of the version
-    # does not exist in bintray
+    # does not exist in bintray or does not exist in artifactory
     def package_not_exist(repo):
         try:
             repo_dir = os.path.join(build_directory, repo)
             version_generator = VersionGenerator(repo_dir)
             version = version_generator.generate_package_version(is_official_release)
             if version is None:
+                print "[Info]: Version can't be caculated for repo {0} in build directory {1}, package_not_exist() returns True.".format( repo, repo_dir )
                 return True
+
+            #WORKAROUND, the package of rackhd.deb in Bintray is named as "rackhd"
+            if repo == "RackHD" :
+                repo= "rackhd"
+
+            EXIST_IN_FINAL = False;
+            EXIST_IN_TEMP  = False;
+
+            # Check Final Bintray, repo is equal to package name
             version_object = bintray.get_package_version_object(repo, version)
             if version_object:
-                return False
+                print "[Info] {0} version {1} found cache version on Bintray. ".format( repo, version)
+                EXIST_IN_FINAL = True
+            else:
+                print "[Info] {0} version {1} no cache version available on Bintray. Do deb build.".format( repo, version)
+                EXIST_IN_FINAL = False;
+
+            #Check Temp Artifactory
+            EXIST_IN_TEMP = artifactory.is_version_exist( artifactory_repo_name , "deb", repo, version )
+            if EXIST_IN_TEMP :
+                print "[Info] {0} version {1} found cache version on Artifactory..".format( repo, version)
+            else:
+                print "[Info] {0} version {1} no cache version available on Artifactory. Do deb build.".format( repo, version)
+
+            # Treat package cache not found if either of package not exist in Final Bintray or Temp Artifactor Artifactory
+            if EXIST_IN_FINAL and EXIST_IN_TEMP :
+                print "[Info] {0} version {1} found cache version on both Artifactory and Bintray, Skip deb build..".format( repo, version)
+                return False;
+            else:
+                print "[Info] {0} version {1} no cache version on either Artifactory or Bintray, Do deb build..".format( repo, version)
+                return True;
+
+
         except Exception, e:
-            print "Failed to check the version {0} of {1} exists in bintray due to {2}".format(version, repo, e)
-        return True
+            print "[Info] Failed to check the version {0} of {1} exists in bintray due to {2}".format(version, repo, e)
+            print "[Info] {0} version {1} no cache version available on Bintray. Do deb build.".format( repo, version)
+            return True
 
     return package_not_exist
 
@@ -278,12 +335,18 @@ def main():
     Exit on encountering any error.
     """
     args = parse_args(sys.argv[1:])
+    # Bintray is the offical/final place to store the deb
     bintray = Bintray(args.bintray_credential, args.bintray_subject, args.bintray_repo)
+    # Artifactory is the staging/temp place to store the deb between deb-build and post-test steps
+    artifactory = JFrogArtifactory( user_cred=(args.artifactory_username, args.artifactory_password), artifactory_loc= args.artifactory_url)
 
     checkout_repos(args.manifest_file, args.build_directory, args.force, args.jobs, git_credential=args.git_credential)
     all_repos = get_build_repos(args.build_directory)
-    package_not_exist = create_packages_filter(bintray, args.build_directory, args.is_official_release)
+    package_not_exist = create_packages_filter(bintray, artifactory, args.artifactory_repo, args.build_directory, args.is_official_release)
     package_need_build_repos = filter(package_not_exist, all_repos)
+    package_need_build_repos.append('RackHD') # always rebuild rackhd.deb whenever cache hit or not. because any of on-xxx.deb change will require rackhd.deb being rebuild
+    for r in package_need_build_repos:
+        print "[Info] Repo {0} will run deb-build ".format( r )
 
     build_debian_packages(args.build_directory, args.jobs, args.is_official_release, args.sudo_credential, package_need_build_repos)
     write_downstream_parameter_file(args.build_directory, args.manifest_file, args.is_official_release, args.parameter_file)
