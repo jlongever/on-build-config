@@ -14,7 +14,7 @@ def checkout(String url){
     checkout(url, "master")
 }
 
-def getLockedResourceName(resources,label_name){
+def getLockedResourceName(resources,String label_name){
     // Get the resource name whose label contains the parameter label_name
     def resources_name=[]
     for(int i=0;i<resources.size();i++){
@@ -29,7 +29,7 @@ def getLockedResourceName(resources,label_name){
     return resources_name
 }
 
-def occupyAvailableLockedResource(label_name, used_resources){
+def occupyAvailableLockedResource(String label_name, ArrayList<String> used_resources){
     // The locked resources of the build
     def lock_resources=org.jenkins.plugins.lockableresources.LockableResourcesManager.class.get().getResourcesFromBuild(currentBuild.getRawBuild())
      // The locked resources whose label contains the parameter label_name
@@ -37,7 +37,7 @@ def occupyAvailableLockedResource(label_name, used_resources){
     def available_resources = resources - used_resources
     if(available_resources.size > 0){
         used_resources.add(available_resources[0])
-        resource_name = available_resources[0]
+        String resource_name = available_resources[0]
         return resource_name
     }
     else{

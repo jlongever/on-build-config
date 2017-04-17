@@ -24,6 +24,7 @@ node{
             archiveArtifacts 'manifest'
             stash name: 'manifest', includes: 'manifest'
             env.stash_manifest_name = "manifest"
+            env.stash_manifest_path = "manifest"
         }
     }
 }
