@@ -387,7 +387,6 @@ post_test_docker() {
             repo=${repo_tag%:*}
             sed -i "s#rackhd/${repo}.*#rackhd/${repo_tag}#g" docker-compose-mini.yml
         done
-        docker-compose -f docker-compose-mini.yml pull --ignore-pull-failures
         docker-compose -f docker-compose-mini.yml up -d
         mv docker-compose-mini.yml.bak docker-compose-mini.yml
         waitForAPI
