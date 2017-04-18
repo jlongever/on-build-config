@@ -1,6 +1,6 @@
 import groovy.transform.Field;
 
-// The default test config
+// The default test config: ALL_TESTS (a global variable)
 @Field def ALL_TESTS=[:]
 ALL_TESTS["FIT"]=["TEST_GROUP":"smoke-tests","RUN_FIT_TEST":true,"RUN_CIT_TEST":false,"label":"smoke_test"]
 ALL_TESTS["CIT"]=["TEST_GROUP":"smoke-tests","RUN_FIT_TEST":false,"RUN_CIT_TEST":true,"label":"smoke_test"]
@@ -92,7 +92,10 @@ def functionTest(String test_name, String label_name, String TEST_GROUP, Boolean
                                 cp RackHD/test/*.xml '''+"$artifact_dir" +'''
                             fi
                             '''
-
+                            // The test_name is an argument of the method, for example: CIT
+                            // It comes from the member variable: TESTS, for example: CIT.FIT
+                            // The function archiveArtifactsToTarget() will unstash the stashed files
+                            // according to the member variable: TESTS
                             stash name: "$test_name", includes: "$artifact_dir/*.*"
     
                             sh '''#!/bin/bash -x
@@ -159,6 +162,11 @@ def triggerTestsParallely(){
 }
 
 def archiveArtifactsToTarget(target){
+    // The function will archive artifacts to the target
+    // 1. Create a directory with name target and go to it
+    // 2. Unstash files according to the member variable: TESTS, for example: CIT.FIT
+    //    The function functionTest() will stash log files after run test specified in the TESTS
+    // 3. Archive the directory target
     try{
         List tests = Arrays.asList(this.TESTS.split(','))
         if(tests.size() > 0){

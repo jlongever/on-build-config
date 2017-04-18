@@ -27,6 +27,7 @@ def setTestRepos(test_repos){
 }
 
 def unitTest(repo_name, used_resources){
+    // repo_name comes from the global variable test_repos
     def shareMethod = load(repo_dir + "/jobs/ShareMethod.groovy")
     lock(label:label_name,quantity:1){
         String node_name = shareMethod.occupyAvailableLockedResource(label_name, used_resources)
@@ -42,6 +43,10 @@ def unitTest(repo_name, used_resources){
                     try{
                         sh "./build-config/jobs/UnitTest/unit_test.sh ${repo_name}"
                     } finally{
+                        // stash logs with the repo name which is the argument of the function ,for example: on-http
+                        // The repo_name comes from the global variable test_repos
+                        // The function archiveArtifactsToTarget() will unstash the stashed files
+                        // according to the global variable: test_repos
                         stash name: "$repo_name", includes: 'xunit-reports/*.xml'
                         junit 'xunit-reports/'+"${repo_name}.xml"
     
@@ -69,6 +74,11 @@ def unitTest(repo_name, used_resources){
 }
 
 def archiveArtifactsToTarget(target){
+    // The function will archive artifacts to the target
+    // 1. Create a directory with name target and go to it
+    // 2. Unstash files according to the global variable: test_repos, for example: ["on-http","on-core"]
+    //    The function unitTest() will stash log files after run test specified in the test_repos
+    // 3. Archive the directory target
     try{
         if(test_repos.size > 0){
             dir("$target"){
@@ -90,6 +100,7 @@ def runTest(String manifest_name, String manifest_path, String repo_dir){
     try{
         def used_resources=[]
         def test_branches = [:]
+        // test_repos is a global variable
         for(int i=0; i<test_repos.size; i++){
             def repo_name = test_repos.get(i)
             test_branches["${repo_name}"] = {
