@@ -1,22 +1,8 @@
 def function_test(String test_name, String label_name, String TEST_GROUP, Boolean RUN_FIT_TEST, Boolean RUN_CIT_TEST, ArrayList<String> used_resources){
-    def shareMethod = load("jobs/shareMethod.groovy")
+    def shareMethod = load("jobs/ShareMethod.groovy")
     lock(label:label_name,quantity:1){
         def node_name = ""
-        // The locked resources of the build
-        def lock_resources=org.jenkins.plugins.lockableresources.LockableResourcesManager.class.get().getResourcesFromBuild(currentBuild.getRawBuild())
-        // The locked resources of this step
-        resources = shareMethod.getLockedResourceName(lock_resources,label_name)
-        def available_resources = resources - used_resources
-        if(available_resources.size > 0){
-            used_resources.add(available_resources[0])
-            node_name = available_resources[0]
-        }
-        else{
-            sh '''
-            echo "There is no available resources for'''+"$label_name"+'''
-            exit 1
-            '''
-        }
+        node_name = shareMethod.occupyAvailableLockedResource(label_name, used_resources)
         node(node_name){
             deleteDir()
             dir("on-build-config"){
@@ -34,7 +20,7 @@ def function_test(String test_name, String label_name, String TEST_GROUP, Boolea
                 env.MANIFEST_FILE = "manifest"
             }
             else{
-                error 'Please provide the manifest url or a stashed manifest'
+                error("Please provide the manifest url or a stashed manifest")
             }
          
             // If the manifest file contains PR of on-http and RackHD, 
@@ -116,9 +102,7 @@ def function_test(String test_name, String label_name, String TEST_GROUP, Boolea
                             error_count = "${props.errors}".toInteger()
                         }
                         if (failure_count > 0 || error_count > 0){
-                            currentBuild.result = "SUCCESS"
-                            echo "there are failed test cases"
-                            sh 'exit 1'
+                            error("there are failed test cases")
                         }
                     }
                 }

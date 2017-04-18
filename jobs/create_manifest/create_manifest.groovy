@@ -28,10 +28,6 @@ node{
                 error("Failed because the manifest file url is not generated")
             }
         }
-
-        stash name: "manifest", includes: "${env.manifest_name}"
-        env.stash_manifest_name = 'manifest'
-        env.stash_manifest_path = "${env.manifest_name}"
     }
 }
 

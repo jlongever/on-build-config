@@ -55,7 +55,7 @@ node{
             load("build-config/jobs/function_test/function_test.groovy")
         }
     } finally{
-        def shareMethod = load("build-config/jobs/shareMethod.groovy")
+        def shareMethod = load("build-config/jobs/ShareMethod.groovy")
         shareMethod.sendResult(true,true)
     }
 }

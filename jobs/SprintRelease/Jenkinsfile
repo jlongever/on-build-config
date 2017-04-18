@@ -1,19 +1,35 @@
 node{
     deleteDir()
     checkout scm
+    def shareMethod = load("jobs/ShareMethod.groovy")
+
     if(TAG == "true"){
         stage("Create Tag"){
             load("jobs/SprintRelease/create_tag.groovy")
         }
     }
-    def manifest_name=env.MANIFEST_FILE_URL.tokenize('/')[-1];
-    currentBuild.description = "<a href=${env.MANIFEST_FILE_URL}>${manifest_name}</a>";
 
+    def manifest_name=env.MANIFEST_FILE_URL.tokenize('/')[-1]
+    currentBuild.description = "<a href=${env.MANIFEST_FILE_URL}>${manifest_name}</a>"
+
+    shareMethod.downloadManifest(env.MANIFEST_FILE_URL, manifest_name)
+    stash name: "sprint_release_manifest", includes: "${manifest_name}"
+    env.stash_manifest_name = "sprint_release_manifest"
+    env.stash_manifest_path = "${manifest_name}"
+
+    def repo_dir = pwd()
+    // Create an instance of UnitTest/UnitTest.groovy   
+    def unit_test = load("jobs/UnitTest/UnitTest.groovy")
     def retry_times = Integer.valueOf(env.Test_Time);
     int failed_times = 0
     for (int i=0; i < retry_times; i++) {
         try{
-            stage("Test${i}"){
+            stage("Unit Test${i}"){
+                // Call the function runTest to run unit test
+                unit_test.runTest(env.stash_manifest_name, env.stash_manifest_path, repo_dir)
+            }
+
+            stage("Function Test${i}"){
                 load("jobs/function_test/function_test.groovy")
             }
         } catch(error){
@@ -23,10 +39,8 @@ node{
     }
 
     if(failed_times > 0 && failed_times == retry_times){
-        echo "All Tests failed"
-        sh 'exit 1'
+        error("All Tests failed")
     }
 
-    def shareMethod = load("jobs/shareMethod.groovy")
     shareMethod.buildAndPublish()
 }
