@@ -2,27 +2,33 @@ node{
     deleteDir()
     def pull_id = env.ghprbPullLink.tokenize('/')[-1];
     currentBuild.description = "<a href=${env.ghprbPullLink}> PR #${pull_id}: ${ghprbPullTitle}</a>";
-    dir("Jenkinsfile_Library"){
-        checkout scm
-    }
+    checkout scm
+    def repo_dir = pwd()
+    def prgate_unit_test = load("jobs/UnitTest/PRGateUnitTest.groovy")
+    def function_test = load("jobs/FunctionTest/FunctionTest.groovy")
+
     try{
         stage("Parse Pull Request"){
-            load("Jenkinsfile_Library/jobs/pr_gate/pr_parser.groovy")
+            load("jobs/pr_gate/pr_parser.groovy")
         }
         stage("Unit Test"){
-            load("Jenkinsfile_Library/jobs/pr_gate/unit_test.groovy")
+            prgate_unit_test.runTest(env.stash_manifest_name, env.stash_manifest_path, repo_dir)
         }
         stage("Function Test"){
-            load("Jenkinsfile_Library/jobs/function_test/function_test.groovy")
+            // Start to run test
+            def TESTS = "${env.TESTS}"
+            function_test.run(TESTS, env.stash_manifest_name, env.stash_manifest_path, repo_dir)
         }
     } catch(error){
         echo "Caught: ${error}"    
         currentBuild.result = "FAILURE"
     } finally{
+        unit_test.archiveArtifactsToTarget("UnitTest")
+        function_test.archiveArtifactsToTarget("FunctionTest")
         stage("Write Back"){
-            load("Jenkinsfile_Library/jobs/write_back_github/write_back_github.groovy")
+            load("jobs/write_back_github/write_back_github.groovy")
         }
-        def shareMethod = load("Jenkinsfile_Library/jobs/ShareMethod.groovy")
+        def shareMethod = load("jobs/ShareMethod.groovy")
         shareMethod.sendResult(true,true)
     }
 }

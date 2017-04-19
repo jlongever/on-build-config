@@ -18,8 +18,11 @@ node{
     env.stash_manifest_path = "${manifest_name}"
 
     def repo_dir = pwd()
+    def TESTS = "${env.TESTS}"
     // Create an instance of UnitTest/UnitTest.groovy   
     def unit_test = load("jobs/UnitTest/UnitTest.groovy")
+    // Create an instance of FunctionTest/FunctionTest.groovy
+    def function_test = load("jobs/FunctionTest/FunctionTest.groovy")
     def retry_times = Integer.valueOf(env.Test_Time);
     int failed_times = 0
     for (int i=0; i < retry_times; i++) {
@@ -30,16 +33,22 @@ node{
             }
 
             stage("Function Test${i}"){
-                load("jobs/function_test/function_test.groovy")
+                function_test.run(TESTS, env.stash_manifest_name, env.stash_manifest_path, repo_dir)
             }
         } catch(error){
             echo "Caught: ${error}"
             failed_times += 1
+        } finally{
+            unit_test.archiveArtifactsToTarget("UnitTest${i}")
+            function_test.archiveArtifactsToTarget("FunctionTest${i}")
         }
     }
 
-    if(failed_times > 0 && failed_times == retry_times){
-        error("All Tests failed")
+    if(failed_times > 0){
+        currentBuild.result = "FAILURE"
+        if(failed_times == retry_times){
+            error("All Tests failed")
+        }
     }
 
     shareMethod.buildAndPublish()
