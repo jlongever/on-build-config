@@ -107,6 +107,8 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
         # Default value: false
         target.ssh.forward_agent = true
 
+        target.vm.provision "file", source: "./upgrade_packages.sh", destination: "upgrade_packages.sh"
+        target.vm.provision "file", source: "./blacklist_mongo.txt", destination: "blacklist_mongo.txt"
         target.vm.provision "shell", inline: <<-SHELL
           timeout=0
           maxto=30
@@ -124,6 +126,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
               exit 1
             fi
           }
+          /home/vagrant/upgrade_packages.sh > /home/vagrant/upgrade_packages.log
           service isc-dhcp-server start
           service rsyslog stop
           sudo service mongodb restart
