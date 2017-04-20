@@ -61,7 +61,7 @@ dlTftpFiles() {
 
 preparePackages() {
     pushd ${WORKSPACE}
-    ./on-build-config/build-release-tools/HWIMO-BUILD ./on-build-config/build-release-tools/application/reprove.py \
+    ./build-config/build-release-tools/HWIMO-BUILD ./build-config/build-release-tools/application/reprove.py \
     --manifest ${MANIFEST_FILE} \
     --builddir ${WORKSPACE}/build-deps \
     --jobs 8 \
@@ -75,16 +75,12 @@ preparePackages() {
         popd
     done
 
+
     cp -r build-deps/RackHD .
     if [ -d "build-deps/on-build-config" ]; then
-        cp -r build-deps/on-build-config build-config
-    else
-        cp -r on-build-config build-config
+      # on-build-config from manifest has high priority
+      cp -r build-deps/on-build-config build-config
     fi
-    pushd build-config
-    ./build-config
-    popd
-
     popd
 }
 
@@ -103,9 +99,21 @@ fi
 nodesDelete() {
   cd ${WORKSPACE}/build-config/deployment/
   if [ "${USE_VCOMPUTE}" != "false" ]; then
+    if [ $TEST_TYPE == "ova" ]; then
+      VCOMPUTE+=("${NODE_NAME}-ova-for-post-test")
+    fi
     for i in ${VCOMPUTE[@]}; do
       ./vm_control.sh "${ESXI_HOST},${ESXI_USER},${ESXI_PASS},delete,1,${i}_*"
     done
+  fi
+}
+
+cleanupENVProcess() {
+  # Kill possible socat process left by ova-post-smoke-test
+  # eliminate the effect to other test
+  socat_process=`ps -ef | grep socat | grep -v grep | awk '{print $2}' | xargs`
+  if [ -n "$socat_process" ]; then
+    kill $socat_process
   fi
 }
 
@@ -113,5 +121,6 @@ if [ "$SKIP_PREP_DEP" == false ] ; then
   # Prepare the latest dependent repos to be shared with vagrant
   prepareDeps
   nodesDelete
+  cleanupENVProcess
 fi
 

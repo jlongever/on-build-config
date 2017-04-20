@@ -40,11 +40,24 @@ virtualBoxDestroyAll() {
 nodesDelete() {
   cd ${WORKSPACE}/build-config/deployment/
   if [ "${USE_VCOMPUTE}" != "false" ]; then
+    if [ $TEST_TYPE == "ova" ]; then
+      VCOMPUTE+=("${NODE_NAME}-ova-for-post-test")
+    fi
     for i in ${VCOMPUTE[@]}; do
       ./vm_control.sh "${ESXI_HOST},${ESXI_USER},${ESXI_PASS},delete,1,${i}_*"
     done
   fi
 }
 
+cleanupENVProcess() {
+  # Kill possible socat process left by ova-post-smoke-test
+  # eliminate the effect to other test
+  socat_process=`ps -ef | grep socat | grep -v grep | awk '{print $2}' | xargs`
+  if [ -n "$socat_process" ]; then
+    kill $socat_process
+  fi
+}
+
 cleanupVMs
 nodesDelete
+cleanupENVProcess

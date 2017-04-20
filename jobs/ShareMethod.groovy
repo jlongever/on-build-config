@@ -84,7 +84,7 @@ def buildAndPublish(){
         stage("Post Test"){
             parallel 'vagrant post test':{
                 load("jobs/build_vagrant/vagrant_post_test.groovy")
-            }, 'ova post test':{
+            }, 'ova post test loader':{
                 load("jobs/build_ova/ova_post_test.groovy")
             }, 'docker post test':{
                 load("jobs/build_docker/docker_post_test.groovy")

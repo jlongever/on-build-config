@@ -29,7 +29,7 @@ node{
             }
             stage("Function Test"){
                 // Call the function run to run function test
-                function_test.run(TESTS, env.stash_manifest_name, env.stash_manifest_path, repo_dir)
+                function_test.manifestTest(TESTS, env.stash_manifest_name, env.stash_manifest_path, repo_dir)
             }
         } finally{
             unit_test.archiveArtifactsToTarget("UnitTest")

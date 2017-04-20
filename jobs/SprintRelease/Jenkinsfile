@@ -56,7 +56,7 @@ node{
                 }
 
                 stage("Function Test${i}"){
-                    function_test.run(TESTS, env.stash_manifest_name, env.stash_manifest_path, repo_dir)
+                    function_test.manifestTest(TESTS, env.stash_manifest_name, env.stash_manifest_path, repo_dir)
                 }
             } catch(error){
                 echo "Caught: ${error}"
