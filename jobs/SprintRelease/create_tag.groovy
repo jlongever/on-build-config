@@ -3,8 +3,6 @@ node{
         "tag_name=${tag_name}",
         "JUMP_VERSION=${JUMP_VERSION}",
         "IS_OFFICIAL_RELEASE=${env.IS_OFFICIAL_RELEASE}",
-        "GITHUB_USERNAME=${env.GITHUB_USERNAME}",
-        "GITHUB_PASSWORD=${env.GITHUB_PASSWORD}",
         "BINTRAY_SUBJECT=${env.BINTRAY_SUBJECT}",
         "BINTRAY_REPO=binary"])
     {
