@@ -17,7 +17,7 @@ node{
         stage("Function Test"){
             // Start to run test
             def TESTS = "${env.TESTS}"
-            function_test.run(TESTS, env.stash_manifest_name, env.stash_manifest_path, repo_dir)
+            function_test.manifestTest(TESTS, env.stash_manifest_name, env.stash_manifest_path, repo_dir)
         }
     } catch(error){
         echo "Caught: ${error}"    

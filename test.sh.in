@@ -119,6 +119,9 @@ nodesOn() {
 nodesDelete() {
   cd ${WORKSPACE}/build-config/deployment/
   if [ "${USE_VCOMPUTE}" != "false" ]; then
+    if [ ${OVA_POST_TEST} == "true" ]; then
+      VCOMPUTE+=("${NODE_NAME}-ova-for-post-test")
+    fi
     for i in ${VCOMPUTE[@]}; do
       ./vm_control.sh "${ESXI_HOST},${ESXI_USER},${ESXI_PASS},delete,1,${i}_*"
     done
@@ -271,36 +274,106 @@ waitForAPI() {
   fi
 }
 
+######################################
+#    OVA POST SMOKE TEST RELATED     #
+######################################
+portForwarding(){
+    # forward ova to localhost
+    # according to vagrant/mongo/config.json and cit/fit config
+    socat TCP4-LISTEN:9091,forever,reuseaddr,fork TCP4:${OVA_INTERNAL_IP}:5672 &
+    socat TCP4-LISTEN:9090,forever,reuseaddr,fork TCP4:${OVA_INTERNAL_IP}:8080 &
+    socat TCP4-LISTEN:9092,forever,reuseaddr,fork TCP4:${OVA_INTERNAL_IP}:9080 &
+    socat TCP4-LISTEN:9093,forever,reuseaddr,fork TCP4:${OVA_INTERNAL_IP}:8443 &
+    socat TCP4-LISTEN:2222,forever,reuseaddr,fork TCP4:${OVA_INTERNAL_IP}:22 &
+    echo "Finished ova -> localhost port forwarding"
+    echo "5672->9091"
+    echo "8080->9090"
+    echo "9080->9092"
+    echo "8443->9093"
+    echo "22->2222"
+}
+
+fetchOVALog(){
+    ansible_workspace=${WORKSPACE}/build-config/jobs/build_ova/ansible
+    # fetch rackhd log
+    pushd $ansible_workspace
+      echo "ova-post-test ansible_host=$OVA_INTERNAL_IP ansible_user=$OVA_USER ansible_ssh_pass=$OVA_PASSWORD ansible_become_pass=$OVA_PASSWORD" > hosts
+      ansible-playbook -i hosts main.yml --tags "after-test"
+      mkdir -p ${WORKSPACE}/build-deps
+      for log in `ls *.log | xargs` ; do
+        cp $log ${WORKSPACE}/build-deps
+      done
+    popd
+}
+
+######################################
+#  OVA POST SMOKE TEST RELATED END   #
+######################################
+
 if [ "$RUN_CIT_TEST" == true ] || [ "$RUN_FIT_TEST" == true ] ; then
+  if [ "$TEST_TYPE" == "ova" ]; then
+    # based on the assumption that in the same folder, the VMs has been exist normally. so don't destroy VM here.
+    
+    nodesCreate
+    
+    # Prepare RackHD
+    # Forward local host port to ova
+    portForwarding
 
-  # register the signal handler to clean up( vagrantDestroy ), with process being killed
-  trap cleanupVMs SIGINT SIGTERM SIGKILL
-  cleanupVMs
+    # We setup the virtual-environment here, since once we
+    # call "nodesOn", it's a race to get to the first test
+    # before the nodes get booted far enough to start being
+    # seen by RackHD. Logically, it would be better IN runTests.
+    # We do it between the vagrant and waitForAPI to use the
+    # time to make the env instead of doing sleeps...
+    setupVirtualEnv
+    waitForAPI
+    nodesOn &
+    # Doesn't support ova smoke test now
+    # generateSolLog
+    # Run tests
+    runTests
+    # exit venv
+    deactivate
 
-  # based on the assumption that in the same folder, the VMs has been exist normally. so don't destroy VM here.
-  
-  nodesCreate
-  # Power on vagrant box and nodes 
-  vagrantUp
-  # We setup the virtual-environment here, since once we
-  # call "nodesOn", it's a race to get to the first test
-  # before the nodes get booted far enough to start being
-  # seen by RackHD. Logically, it would be better IN runTests.
-  # We do it between the vagrant and waitForAPI to use the
-  # time to make the env instead of doing sleeps...
-  setupVirtualEnv
-  waitForAPI
-  nodesOn &
-  generateSolLog
-  # Run tests
-  runTests
+    # Remedial work
+    # Specific remedial work
+    fetchOVALog
 
-  generateSysLog
+    # Clean Up below
 
-  # Clean Up below
+    #shutdown vagrant box and delete all resource (like removing vm disk files in "~/VirtualBox VMs/")
+    cleanupVMs
+    nodesDelete
+  else
+    # register the signal handler to clean up( vagrantDestroy ), with process being killed
+    trap cleanupVMs SIGINT SIGTERM SIGKILL
+    cleanupVMs
 
-  #shutdown vagrant box and delete all resource (like removing vm disk files in "~/VirtualBox VMs/")
-  cleanupVMs
-  nodesDelete
+    # based on the assumption that in the same folder, the VMs has been exist normally. so don't destroy VM here.
+    
+    nodesCreate
+    # Power on vagrant box and nodes 
+    vagrantUp
+    # We setup the virtual-environment here, since once we
+    # call "nodesOn", it's a race to get to the first test
+    # before the nodes get booted far enough to start being
+    # seen by RackHD. Logically, it would be better IN runTests.
+    # We do it between the vagrant and waitForAPI to use the
+    # time to make the env instead of doing sleeps...
+    setupVirtualEnv
+    waitForAPI
+    nodesOn &
+    # Run tests
+    runTests
+
+    generateSysLog
+
+    # Clean Up below
+
+    #shutdown vagrant box and delete all resource (like removing vm disk files in "~/VirtualBox VMs/")
+    cleanupVMs
+    nodesDelete
+  fi
 
 fi
