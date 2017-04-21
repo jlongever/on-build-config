@@ -9,3 +9,13 @@ isofarm_path: "{{ lookup('env','ISOFARM_PATH') }}"
 isofarm_src: "{{ lookup('env','ISOFARM_SRC') }}"
 isofarm_fstype: "{{ lookup('env','ISOFARM_FSTYPE') }}"
 isofarm_mount_opts: "{{ lookup('env','ISOFARM_MOUNT_OPTS') }}"
+
+# vars for as gateway
+EXTIF: "{{ lookup('env','EXTIF') }}"
+INTIF: "{{ lookup('env','INTIF') }}"
+
+# docker vmslave user name
+user_name: "{{ lookup('env','USER_NAME') }}"
+
+# docker compose bin file url
+docker_compose_bin: "{{ lookup('env','DOCKER_COMPOSE_BIN') }}"

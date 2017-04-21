@@ -1,0 +1,10 @@
+---
+- hosts: deb
+  roles:
+    - replace-apt-source
+    - for-jenkins-connection
+    - install-fundamental-tools
+    - install-package-for-build
+    - install-rackhd-dependency
+    - install-python-tools
+    - install-ansible

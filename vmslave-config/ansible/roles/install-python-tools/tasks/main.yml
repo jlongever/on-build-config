@@ -1,0 +1,10 @@
+- name: Install pip
+  become: true
+  apt: name=python-pip state=present
+
+- name: Install python tools
+  become: true
+  pip: name={{item}} state=present
+  with_items:
+    - virtualenv
+    - ansi2html

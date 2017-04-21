@@ -10,3 +10,14 @@ isofarm_path: /home/jenkins/isofarm
 isofarm_src: //**.**.**.**/isofarm
 isofarm_fstype: cifs
 isofarm_mount_opts: ro,username=***,password=***
+
+# vars for as gateway
+EXTIF: eth0
+EXTIP: **.**.**.**
+INTIF: eth1
+
+# docker vmslave user name
+user_name: jenkins
+
+# docker compose bin file url
+docker_compose_bin: https://github.com/docker/compose/releases/download/1.11.2/docker-compose-Linux-x86_64

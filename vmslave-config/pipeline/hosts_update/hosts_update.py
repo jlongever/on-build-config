@@ -57,7 +57,7 @@ class JenkinsSlaveHostsGenerator():
             hosts_text += "[{0}]\n".format(label)
             for host in hosts_list:
                 # hosts items
-                hosts_text += "{0} ansible_host={1} {2}\n".format(host[0], host[1], self.extra_text)
+                hosts_text += "{0} ansible_host={1} {2}\n".format(host[0].replace(" ",""), host[1], self.extra_text)
             # end a group(label)
             hosts_text += "\n"
 
