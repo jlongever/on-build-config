@@ -224,19 +224,19 @@ def archiveArtifactsToTarget(target){
     // 2. Unstash files according to the member variable: TESTS, for example: CIT.FIT
     //    The function functionTest() will stash log files after run test specified in the TESTS
     // 3. Archive the directory target
-    try{
-        List tests = Arrays.asList(this.TESTS.split(','))
-        if(tests.size() > 0){
-            dir("$target"){
-                for(int i=0;i<tests.size();i++){
+    List tests = Arrays.asList(this.TESTS.split(','))
+    if(tests.size() > 0){
+        dir("$target"){
+            for(int i=0;i<tests.size();i++){
+                try{
                     def test_name = tests[i]
                     unstash "$test_name"
+                } catch(error){
+                    echo "[WARNING]Caught error during archive artifact of function test: ${error}"
                 }
             }
-            archiveArtifacts "${target}/*.*, ${target}/**/*.*"
         }
-    } catch(error){
-        echo "[WARNING]Caught error during archive artifact of function test: ${error}"
+        archiveArtifacts "${target}/*.*, ${target}/**/*.*"
     }
 }
 
