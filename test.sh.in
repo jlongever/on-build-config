@@ -364,9 +364,9 @@ if [ "$RUN_CIT_TEST" == true ] || [ "$RUN_FIT_TEST" == true ] ; then
     setupVirtualEnv
     waitForAPI
     nodesOn &
+    generateSolLog
     # Run tests
     runTests
-
     generateSysLog
 
     # Clean Up below
