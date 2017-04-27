@@ -4,7 +4,6 @@ node{
         "branch=${env.branch}",
         "date=current",
         "timezone=-0500",
-        "MANIFEST_FILE_URL=${env.MANIFEST_FILE_URL}",
         "IS_OFFICIAL_RELEASE=true",
         "TAG=${env.TAG}",
         "JUMP_VERSION=${env.JUMP_VERSION}",
@@ -23,7 +22,11 @@ node{
         checkout scm
         def shareMethod = load("jobs/ShareMethod.groovy")
         try{
-            if("${MANIFEST_FILE_URL}" == null || "${MANIFEST_FILE_URL}" == "null" || "${MANIFEST_FILE_URL}" == ""){
+            stage("Check JIRA"){
+                load("jobs/SprintRelease/check_jira.groovy")
+            }
+
+            if("${env.MANIFEST_FILE_URL}" == null || "${env.MANIFEST_FILE_URL}" == "null" || "${env.MANIFEST_FILE_URL}" == ""){
                 stage("Create Manifest"){
                     load("jobs/create_manifest/create_manifest.groovy")
                 }
