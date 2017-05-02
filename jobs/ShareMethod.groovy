@@ -14,8 +14,10 @@ def checkout(String url){
     checkout(url, "master")
 }
 
-def getLockedResourceName(resources,String label_name){
+def getLockedResourceName(String label_name){
     // Get the resource name whose label contains the parameter label_name
+    // The locked resources of the build
+    def resources=org.jenkins.plugins.lockableresources.LockableResourcesManager.class.get().getResourcesFromBuild(currentBuild.getRawBuild())
     def resources_name=[]
     for(int i=0;i<resources.size();i++){
         String labels = resources[i].getLabels();
@@ -30,10 +32,8 @@ def getLockedResourceName(resources,String label_name){
 }
 
 def occupyAvailableLockedResource(String label_name, ArrayList<String> used_resources){
-    // The locked resources of the build
-    def lock_resources=org.jenkins.plugins.lockableresources.LockableResourcesManager.class.get().getResourcesFromBuild(currentBuild.getRawBuild())
      // The locked resources whose label contains the parameter label_name
-    resources = getLockedResourceName(lock_resources,label_name)
+    resources = getLockedResourceName(label_name)
     def available_resources = resources - used_resources
     if(available_resources.size > 0){
         used_resources.add(available_resources[0])
@@ -55,8 +55,7 @@ def buildAndPublish(){
     }
     // lock a docker resource from build to release
     lock(label:"docker",quantity:1){
-        def lock_resources=org.jenkins.plugins.lockableresources.LockableResourcesManager.class.get().getResourcesFromBuild(currentBuild.getRawBuild())       
-        docker_resources_name = getLockedResourceName(lock_resources,"docker")
+        docker_resources_name = getLockedResourceName("docker")
         if(docker_resources_name.size>0){
             env.build_docker_node = docker_resources_name[0]
         }
