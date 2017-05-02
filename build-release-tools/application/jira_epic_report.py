@@ -16,8 +16,8 @@ class JIRAOperator(object):
         issues = self.__jira.search_issues(sql_str)
         return issues
 
-    def search_open_bugs_by_priority(self, project, priority):
-        JQL_str="project in ({0}) and issuetype = Bug and status not in (done) and priority = {1}".format(project, priority)
+    def search_open_bugs_by_priority(self, project, priority, end_status="done"):
+        JQL_str="project in ({0}) and issuetype = Bug and status not in ({1}) and priority = {2}".format(project, end_status, priority)
         return self.search_issues(JQL_str)
 
 def parse_command_line(args):
@@ -53,6 +53,8 @@ def main():
     report = {}
     p1_bugs = jira_operator.search_open_bugs_by_priority("RACKHD", "P1")
     report["P1_ISSUES_COUNT"] = len(p1_bugs)
+
+    # Create a java properties file to pass down parameters to downstream pipeline steps
     common.write_parameters(args.parameters_file, report)
 
 if __name__ == "__main__":
