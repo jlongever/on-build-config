@@ -85,7 +85,7 @@ def buildImages(String repo_dir){
     }
 }
 
-def publish(String repo_dir){
+def publishImages(String repo_dir){
     stage("Publish"){
         parallel 'Publish Debian':{
             load(repo_dir + "/jobs/release/release_debian.groovy")
@@ -125,7 +125,7 @@ def buildAndPublish(Boolean publish, Boolean tag, String repo_dir){
             createTag(repo_dir)
         }
         if(publish){
-            publish(repo_dir)
+            publishImages(repo_dir)
         }
     }
 }
