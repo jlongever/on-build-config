@@ -1,55 +1,74 @@
 node{
-    deleteDir()
-    checkout scm
-    def shareMethod = load("jobs/ShareMethod.groovy")
-
-    if(TAG == "true"){
-        stage("Create Tag"){
-            load("jobs/SprintRelease/create_tag.groovy")
-        }
-    }
-
-    def manifest_name=env.MANIFEST_FILE_URL.tokenize('/')[-1]
-    currentBuild.description = "<a href=${env.MANIFEST_FILE_URL}>${manifest_name}</a>"
-
-    shareMethod.downloadManifest(env.MANIFEST_FILE_URL, manifest_name)
-    stash name: "sprint_release_manifest", includes: "${manifest_name}"
-    env.stash_manifest_name = "sprint_release_manifest"
-    env.stash_manifest_path = "${manifest_name}"
-
-    def repo_dir = pwd()
-    def TESTS = "${env.TESTS}"
-    // Create an instance of UnitTest/UnitTest.groovy   
-    def unit_test = load("jobs/UnitTest/UnitTest.groovy")
-    // Create an instance of FunctionTest/FunctionTest.groovy
-    def function_test = load("jobs/FunctionTest/FunctionTest.groovy")
-    def retry_times = Integer.valueOf(env.Test_Time);
-    int failed_times = 0
-    for (int i=0; i < retry_times; i++) {
+    withEnv([
+        "tag_name=${env.tag_name}",
+        "branch=${env.branch}",
+        "date=current",
+        "timezone=-0500",
+        "IS_OFFICIAL_RELEASE=true",
+        "TAG=${env.TAG}",
+        "JUMP_VERSION=${env.JUMP_VERSION}",
+        "PUBLISH=${env.PUBLISH}",
+        "TESTS=${env.TESTS}",
+        "OVA_POST_TESTS=${env.OVA_POST_TESTS}",
+        "HTTP_STATIC_FILES=${env.HTTP_STATIC_FILES}",
+        "TFTP_STATIC_FILES=${env.TFTP_STATIC_FILES}",
+        "USE_VCOMPUTE=${env.USE_VCOMPUTE}",
+        "OS_VER=${env.OS_VER}",
+        "BINTRAY_SUBJECT=${env.BINTRAY_SUBJECT}",
+        "CI_BINTRAY_SUBJECT=${env.CI_BINTRAY_SUBJECT}",
+        "BINTRAY_REPO=binary"])
+    {
+        deleteDir()
+        checkout scm
+        def shareMethod = load("jobs/ShareMethod.groovy")
         try{
-            stage("Unit Test${i}"){
-                // Call the function runTest to run unit test
-                unit_test.runTest(env.stash_manifest_name, env.stash_manifest_path, repo_dir)
+            stage("Check JIRA"){
+                load("jobs/SprintRelease/check_jira.groovy")
             }
 
-            stage("Function Test${i}"){
-                function_test.manifestTest(TESTS, env.stash_manifest_name, env.stash_manifest_path, repo_dir)
+            if("${env.MANIFEST_FILE_URL}" == null || "${env.MANIFEST_FILE_URL}" == "null" || "${env.MANIFEST_FILE_URL}" == ""){
+                stage("Create Manifest"){
+                    load("jobs/create_manifest/create_manifest.groovy")
+                }
             }
-        } catch(error){
-            echo "Caught: ${error}"
-            failed_times += 1
+
+            if(JUMP_VERSION == "true"){
+                load("jobs/SprintRelease/bump_version.groovy")
+            }
+
+            def manifest_name=env.MANIFEST_FILE_URL.tokenize('/')[-1]
+            currentBuild.description = "<a href=${env.MANIFEST_FILE_URL}>${manifest_name}</a>"
+
+            shareMethod.downloadManifest(env.MANIFEST_FILE_URL, manifest_name)
+            stash name: "sprint_release_manifest", includes: "${manifest_name}"
+            env.stash_manifest_name = "sprint_release_manifest"
+            env.stash_manifest_path = "${manifest_name}"
+
+            def repo_dir = pwd()
+            def TESTS = "${env.TESTS}"
+            // Create an instance of UnitTest/UnitTest.groovy   
+            def unit_test = load("jobs/UnitTest/UnitTest.groovy")
+            // Create an instance of FunctionTest/FunctionTest.groovy
+            def function_test = load("jobs/FunctionTest/FunctionTest.groovy")
+            try{
+                stage("Unit Test"){
+                    // Call the function runTest to run unit test
+                    unit_test.runTest(env.stash_manifest_name, env.stash_manifest_path, repo_dir)
+                }
+                stage("Function Test"){
+                    // Call the function run to run function test
+                    function_test.manifestTest(TESTS, env.stash_manifest_name, env.stash_manifest_path, repo_dir)
+                }
+            } finally{
+                unit_test.archiveArtifactsToTarget("UnitTest")
+                function_test.archiveArtifactsToTarget("FunctionTest")
+            }
+            Boolean create_tag = TAG.toBoolean()
+            Boolean publish = PUBLISH.toBoolean()
+            shareMethod.buildAndPublish(publish, create_tag, repo_dir)
         } finally{
-            unit_test.archiveArtifactsToTarget("UnitTest${i}")
-            function_test.archiveArtifactsToTarget("FunctionTest${i}")
+            shareMethod.sendResult(true, true)
         }
     }
-
-    if(failed_times > 0){
-        currentBuild.result = "FAILURE"
-        if(failed_times == retry_times){
-            error("All Tests failed")
-        }
-    }
-
-    shareMethod.buildAndPublish()
 }
+

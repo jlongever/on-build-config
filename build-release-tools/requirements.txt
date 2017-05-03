@@ -5,3 +5,5 @@ deb_pkg_tools
 python-dateutil
 requests
 PyGithub
+pyparsing
+JIRA
