@@ -1,42 +1,60 @@
 node{
-    deleteDir()
-    checkout scm
-    def shareMethod = load("jobs/ShareMethod.groovy")
-    try{
-        stage("Create Manifest"){
-            load("jobs/create_manifest/create_manifest.groovy")
-        }
-        def manifest_name=env.MANIFEST_FILE_URL.tokenize('/')[-1];
-        currentBuild.description = "<a href=${env.MANIFEST_FILE_URL}>${manifest_name}</a>";
- 
-        shareMethod.downloadManifest(env.MANIFEST_FILE_URL, manifest_name)
-
-        stash name: "masterci_manifest", includes: "${manifest_name}"
-        env.stash_manifest_name = "masterci_manifest"
-        env.stash_manifest_path = "${manifest_name}"
-
-        def repo_dir = pwd()
-        def TESTS = "${env.TESTS}"
-        // Create an instance of UnitTest/UnitTest.groovy
-        def unit_test = load("jobs/UnitTest/UnitTest.groovy")
-        // Create an instance of FunctionTest/FunctionTest.groovy
-        def function_test = load("jobs/FunctionTest/FunctionTest.groovy")
-
+    withEnv([
+        "branch=${env.branch}",
+        "IS_OFFICIAL_RELEASE=false",
+        "date=current",
+        "timezone=-0500",
+        "OS_VER=${env.OS_VER}",
+        "TFTP_STATIC_FILES=${env.TFTP_STATIC_FILES}",
+        "HTTP_STATIC_FILES=${env.HTTP_STATIC_FILES}",
+        "USE_VCOMPUTE=${env.USE_VCOMPUTE}",
+        "TESTS=${env.TESTS}",
+        "OVA_POST_TESTS=${env.OVA_POST_TESTS}",
+        "BINTRAY_SUBJECT=${env.BINTRAY_SUBJECT}",
+        "CI_BINTRAY_SUBJECT=${env.CI_BINTRAY_SUBJECT}",
+        "PUBLISH=${env.PUBLISH}"
+    ]){
+        deleteDir()
+        checkout scm
+        def shareMethod = load("jobs/ShareMethod.groovy")
         try{
-            stage("Unit Test"){
-                // Call the function runTest to run unit test
-                unit_test.runTest(env.stash_manifest_name, env.stash_manifest_path, repo_dir)
+            stage("Create Manifest"){
+                load("jobs/create_manifest/create_manifest.groovy")
             }
-            stage("Function Test"){
-                // Call the function run to run function test
-                function_test.manifestTest(TESTS, env.stash_manifest_name, env.stash_manifest_path, repo_dir)
+            def manifest_name=env.MANIFEST_FILE_URL.tokenize('/')[-1];
+            currentBuild.description = "<a href=${env.MANIFEST_FILE_URL}>${manifest_name}</a>";
+ 
+            shareMethod.downloadManifest(env.MANIFEST_FILE_URL, manifest_name)
+
+            stash name: "masterci_manifest", includes: "${manifest_name}"
+            env.stash_manifest_name = "masterci_manifest"
+            env.stash_manifest_path = "${manifest_name}"
+
+            def repo_dir = pwd()
+            def TESTS = "${env.TESTS}"
+            // Create an instance of UnitTest/UnitTest.groovy
+            def unit_test = load("jobs/UnitTest/UnitTest.groovy")
+            // Create an instance of FunctionTest/FunctionTest.groovy
+            def function_test = load("jobs/FunctionTest/FunctionTest.groovy")
+
+            try{
+                stage("Unit Test"){
+                    // Call the function runTest to run unit test
+                    unit_test.runTest(env.stash_manifest_name, env.stash_manifest_path, repo_dir)
+                }
+                stage("Function Test"){
+                    // Call the function run to run function test
+                    function_test.manifestTest(TESTS, env.stash_manifest_name, env.stash_manifest_path, repo_dir)
+                }
+            } finally{
+                unit_test.archiveArtifactsToTarget("UnitTest")
+                function_test.archiveArtifactsToTarget("FunctionTest")
             }
+            Boolean create_tag = false
+            Boolean publish = PUBLISH.toBoolean()
+            shareMethod.buildAndPublish(publish, create_tag, repo_dir)
         } finally{
-            unit_test.archiveArtifactsToTarget("UnitTest")
-            function_test.archiveArtifactsToTarget("FunctionTest")
+            shareMethod.sendResult(true, true)
         }
-        shareMethod.buildAndPublish()
-    } finally{
-        shareMethod.sendResult(true, true)
     }
 }

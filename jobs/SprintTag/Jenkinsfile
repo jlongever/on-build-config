@@ -48,6 +48,7 @@ node{
             error("All Tests failed")
         }
     }
- 
-    shareMethod.buildAndPublish()
+    Boolean create_tag = false
+    Boolean publish = true
+    shareMethod.buildAndPublish(publish, create_tag, repo_dir)
 }

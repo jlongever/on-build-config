@@ -45,14 +45,68 @@ def occupyAvailableLockedResource(String label_name, ArrayList<String> used_reso
     }
 }
 
-def buildAndPublish(){
-    // retry times for package build and images build to avoid failing caused by network
+def buildPackage(String repo_dir){
+    // retry times for package build to avoid failing caused by network
     int retry_times = 3
     stage("Packages Build"){
         retry(retry_times){
-            load("jobs/build_debian/build_debian.groovy")
+            load(repo_dir + "/jobs/build_debian/build_debian.groovy")
         }
     }
+}
+
+def buildImages(String repo_dir){
+    // retry times for images build to avoid failing caused by network
+    int retry_times = 3
+    stage("Images Build"){
+        parallel 'vagrant build':{
+            retry(retry_times){
+                load(repo_dir + "/jobs/build_vagrant/build_vagrant.groovy")
+            }
+        }, 'ova build':{
+            retry(retry_times){
+                load(repo_dir + "/jobs/build_ova/build_ova.groovy")
+            }
+        }, 'build docker':{
+            retry(retry_times){
+                load(repo_dir + "/jobs/build_docker/build_docker.groovy")
+            }
+        }
+    }
+
+    stage("Post Test"){
+        parallel 'vagrant post test':{
+            load(repo_dir + "/jobs/build_vagrant/vagrant_post_test.groovy")
+        }, 'ova post test loader':{
+            load(repo_dir + "/jobs/build_ova/ova_post_test.groovy")
+        }, 'docker post test':{
+            load(repo_dir + "/jobs/build_docker/docker_post_test.groovy")
+        }
+    }
+}
+
+def publishImages(String repo_dir){
+    stage("Publish"){
+        parallel 'Publish Debian':{
+            load(repo_dir + "/jobs/release/release_debian.groovy")
+        }, 'Publish Vagrant':{
+            load(repo_dir + "/jobs/release/release_vagrant.groovy")
+        }, 'Publish Docker':{
+            load(repo_dir + "/jobs/release/release_docker.groovy")
+        }, 'Publish NPM':{
+            load(repo_dir + "/jobs/release/release_npm.groovy")
+        }
+    }
+}
+
+def createTag(String repo_dir){
+    stage("Create Tag"){
+        load(repo_dir + "/jobs/SprintRelease/create_tag.groovy")
+    }
+}
+
+def buildAndPublish(Boolean publish, Boolean tag, String repo_dir){
+    buildPackage(repo_dir)
     // lock a docker resource from build to release
     lock(label:"docker",quantity:1){
         docker_resources_name = getLockedResourceName("docker")
@@ -64,42 +118,13 @@ def buildAndPublish(){
             currentBuild.result="FAILURE"
         }
 
-        stage("Images Build"){
-            parallel 'vagrant build':{
-                retry(retry_times){
-                    load("jobs/build_vagrant/build_vagrant.groovy")
-                }
-            }, 'ova build':{
-                retry(retry_times){
-                    load("jobs/build_ova/build_ova.groovy")
-                }
-            }, 'build docker':{
-                retry(retry_times){
-                    load("jobs/build_docker/build_docker.groovy")
-                }
-            }
-        }
+        buildImages(repo_dir)
 
-        stage("Post Test"){
-            parallel 'vagrant post test':{
-                load("jobs/build_vagrant/vagrant_post_test.groovy")
-            }, 'ova post test loader':{
-                load("jobs/build_ova/ova_post_test.groovy")
-            }, 'docker post test':{
-                load("jobs/build_docker/docker_post_test.groovy")
-            }
+        if(tag){
+            createTag(repo_dir)
         }
-
-        stage("Publish"){
-            parallel 'Publish Debian':{
-                load("jobs/release/release_debian.groovy")
-            }, 'Publish Vagrant':{
-                load("jobs/release/release_vagrant.groovy")
-            }, 'Publish Docker':{
-                load("jobs/release/release_docker.groovy")
-            }, 'Publish NPM':{
-                load("jobs/release/release_npm.groovy")
-            }
+        if(publish){
+            publishImages(repo_dir)
         }
     }
 }
