@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/sh -x
 Usage()
 {
     echo "this script is used to operate VM, including power_on, power_off and delete"
@@ -33,7 +33,7 @@ vm_getname() #get the name of VM via ID, return ID if fails
     return 0
 }
 
-power_action() #id_string action(on/off)
+power_action() #id_string action(on/off/reset)
 {
     action=$1
     duration=$2
@@ -42,6 +42,10 @@ power_action() #id_string action(on/off)
     do
         state=`vim-cmd vmsvc/power.getstate $id | grep "^Powered" | awk '{print $2}'`
         vm_name=`vm_getname $id`
+        if [ $action = "reset" -a $state = "off" ];then
+            echo "$vm_name current state is off, changing action to power_on instead of reset"
+            action="on"
+        fi 
         if [ $state = $action ];then
             echo "$vm_name current state has been $state, no need to do power_$action"
             continue
@@ -54,7 +58,7 @@ power_action() #id_string action(on/off)
             continue
         fi
         state=`vim-cmd vmsvc/power.getstate $id | grep "^Powered" | awk '{print $2}'`
-        if [ $state != $action ];then
+        if [ $state != reset -a $state != $action ];then
             echo "ERROR: $vm_name power_$action fails"
         else
             echo "$vm_name power_$action successfully"
@@ -124,6 +128,7 @@ do
     case $vm_action in
         "power_on") power_action "on" $duration $vm_ids;;
         "power_off") power_action "off" $duration $vm_ids;;
+        "reset") power_action "reset" $duration $vm_ids;;
         "delete") delete_action $duration $vm_ids;;
     esac
 done
