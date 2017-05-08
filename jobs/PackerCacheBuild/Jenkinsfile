@@ -2,6 +2,19 @@ import groovy.transform.Field;
 @Field def shareMethod
 node{
     deleteDir()
+
+    // checkout RackHD and check if there is change under RackHD/packer
+    checkout(
+    [
+        $class: 'GitSCM',
+        branches: [[name: 'master']],
+        doGenerateSubmoduleConfigurations: false,
+        extensions: [[$class: 'PathRestriction', excludedRegions: '', includedRegions: 'packer/(.*/)?.*']],
+        submoduleCfg: [],
+        userRemoteConfigs: [[url: 'https://github.com/RackHD/RackHD/']]
+    ]
+    )
+
     checkout scm
     shareMethod = load("jobs/ShareMethod.groovy")
 }
