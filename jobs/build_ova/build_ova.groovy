@@ -6,7 +6,7 @@ node{
     shareMethod = load("jobs/ShareMethod.groovy")
 }
 
-String label_name = "packer_vagrant"
+String label_name = "packer_ova"
 lock(label:label_name,quantity:1){
     resources_name = shareMethod.getLockedResourceName(label_name)
     if(resources_name.size>0){
@@ -35,7 +35,6 @@ lock(label:label_name,quantity:1){
                 dir("on-build-config"){
                     checkout scm
                 }
- 
                 def url = "https://github.com/RackHD/RackHD.git"
                 def branch = "${env.RACKHD_COMMIT}"
                 def targetDir = "build"

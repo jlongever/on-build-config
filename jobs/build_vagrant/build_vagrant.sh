@@ -36,7 +36,7 @@ export RACKHD_VERSION=$RACKHD_VERSION
 ./HWIMO-BUILD
 
 PACKERDIR="$WORKSPACE/build/packer/"
-BOX="$PACKERDIR/packer_virtualbox-iso_virtualbox.box"
+BOX="$PACKERDIR/rackhd-${OS_VER}.box"
 if [ -e "$BOX" ]; then
   mv "$BOX" "$PACKERDIR/rackhd-${OS_VER}-${RACKHD_VERSION}.box"
 fi
