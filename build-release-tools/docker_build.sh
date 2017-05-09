@@ -72,11 +72,11 @@ doBuild() {
                 TAG=:${PKG_TAG}
             fi
             echo "Building rackhd/$repo$TAG"
-            repos_tags=$repos_tags$repo$TAG" "
+            repos_tags=$repos_tags"rackhd/"$repo$TAG" "
             cp Dockerfile ../Dockerfile.bak
             if [ "$repo" == "on-imagebuilder" ]; then
                     docker build -t rackhd/files$TAG .
-                    repos_tags=files$TAG" "
+                    repos_tags="rackhd/files"$TAG" "
             elif [ "$repo" != "on-core" ];then
                     #Based on newly build upstream image to build
                     sed -i "/^FROM/ s/:devel/${PRE_TAG}/" Dockerfile

@@ -3,20 +3,21 @@ set -e
 # Environmental requirement:
 # docker service running and docker have already logged with Rackhd Dockerhub ID,
 #     cmd 'docker login', if not logged then can't push images to dockerhub
-
+cd DOCKER
+docker load -i $DOCKER_STASH_PATH
 docker login -u $DOCKERHUB_USER -p $DOCKERHUB_PASS
 
 while read -r LINE; do
         echo $LINE
         for repo_tag in $LINE; do
                 echo "Pushing rackhd/$repo_tag"
-        docker push rackhd/$repo_tag
+        docker push $repo_tag
         if [ $? != 0 ]; then
                 echo "Failed to push rackhd/$repo_tag"
             exit 1
         fi
     done
-done < $WORKSPACE/build_record
+done < $DOCKER_RECORD_STASH_PATH
 
 # Clean UP. (was in Jenkins job post-build, avoid failure impacts build status.)
 set +e
@@ -61,5 +62,8 @@ clean_up on-wss
 clean_up on-statsd
 clean_up on-core
 clean_up rackhd
+
+echo "clean up /var/lib/docker/volumes"
+docker volume ls -qf dangling=true | xargs -r docker volume rm
 
 exit 0 # this is a workaround. to avoid the cleanup failure makes whole workflow fail.don't worry, the set -e will ensure failure captured for necessary steps(those lines before set +e)

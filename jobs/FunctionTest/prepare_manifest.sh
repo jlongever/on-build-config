@@ -1,5 +1,4 @@
 #!/bin/bash -ex
-export VCOMPUTE=("${NODE_NAME}-Rinjin1","${NODE_NAME}-Rinjin2","${NODE_NAME}-Quanta")
 REPOS=("on-http" "on-taskgraph" "on-dhcp-proxy" "on-tftp" "on-syslog")
 
 HTTP_STATIC_FILES="${HTTP_STATIC_FILES}"
@@ -75,11 +74,10 @@ preparePackages() {
         popd
     done
 
-
     cp -r build-deps/RackHD .
     if [ -d "build-deps/on-build-config" ]; then
-      # on-build-config from manifest has high priority
-      cp -r build-deps/on-build-config build-config
+        # on-build-config from manifest has high priority
+        cp -r build-deps/on-build-config build-config
     fi
     popd
 }
@@ -90,37 +88,7 @@ prepareDeps(){
   dlHttpFiles
 }
 
-VCOMPUTE="${VCOMPUTE}"
-if [ -z "${VCOMPUTE}" ]; then
-  VCOMPUTE=("jvm-Quanta_T41-1" "jvm-vRinjin-1" "jvm-vRinjin-2")
-fi
-
-
-nodesDelete() {
-  cd ${WORKSPACE}/build-config/deployment/
-  if [ "${USE_VCOMPUTE}" != "false" ]; then
-    if [ $TEST_TYPE == "ova" ]; then
-      VCOMPUTE+=("${NODE_NAME}-ova-for-post-test")
-    fi
-    for i in ${VCOMPUTE[@]}; do
-      ./vm_control.sh "${ESXI_HOST},${ESXI_USER},${ESXI_PASS},delete,1,${i}_*"
-    done
-  fi
-}
-
-cleanupENVProcess() {
-  # Kill possible socat process left by ova-post-smoke-test
-  # eliminate the effect to other test
-  socat_process=`ps -ef | grep socat | grep -v grep | awk '{print $2}' | xargs`
-  if [ -n "$socat_process" ]; then
-    kill $socat_process
-  fi
-}
-
 if [ "$SKIP_PREP_DEP" == false ] ; then
   # Prepare the latest dependent repos to be shared with vagrant
   prepareDeps
-  nodesDelete
-  cleanupENVProcess
 fi
-
