@@ -6,7 +6,8 @@ node{
     def repo_dir = pwd()
     def prgate_unit_test = load("jobs/UnitTest/PRGateUnitTest.groovy")
     def function_test = load("jobs/FunctionTest/FunctionTest.groovy")
-
+    def TESTS = "${env.TESTS}"
+    def test_type = "manifest"
     try{
         stage("Parse Pull Request"){
             load("jobs/pr_gate/pr_parser.groovy")
@@ -16,15 +17,14 @@ node{
         }
         stage("Function Test"){
             // Start to run test
-            def TESTS = "${env.TESTS}"
-            function_test.manifestTest(TESTS, env.stash_manifest_name, env.stash_manifest_path, repo_dir)
+            function_test.manifestTest(TESTS, env.stash_manifest_name, env.stash_manifest_path, repo_dir, test_type)
         }
     } catch(error){
         echo "Caught: ${error}"    
         currentBuild.result = "FAILURE"
     } finally{
         unit_test.archiveArtifactsToTarget("UnitTest")
-        function_test.archiveArtifactsToTarget("FunctionTest")
+        function_test.archiveArtifactsToTarget("FunctionTest", TESTS, test_type)
         stage("Write Back"){
             load("jobs/write_back_github/write_back_github.groovy")
         }
