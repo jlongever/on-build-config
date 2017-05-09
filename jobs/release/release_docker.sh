@@ -62,4 +62,7 @@ clean_up on-statsd
 clean_up on-core
 clean_up rackhd
 
+echo "clean up /var/lib/docker/volumes"
+docker volume ls -qf dangling=true | xargs -r docker volume rm
+
 exit 0 # this is a workaround. to avoid the cleanup failure makes whole workflow fail.don't worry, the set -e will ensure failure captured for necessary steps(those lines before set +e)
