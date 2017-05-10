@@ -1,5 +1,21 @@
-node(build_vagrant_node){
-    lock("packer_usa"){
+import groovy.transform.Field;
+@Field def shareMethod
+node{
+    deleteDir()
+    checkout scm
+    shareMethod = load("jobs/ShareMethod.groovy")
+}
+
+String label_name = "packer_vagrant"
+lock(label:label_name,quantity:1){
+    resources_name = shareMethod.getLockedResourceName(label_name)
+    if(resources_name.size>0){
+        node_name = resources_name[0]
+    }
+    else{
+        error("Failed to find resource with label " + label_name)
+    }
+    node(node_name){
         timestamps{
             withEnv([
                 "RACKHD_COMMIT=${env.RACKHD_COMMIT}",
@@ -16,19 +32,21 @@ node(build_vagrant_node){
                 "BINTRAY_ARCHITECTURE=amd64"]){
                 def current_workspace = pwd()
                 deleteDir()
-                def shareMethod
-                dir("Build_Vagrant_JFiles"){
+                dir("on-build-config"){
                     checkout scm
-                    shareMethod = load("jobs/ShareMethod.groovy")
                 }
                 def url = "https://github.com/RackHD/RackHD.git"
                 def branch = "${env.RACKHD_COMMIT}"
                 def targetDir = "build"
                 shareMethod.checkout(url, branch, targetDir)
                 
+                step ([$class: 'CopyArtifact',
+                projectName: 'PACKER_CACHE_BUILD',
+                target: 'cache_image']);
+                
                 timeout(180){
                     withEnv(["WORKSPACE=${current_workspace}"]){
-                        sh './Build_Vagrant_JFiles/jobs/build_vagrant/build_vagrant.sh'
+                        sh './on-build-config/jobs/build_vagrant/build_vagrant.sh'
                     }
                 }
                 archiveArtifacts 'build/packer/*.box, build/packer/*.log'

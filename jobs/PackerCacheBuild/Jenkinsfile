@@ -1,0 +1,81 @@
+import groovy.transform.Field;
+@Field def shareMethod
+node{
+    deleteDir()
+
+    // checkout RackHD and check if there is change under RackHD/packer
+    checkout(
+    [
+        $class: 'GitSCM',
+        branches: [[name: 'master']],
+        doGenerateSubmoduleConfigurations: false,
+        extensions: [[$class: 'PathRestriction', excludedRegions: '', includedRegions: 'packer/(.*/)?.*']],
+        submoduleCfg: [],
+        userRemoteConfigs: [[url: 'https://github.com/RackHD/RackHD/']]
+    ]
+    )
+
+    checkout scm
+    shareMethod = load("jobs/ShareMethod.groovy")
+}
+
+def cacheBuild(ArrayList<String> used_resources, String BUILD_TYPE){
+    String label_name = "packer"
+    lock(label:label_name,quantity:1){
+        String node_name = shareMethod.occupyAvailableLockedResource(label_name, used_resources)
+        try{
+            node(node_name){
+                deleteDir()
+                def url = "https://github.com/RackHD/RackHD.git"
+                def branch = "master"
+                def targetDir = "RackHD"
+                shareMethod.checkout(url, branch, targetDir)
+                withEnv([
+                    "OS_VER=${env.OS_VER}",
+                    "BUILD_STAGE=BUILD_TEMPLATE",
+                    "BUILD_TYPE=$BUILD_TYPE",
+                    "PACKER_CACHE_DIR=$HOME/packer_cache"
+                ]){
+                    timeout(70){
+                        try{
+                            sh '''#!/bin/bash -x
+                            set +e
+                            pushd RackHD/packer
+                            pkill packer
+                            rm ~/VirtualBox\\ VMs/rackhd-${OS_VER} -rf
+                            set -e
+                            ./HWIMO-BUILD
+                            popd
+                            '''
+                        } finally{
+                            archiveArtifacts "RackHD/packer/output-*/*.*"
+                            sh '''#!/bin/bash -x
+                            set +e
+                            pkill packer
+                            rm ~/VirtualBox\\ VMs/rackhd-${OS_VER} -rf
+                            rm -rf $WORKSPACE/RackHD/packer/output-*
+                            '''
+                        }
+                    }
+                }
+            }
+        } finally{
+            used_resources.remove(node_name)
+        }
+    }
+}
+
+timestamps{
+    stage("Cache Packer"){
+        def build_branches = [:]
+        def used_resources = []
+
+        build_branches["Cache Virtualbox"] = {
+            cacheBuild(used_resources, "virtualbox")
+        }
+        build_branches["Cache Vmware"] = {
+            cacheBuild(used_resources, "vmware")
+        }
+        parallel build_branches
+    }
+}
