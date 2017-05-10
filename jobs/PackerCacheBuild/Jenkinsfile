@@ -25,6 +25,12 @@ def cacheBuild(ArrayList<String> used_resources, String BUILD_TYPE){
         String node_name = shareMethod.occupyAvailableLockedResource(label_name, used_resources)
         try{
             node(node_name){
+                if ("${BUILD_TYPE}" == "virtualbox" {
+                     // Clean Up
+                     checkout scm
+                     sh  ''' ./jobs/build_vagrant/cleanup_vbox.sh '''
+                }
+
                 deleteDir()
                 def url = "https://github.com/RackHD/RackHD.git"
                 def branch = "master"

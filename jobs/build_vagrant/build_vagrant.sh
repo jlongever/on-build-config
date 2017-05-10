@@ -4,13 +4,21 @@ ifconfig
 packer -v
 vagrant -v
 
+cleanup()
+{
+    BASEDIR=$(dirname "$0")
+    pkill packer
+    BASEDIR/cleanup_vbox.sh
+}
+
 mv $WORKSPACE/cache_image/RackHD/packer/* $WORKSPACE/build/packer/
 ls $WORKSPACE/build/packer/*
 
 cd $WORKSPACE/build/packer/ansible/roles/rackhd-builds/tasks
 sed -i "s#https://dl.bintray.com/rackhd/debian trusty release#https://dl.bintray.com/$CI_BINTRAY_SUBJECT/debian trusty main#" main.yml
 sed -i "s#https://dl.bintray.com/rackhd/debian trusty main#https://dl.bintray.com/$CI_BINTRAY_SUBJECT/debian trusty main#" main.yml
-pkill packer
+
+cleanup # clean up previous dirty env
 
 set -e
 cd $WORKSPACE/build/packer
@@ -31,6 +39,10 @@ fi
 export UPLOAD_BOX_TO_ATLAS=false
 export RACKHD_VERSION=$RACKHD_VERSION
 #export end
+
+#cleanup whenever the script exits
+trap cleanup  SIGINT SIGTERM SIGKILL EXIT 
+
 
 #build
 ./HWIMO-BUILD
