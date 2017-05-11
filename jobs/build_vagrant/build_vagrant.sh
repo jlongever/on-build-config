@@ -8,7 +8,7 @@ cleanup()
 {
     BASEDIR=$(dirname "$0")
     pkill packer
-    BASEDIR/cleanup_vbox.sh
+    $BASEDIR/cleanup_vbox.sh
 }
 
 mv $WORKSPACE/cache_image/RackHD/packer/* $WORKSPACE/build/packer/
