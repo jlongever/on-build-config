@@ -58,7 +58,7 @@ power_action() #id_string action(on/off/reset)
             continue
         fi
         state=`vim-cmd vmsvc/power.getstate $id | grep "^Powered" | awk '{print $2}'`
-        if [ $state != reset -a $state != $action ];then
+        if [ $action != reset -a $state != $action ];then
             echo "ERROR: $vm_name power_$action fails"
         else
             echo "$vm_name power_$action successfully"
