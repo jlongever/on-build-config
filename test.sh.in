@@ -1,5 +1,6 @@
 #!/bin/bash -ex
 export VCOMPUTE=("${NODE_NAME}-Rinjin1","${NODE_NAME}-Rinjin2","${NODE_NAME}-Quanta")
+export UCSPE=("${NODE_NAME}-UCSPE")
 RUN_FIT_TEST="${RUN_FIT_TEST}"
 if [ ! -z "${4}" ]; then
   RUN_FIT_TEST=$4
@@ -92,6 +93,16 @@ execWithTimeout() {
   fi
   set -e
 }
+
+ucsReset() {
+  cd ${WORKSPACE}/build-config/deployment/
+  if [ "${USE_VCOMPUTE}" != "false" ]; then
+    for i in ${UCSPE[@]}; do
+      ./vm_control.sh "${ESXI_HOST},${ESXI_USER},${ESXI_PASS},reset,1,${i}_*"
+    done
+  fi
+}
+
 nodesOff() {
   cd ${WORKSPACE}/build-config/deployment/
   if [ "${USE_VCOMPUTE}" != "false" ]; then
@@ -377,6 +388,9 @@ if [ "$RUN_CIT_TEST" == true ] || [ "$RUN_FIT_TEST" == true ] ; then
     cleanupVMs
     nodesDelete
   else
+    # rese the UCSPE emulators 
+    ucsReset
+
     # register the signal handler to clean up( vagrantDestroy ), with process being killed
     trap cleanupVMs SIGINT SIGTERM SIGKILL
     cleanupVMs
