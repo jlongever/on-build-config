@@ -1,5 +1,4 @@
 #!/bin/bash
-set -x
 virtualenv --clear host_update_env
 source host_update_env/bin/activate
 pip install python-jenkins

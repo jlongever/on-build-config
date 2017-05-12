@@ -11,7 +11,7 @@ node('vmslave-config') {
         "EXTRA_TEXT=${env.EXTRA_TEXT}"
     ]){
          withCredentials([
-                usernamePassword(credentialsId: 'JENKINS_ADMIN',
+                usernamePassword(credentialsId: '752052b8-c884-4c2a-95ef-04e0f9fa0bc2',
                                  passwordVariable: 'JENKINS_PASS', 
                                  usernameVariable: 'JENKINS_USER')
         ]) {

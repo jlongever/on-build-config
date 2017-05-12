@@ -1,7 +1,7 @@
 ---
 - hosts: prgate
   roles:
-    - replace-apt-source
+    - aptget-update
     - for-jenkins-connection
     - install-fundamental-tools
     - install-package-for-build
