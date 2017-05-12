@@ -95,8 +95,10 @@ def functionTest(String test_name, String label_name, String TEST_GROUP, Boolean
 
                                 // this step will overite current build-config and create RackHD dir
                                 if (test_type == "manifest") {
-                                    // This scipts can be separated into manifest_src_prepare and common_prepare
-                                    sh './build-config/jobs/FunctionTest/prepare_manifest.sh'
+                                    retry(3){
+                                        // This scipts can be separated into manifest_src_prepare and common_prepare
+                                        sh './build-config/jobs/FunctionTest/prepare_manifest.sh'
+                                    }
                                 }
 
                                 // Get main test scripts for un-manifest-src test
