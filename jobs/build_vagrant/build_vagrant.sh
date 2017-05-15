@@ -6,22 +6,34 @@ vagrant -v
 
 cleanup()
 {
-    BASEDIR=$(dirname "$0")
+    if [ "$(echo $flags|grep e)" != "" ]; then
+        e_flag=true
+    fi
+
+    set +e
+   
     pkill packer
-    $BASEDIR/cleanup_vbox.sh
+    pushd $WORKSPACE/on-build-config/jobs/build_vagrant/
+    ./cleanup_vbox.sh
+    popd
+    #restore original "set -e" flag
+    if [ "$e_flag" == "true" ]; then
+       set -e
+    fi
 }
 
 mv $WORKSPACE/cache_image/RackHD/packer/* $WORKSPACE/build/packer/
 ls $WORKSPACE/build/packer/*
 
-cd $WORKSPACE/build/packer/ansible/roles/rackhd-builds/tasks
+pushd $WORKSPACE/build/packer/ansible/roles/rackhd-builds/tasks
 sed -i "s#https://dl.bintray.com/rackhd/debian trusty release#https://dl.bintray.com/$CI_BINTRAY_SUBJECT/debian trusty main#" main.yml
 sed -i "s#https://dl.bintray.com/rackhd/debian trusty main#https://dl.bintray.com/$CI_BINTRAY_SUBJECT/debian trusty main#" main.yml
+popd
 
 cleanup # clean up previous dirty env
 
 set -e
-cd $WORKSPACE/build/packer
+pushd $WORKSPACE/build/packer
 
 if [ "$BUILD_TYPE" == "virtualbox" ] &&  [ -f output-virtualbox-iso/*.ovf ]; then
      echo "Build from template cache"
@@ -52,3 +64,5 @@ BOX="$PACKERDIR/rackhd-${OS_VER}.box"
 if [ -e "$BOX" ]; then
   mv "$BOX" "$PACKERDIR/rackhd-${OS_VER}-${RACKHD_VERSION}.box"
 fi
+
+popd
