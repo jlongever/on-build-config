@@ -46,6 +46,12 @@
     executable: /usr/bin/expect
   when: ovftool_check.rc !=0
 
+- name: Check if apache2 is installed
+  shell: |
+    apachectl -V
+  ignore_errors: yes
+  register: apache2_check
+
 - name: Install apache2
   become: true
   apt: name={{item}} state=present
@@ -53,4 +59,4 @@
     - apache2
     - apache2-doc
     - apache2-utils
-
+  when: apache2_check.rc !=0

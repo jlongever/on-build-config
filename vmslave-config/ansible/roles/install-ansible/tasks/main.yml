@@ -25,6 +25,7 @@
     - sshpass
 
 - name: Ensure /etc/ansible dir exists
+  become: yes
   file: path=/etc/ansible state=directory
 
 - name: Copy ansible.cfg with host_key_check=false

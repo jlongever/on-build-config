@@ -1,5 +1,5 @@
 ---
-- hosts: prgate
+- hosts: smoke-test
   roles:
     - aptget-update
     - for-jenkins-connection
