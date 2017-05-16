@@ -160,12 +160,15 @@ def functionTest(String test_name, String label_name, String TEST_GROUP, Boolean
                             if [ ! -z "$files" ];then
                                 cp RackHD/test/*.xml '''+"$artifact_dir" +'''
                             fi
+                            if [ -d build-deps/mongodb ];then
+                                cp -r build-deps/mongodb '''+"$artifact_dir" +'''
+                            fi
                             '''
                             // The test_name is an argument of the method, for example: CIT
                             // It comes from the member variable: TESTS, for example: CIT.FIT
                             // The function archiveArtifactsToTarget() will unstash the stashed files
                             // according to the member variable: TESTS
-                            stash name: "$test_name", includes: "$artifact_dir/*.*"
+                            stash name: "$test_name", includes: "$artifact_dir/*.*, $artifact_dir/**/*.*"
     
                             // [Based on junit xml log] Write test results to github
                             sh '''#!/bin/bash -x

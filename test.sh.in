@@ -219,6 +219,11 @@ generateSysLog(){
   vagrant ssh -c 'cp /var/log/syslog /home/vagrant/src/syslog.log'
 }
 
+generateMongoLog(){
+  cd ${WORKSPACE}/RackHD/example
+  vagrant ssh -c 'cp -r /var/log/mongodb /home/vagrant/src/'
+}
+
 setupVirtualEnv(){
   pushd ${WORKSPACE}/RackHD/test
   rm -rf .venv/on-build-config
@@ -413,7 +418,7 @@ if [ "$RUN_CIT_TEST" == true ] || [ "$RUN_FIT_TEST" == true ] ; then
     # Run tests
     runTests
     generateSysLog
-
+    generateMongoLog
     # Clean Up below
 
     #shutdown vagrant box and delete all resource (like removing vm disk files in "~/VirtualBox VMs/")
