@@ -21,7 +21,6 @@ if (this.used_resources == null){
     this.used_resources = []
 }
 
-
 def setManifest(String manifest_name, String manifest_path){
     this.stash_manifest_name = manifest_name
     this.stash_manifest_path = manifest_path
@@ -85,7 +84,9 @@ def functionTest(String test_name, String label_name, String TEST_GROUP, Boolean
                         "MANIFEST_FILE=${env.MANIFEST_FILE}",
                         "NODE_NAME=${env.NODE_NAME}",
                         "PYTHON_REPOS=ucs-service",
-                        "TEST_TYPE=$test_type"]
+                        "TEST_TYPE=$test_type",
+                        "KEEP_FAILURE_ENV=${env.KEEP_FAILURE_ENV}",
+                        "KEEP_MINS=${env.KEEP_MINS}"]
                     ){
                         try{
                             timeout(60){
@@ -140,63 +141,74 @@ def functionTest(String test_name, String label_name, String TEST_GROUP, Boolean
                                 // Run smoke test
                                 sh './build-config/test.sh'
                             }
-                        } catch(error){
-                            throw error
                         } finally{
-                            // Clean up test stack
-                            sh '''#!/bin/bash -x
-                            ./build-config/jobs/FunctionTest/cleanup.sh
-                            '''
-
+                            def result = "FAILURE"
                             def artifact_dir = test_name.replaceAll(' ', '-') + "[$node_name]"
-                            sh '''#!/bin/bash -x
-                            mkdir '''+"$artifact_dir"+'''
-                            ./build-config/post-deploy.sh
-                            files=$( ls build-deps/*.log )
-                            if [ ! -z "$files" ];then
-                                cp build-deps/*.log '''+"$artifact_dir"+'''
-                            fi
-                            files=$( ls RackHD/test/*.xml )
-                            if [ ! -z "$files" ];then
-                                cp RackHD/test/*.xml '''+"$artifact_dir" +'''
-                            fi
-                            if [ -d build-deps/mongodb ];then
-                                cp -r build-deps/mongodb '''+"$artifact_dir" +'''
-                            fi
-                            '''
-                            // The test_name is an argument of the method, for example: CIT
-                            // It comes from the member variable: TESTS, for example: CIT.FIT
-                            // The function archiveArtifactsToTarget() will unstash the stashed files
-                            // according to the member variable: TESTS
-                            stash name: "$test_name", includes: "$artifact_dir/*.*, $artifact_dir/**/*.*"
-    
-                            // [Based on junit xml log] Write test results to github
-                            sh '''#!/bin/bash -x
-                            find RackHD/test/ -maxdepth 1 -name "*.xml" > files.txt
-                            files=$( paste -s -d ' ' files.txt )
-                            if [ -n "$files" ];then
-                                ./build-config/build-release-tools/application/parse_test_results.py \
-                                --test-result-file "$files"  \
-                                --parameters-file downstream_file
-                            else
-                                echo "No test result files generated, maybe it's aborted"
-                                exit 1
-                            fi
-                            '''
-
-                            // [Based on junit xml log] Determine pipeline status of this build, success or failure.
-                            def junitFiles = findFiles glob: 'RackHD/test/*.xml'
-                            boolean exists = junitFiles.length > 0
-                            if (exists){
-                                junit 'RackHD/test/*.xml'
-                                int failure_count = 0
-                                int error_count = 0
-                                if(fileExists ("downstream_file")) {
-                                    def props = readProperties file: "downstream_file"
-                                    failure_count = "${props.failures}".toInteger()
-                                    error_count = "${props.errors}".toInteger()
+                            try{
+                                sh '''#!/bin/bash -x
+                                set +e
+                                mkdir '''+"$artifact_dir"+'''
+                                ./build-config/post-deploy.sh
+                                files=$( ls build-deps/*.log )
+                                if [ ! -z "$files" ];then
+                                    cp build-deps/*.log '''+"$artifact_dir"+'''
+                                fi
+                                files=$( ls RackHD/test/*.xml )
+                                if [ ! -z "$files" ];then
+                                    cp RackHD/test/*.xml '''+"$artifact_dir" +'''
+                                fi
+                                if [ -d build-deps/mongodb ];then
+                                    cp -r build-deps/mongodb '''+"$artifact_dir" +'''
+                                fi
+                                '''
+                            
+                                def junitFiles = findFiles glob: 'RackHD/test/*.xml'
+                                boolean exists = junitFiles.length > 0
+                                if (exists){
+                                    junit 'RackHD/test/*.xml'
+                                    // [Based on junit xml log] Write test results to github
+                                    sh '''#!/bin/bash -x
+                                    set +e
+                                    find RackHD/test/ -maxdepth 1 -name "*.xml" > files.txt
+                                    files=$( paste -s -d ' ' files.txt )
+                                    if [ -n "$files" ];then
+                                        ./build-config/build-release-tools/application/parse_test_results.py \
+                                        --test-result-file "$files"  \
+                                        --parameters-file downstream_file
+                                    fi
+                                    '''
+                                    int failure_count = 0
+                                    int error_count = 0
+                                    if(fileExists ("downstream_file")) {
+                                        def props = readProperties file: "downstream_file"
+                                        failure_count = "${props.failures}".toInteger()
+                                        error_count = "${props.errors}".toInteger()
+                                    }
+                                    if (failure_count > 0 || error_count > 0){
+                                        if(KEEP_FAILURE_ENV == "true"){
+                                            int sleep_mins = Integer.valueOf(KEEP_MINS)
+                                            def message = "There are failed test cases during running $test_name on $node_name.\n" + 
+                                                          "The environment will be kept for $sleep_mins"
+                                            echo "$message"
+                                            slackSend "$message"
+                                            sleep time: sleep_mins, unit: 'MINUTES'
+                                        }
+                                    }
+                                    else{
+                                        result = "SUCCESS"
+                                    }
                                 }
-                                if (failure_count > 0 || error_count > 0){
+                            }finally{
+                                // Clean up test stack
+                                sh '''#!/bin/bash -x
+                                ./build-config/jobs/FunctionTest/cleanup.sh
+                                '''
+                                // The test_name is an argument of the method, for example: CIT
+                                // It comes from the member variable: TESTS, for example: CIT.FIT
+                                // The function archiveArtifactsToTarget() will unstash the stashed files
+                                // according to the member variable: TESTS
+                                stash name: "$test_name", includes: "$artifact_dir/*.*, $artifact_dir/**/*.*"
+                                if(result == "FAILURE"){
                                     error("there are failed test cases")
                                 }
                             }
