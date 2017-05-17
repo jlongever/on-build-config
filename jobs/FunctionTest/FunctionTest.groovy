@@ -153,6 +153,10 @@ def functionTest(String test_name, String label_name, String TEST_GROUP, Boolean
                                 if [ ! -z "$files" ];then
                                     cp build-deps/*.log '''+"$artifact_dir"+'''
                                 fi
+                                files=$( ls build-deps/*.flv )
+                                if [ ! -z "$files" ];then
+                                    cp build-deps/*.flv '''+"$artifact_dir" +'''
+                                fi
                                 files=$( ls RackHD/test/*.xml )
                                 if [ ! -z "$files" ];then
                                     cp RackHD/test/*.xml '''+"$artifact_dir" +'''

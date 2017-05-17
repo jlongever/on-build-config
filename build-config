@@ -90,3 +90,15 @@ else
   chmod oug+x generate-sol-log.sh
   rm sed.script
 fi
+echo "Generating vnc record script file from template"
+env | sed 's/[\%]/\\&/g;s/\([^=]*\)=\(.*\)/s%${\1}%\2%/' > sed.script
+if [ -e "${REPO_NAME}/.sh.in" ]; then
+  cat ${REPO_NAME}/vnc_record.sh.in | sed -f sed.script > vnc_record.sh
+  chmod oug+x vnc_record.sh
+  rm sed.script
+else
+  cat vnc_record.sh.in | sed -f sed.script > vnc_record.sh
+  chmod oug+x vnc_record.sh
+  rm sed.script
+fi
+
