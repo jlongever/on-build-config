@@ -21,7 +21,8 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
         # your network.
         # target.vm.network :public_network
         if ENV['WORKSPACE']
-          target.vm.synced_folder "#{ENV['WORKSPACE']}/build-deps", "/home/vagrant/src/"
+          target.vm.synced_folder "#{ENV['WORKSPACE']}/build-deps", "/home/vagrant/src/", type: "rsync"
+          target.vm.synced_folder "#{ENV['WORKSPACE']}/build-log", "/home/vagrant/log"
           target.vm.synced_folder "#{ENV['WORKSPACE']}/build-config", "/home/vagrant/src/build-config"
         end
         
@@ -84,9 +85,9 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
           sudo service mongodb restart
           echo manual | sudo tee /etc/init/rsyslog.override
           if [ "#{ENV['MULTI']}" ]; then
-            pm2 logs > /home/vagrant/src/build/vagrant.log &
+            pm2 logs > /home/vagrant/log/build/vagrant.log &
           else
-            pm2 logs > /home/vagrant/src/"#{ENV['REPO_NAME']}"/vagrant.log &
+            pm2 logs > /home/vagrant/log/"#{ENV['REPO_NAME']}"/vagrant.log &
           fi
           waitForPM2Daemon
           pm2 start rackhd-pm2-config.yml

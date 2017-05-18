@@ -2,14 +2,14 @@
 echo "Running post-deploy script"
 
 
-#raw sol logs saved in WORKSPACE/build-deps
+#raw sol logs saved in WORKSPACE/build-log
 #this script convert them into html by ansi2html tool
-#and move them to 'build' folder for publishing
-cd $WORKSPACE/build-deps
+#and move them to 'build-log' folder for publishing
+cd $WORKSPACE/build-log
 for file in `ls *sol.log.raw`; do
     # decode to utf-8 before, because ansi2html will broke when finding invalid char
     iconv -f "windows-1252" -t "UTF-8" $file -o new_$file
     if [ -f new_$file ];then
-      ansi2html < new_$file > $WORKSPACE/build-deps/${file%.*}
+      ansi2html < new_$file > $WORKSPACE/build-log/${file%.*}
     fi
 done
