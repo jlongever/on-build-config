@@ -67,11 +67,11 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
                 break
               fi
               sleep 1
-              timeout=`expr ${timeout} + 1`
+              timeout=$((timeout + 1))
             done
-            if [ ${timeout} == ${maxto} ]; then
-              echo "Timed out waiting for PM2 Daemon (duration=`expr $maxto \* 1`s)."
-              exit 1
+            if [ "$timeout" -eq "$maxto" ];then
+                echo "Timed out waiting for PM2 Daemon (duration=$timeout s)."
+                exit 1
             fi
           }
           service isc-dhcp-server start
