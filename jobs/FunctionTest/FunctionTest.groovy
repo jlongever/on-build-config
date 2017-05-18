@@ -86,7 +86,7 @@ def functionTest(String test_name, String label_name, String TEST_GROUP, Boolean
                         "PYTHON_REPOS=ucs-service",
                         "TEST_TYPE=$test_type",
                         "KEEP_FAILURE_ENV=${env.KEEP_FAILURE_ENV}",
-                        "KEEP_MINS=${env.KEEP_MINS}"]
+                        "KEEP_MINUTES=${env.KEEP_MINUTES}"]
                     ){
                         try{
                             timeout(60){
@@ -186,7 +186,7 @@ def functionTest(String test_name, String label_name, String TEST_GROUP, Boolean
                                     }
                                     if (failure_count > 0 || error_count > 0){
                                         if(KEEP_FAILURE_ENV == "true"){
-                                            int sleep_mins = Integer.valueOf(KEEP_MINS)
+                                            int sleep_mins = Integer.valueOf(KEEP_MINUTES)
                                             def message = "There are failed test cases during running $test_name on $node_name.\n" + 
                                                           "The environment will be kept for $sleep_mins"
                                             echo "$message"
