@@ -9,7 +9,8 @@ virtualBoxDestroyAll() {
         vboxmanage controlvm ${uuid} poweroff
         echo "deleting vm ${uuid}"
         vboxmanage unregistervm ${uuid}
-      done
+    done
+    pkill packer
   set -e
 }
 
