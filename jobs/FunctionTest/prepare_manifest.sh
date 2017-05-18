@@ -73,7 +73,6 @@ preparePackages() {
         npm install --production
         popd
     done
-
     cp -r build-deps/RackHD .
     if [ -d "build-deps/on-build-config" ]; then
         # on-build-config from manifest has high priority

@@ -184,19 +184,21 @@ def functionTest(String test_name, String label_name, String TEST_GROUP, Boolean
                                         failure_count = "${props.failures}".toInteger()
                                         error_count = "${props.errors}".toInteger()
                                     }
-                                    if (failure_count > 0 || error_count > 0){
-                                        if(KEEP_FAILURE_ENV == "true"){
-                                            int sleep_mins = Integer.valueOf(KEEP_MINUTES)
-                                            def message = "There are failed test cases during running $test_name on $node_name.\n" + 
-                                                          "The environment will be kept for $sleep_mins"
-                                            echo "$message"
-                                            slackSend "$message"
-                                            sleep time: sleep_mins, unit: 'MINUTES'
-                                        }
-                                    }
-                                    else{
+                                    if (failure_count == 0 && error_count == 0){
                                         result = "SUCCESS"
                                     }
+                                }
+                                if(result == "FAILURE" && KEEP_FAILURE_ENV == "true"){
+                                    int sleep_mins = Integer.valueOf(KEEP_MINUTES)
+                                    def message = "Job Name: ${env.JOB_NAME} \n"
+                                                + "Build Full URL: ${env.BUILD_URL} \n"
+                                                + "Status: FAILURE \n"
+                                                + "Stage: $test_name \n"
+                                                + "Node Name: $node_name \n"
+                                                + "Reserve Duration: $sleep_mins minutes \n"
+                                    echo "$message"
+                                    slackSend "$message"
+                                    sleep time: sleep_mins, unit: 'MINUTES'
                                 }
                             }finally{
                                 // Clean up test stack
