@@ -66,6 +66,8 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
               if [ $? = 0 ]; then 
                 break
               fi
+              echo "Retry to start PM2 Daemon"
+              pm2 status  # any PM2 command will start PM2 Daemon. and 'pm2 status' is a blocking command.
               sleep 1
               timeout=$((timeout + 1))
             done
