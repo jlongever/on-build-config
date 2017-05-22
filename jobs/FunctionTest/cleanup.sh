@@ -107,8 +107,6 @@ cleanupDocker(){
 
   echo "clean up /var/lib/docker/volumes"
   docker volume ls -qf dangling=true | xargs -r docker volume rm
- +
-
 }
 
 # in jobs/build_docker/prepare_docker_post_test.sh the 2 services were stopped
