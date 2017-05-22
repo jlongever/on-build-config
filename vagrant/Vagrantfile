@@ -60,6 +60,11 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
         target.vm.provision "shell", inline: <<-SHELL
           timeout=0
           maxto=30
+          sudo pm2 kill
+          sudo npm remove pm2 -g
+          sudo npm install pm2@2.0.19 -g
+          sudo pm2 --version
+          
           waitForPM2Daemon() {
             while [ ${timeout} != ${maxto} ]; do
               ps aux | grep PM2 | grep Daemon
