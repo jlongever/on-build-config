@@ -190,12 +190,7 @@ def functionTest(String test_name, String label_name, String TEST_GROUP, Boolean
                                 }
                                 if(result == "FAILURE" && KEEP_FAILURE_ENV == "true"){
                                     int sleep_mins = Integer.valueOf(KEEP_MINUTES)
-                                    def message = "Job Name: ${env.JOB_NAME} \n"
-                                                + "Build Full URL: ${env.BUILD_URL} \n"
-                                                + "Status: FAILURE \n"
-                                                + "Stage: $test_name \n"
-                                                + "Node Name: $node_name \n"
-                                                + "Reserve Duration: $sleep_mins minutes \n"
+                                    def message = "Job Name: ${env.JOB_NAME} \n" + "Build Full URL: ${env.BUILD_URL} \n" + "Status: FAILURE \n" + "Stage: $test_name \n" + "Node Name: $node_name \n" + "Reserve Duration: $sleep_mins minutes \n"
                                     echo "$message"
                                     slackSend "$message"
                                     sleep time: sleep_mins, unit: 'MINUTES'
