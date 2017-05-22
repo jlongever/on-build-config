@@ -207,6 +207,29 @@ virtualBoxDestroyAll() {
   set -e
 }
 
+vnc_record_start(){
+  pushd ${WORKSPACE}/RackHD/example # to use the Vagrantfile in it
+  export fname_prefix="vNode"
+  if [ ! -z $BUILD_ID ]; then
+      export fname_prefix=${fname_prefix}_b${BUILD_ID}
+  fi
+
+  #http://stackoverflow.com/questions/25331758/vagrant-ssh-c-and-keeping-a-background-process-running-after-connection-closed/27327955
+  #trying various ways to  detach the process from the shell,  but all not working 
+  # including vagrant ssh -c "nohup bash xx.sh & "
+  # including vagrant ssh -c "bash xx.sh " &
+  nohup vagrant ssh -c "cd /home/vagrant/src/build-config/;   bash vnc_record.sh /home/vagrant/src/ $fname_prefix" &
+  #/home/vagrant/src/ will be mapped to host(outside vagrant)'s $WORKSPACE/build-deps
+}
+
+vnc_record_stop(){
+  #sleep 2 sec to ensure FLV finishes the disk I/O before VM destroyed
+  vagrant ssh -c 'set +e ;    pkill flvrec.py;  sleep 2 ' 
+
+}
+
+
+
 generateSolLog(){
   cd ${WORKSPACE}/RackHD/example
   vagrant ssh -c 'cd /home/vagrant/src/build-config/; \
@@ -415,10 +438,12 @@ if [ "$RUN_CIT_TEST" == true ] || [ "$RUN_FIT_TEST" == true ] ; then
     waitForAPI
     nodesOn &
     generateSolLog
+    vnc_record_start
     # Run tests
     runTests
     generateSysLog
     generateMongoLog
+    vnc_record_stop
     # Clean Up below
 
     #shutdown vagrant box and delete all resource (like removing vm disk files in "~/VirtualBox VMs/")
