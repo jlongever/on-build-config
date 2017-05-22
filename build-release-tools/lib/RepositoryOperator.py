@@ -72,15 +72,18 @@ class RepoCloner(ParallelTasks):
         commands = results['commands']
         return_code, out, err = git.run(command, directory)
 
-        commands.append({'command': command,
-                         'return_code': return_code,
-                         'stdout': out,
-                         'stderr': err
-                        })
-
         if return_code != 0:
             print "Failed to run command {0} \nError:{1}".format(" ".join(command), err)
+            commands.append({'command': command,
+                             'return_code': return_code,
+                             'stdout': out,
+                             'stderr': err
+                            })
             raise RuntimeError("Failed to run command " + " ".join(command))
+        else:
+            commands.append({'command': command,
+                             'return_code': return_code
+                            })
 
     def do_one_task(self, name, data, results):
         """
@@ -238,6 +241,8 @@ class RepoOperator(object):
                             if command['return_code'] != 0:
                                 error_found = True
                                 print "EXITED: {0}".format(command['return_code'])
+                            else:
+                                print "SUCCEED"
 
         return error_found
 
