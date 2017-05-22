@@ -118,8 +118,8 @@ def parse_args(args):
     parsed_args = parser.parse_args(args)
     return parsed_args
 
-RACKHD_REPOS = ["on-imagebuilder", "on-core", "on-syslog", "on-dhcp-proxy", "files", \
-                "on-tftp", "on-wss", "on-statsd", "on-tasks", "on-taskgraph", "on-http", "rackhd"]
+RACKHD_REPOS = ["on-imagebuilder", "on-core", "on-syslog", "on-dhcp-proxy", "files", "on-tftp", \
+                "on-wss", "on-statsd", "on-tasks", "on-taskgraph", "on-http", "rackhd", "ucs-service"]
 
 def clean_bintray_nightly_builds(bintray_cred, bintray_subject, bintray_repo, date_range):
     """
