@@ -16,23 +16,47 @@ if [ ! -z "${3}" ]; then
   SKIP_PREP_DEP=$3
 fi
 
+wget_download(){
+
+  argv=($@)
+  argc=$#
+  retry_time=5
+  remote_file=${argv[$(($argc -1 ))]} # not accurate enough..
+  echo "[Info] Downloading ${remote_file}"
+
+  # -c  resume getting a partially-downloaded file.
+  # -nv reduce the verbose output
+  # -t 5  the retry counter
+  wget -c -t ${retry_time} -nv $@  # $@ means all function arguments from $1 to $n
+
+  if [ $? -ne 0 ]; then
+     echo "[Error]: wget download failed: ${remote_file}"
+     exit 2
+ else
+     echo "[Info] wget download successfully ${remote_file}"
+  fi
+
+}
+
+
 dlHttpFiles() {
   dir=${WORKSPACE}/build-deps/on-http/static/http/common
   mkdir -p ${dir} && cd ${dir}
   if [ -n "${INTERNAL_HTTP_ZIP_FILE_URL}" ]; then
     # use INTERNAL TEMP SOURCE
-    wget -c -t 5 ${INTERNAL_HTTP_ZIP_FILE_URL} 
+    wget_download ${INTERNAL_HTTP_ZIP_FILE_URL}
+
     unzip common.zip && mv common/* . && rm -rf common
   else
     # pull down index from bintray repo and parse files from index
-    wget --no-check-certificate https://dl.bintray.com/rackhd/binary/builds/ && \
+    wget_download --no-check-certificate https://dl.bintray.com/rackhd/binary/builds/ && \
         exec  cat index.html |grep -o href=.*\"|sed 's/href=//' | sed 's/"//g' > files
     for i in `cat ./files`; do
-      wget --no-check-certificate https://dl.bintray.com/rackhd/binary/builds/${i}
+      wget_download --no-check-certificate https://dl.bintray.com/rackhd/binary/builds/${i}
     done
     # attempt to pull down user specified static files
     for i in ${HTTP_STATIC_FILES}; do
-      wget --no-check-certificate https://bintray.com/artifact/download/rackhd/binary/builds/${i}
+      wget_download --no-check-certificate https://bintray.com/artifact/download/rackhd/binary/builds/${i}
     done
   fi
 }
@@ -42,18 +66,18 @@ dlTftpFiles() {
   mkdir -p ${dir} && cd ${dir}
   if [ -n "${INTERNAL_TFTP_ZIP_FILE_URL}" ]; then
     # use INTERNAL TEMP SOURCE
-    wget -c -t 5 ${INTERNAL_TFTP_ZIP_FILE_URL} 
+    wget_download ${INTERNAL_TFTP_ZIP_FILE_URL}
     unzip pxe.zip && mv pxe/* . && rm -rf pxe pxe.zip
   else
     # pull down index from bintray repo and parse files from index
-    wget --no-check-certificate https://dl.bintray.com/rackhd/binary/ipxe/ && \
+    wget_download --no-check-certificate https://dl.bintray.com/rackhd/binary/ipxe/ && \
         exec  cat index.html |grep -o href=.*\"|sed 's/href=//' | sed 's/"//g' > files
     for i in `cat ./files`; do
-      wget --no-check-certificate https://dl.bintray.com/rackhd/binary/ipxe/${i}
+      wget_download --no-check-certificate https://dl.bintray.com/rackhd/binary/ipxe/${i}
     done
     # attempt to pull down user specified static files
     for i in ${TFTP_STATIC_FILES}; do
-      wget --no-check-certificate https://bintray.com/artifact/download/rackhd/binary/ipxe/${i}
+      wget_download --no-check-certificate https://bintray.com/artifact/download/rackhd/binary/ipxe/${i}
     done
   fi
 }
