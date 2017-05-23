@@ -41,10 +41,14 @@ lock("vagrant_build"){
                     def branch = "${env.RACKHD_COMMIT}"
                     def targetDir = "build"
                     shareMethod.checkout(url, branch, targetDir)
-                
-                    step ([$class: 'CopyArtifact',
-                    projectName: 'VAGRANT_CACHE_BUILD',
-                    target: 'cache_image']);
+                    try{
+                        step ([$class: 'CopyArtifact',
+                        projectName: 'VAGRANT_CACHE_BUILD',
+                        target: 'cache_image']);
+                    } catch(error) {
+                         echo "Copy Artifacts from VAGRANT_CACHE_BUILD:  Caught: ${error}"
+                    }
+
                     
                     timeout(180){
                         withEnv(["WORKSPACE=${current_workspace}"]){
