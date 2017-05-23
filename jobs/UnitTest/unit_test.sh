@@ -1,5 +1,12 @@
 #!/bin/bash -ex
 
+start_depends_services(){
+    set +e
+    echo $SUDO_PASSWORD |sudo -S service mongodb start
+    echo $SUDO_PASSWORD |sudo -S service rabbitmq-server start
+    set -e
+}
+
 prepare_deps(){
     pushd ${WORKSPACE}
     mkdir -p xunit-reports
@@ -32,6 +39,7 @@ unit_test(){
     set -e
 }
 
+start_depends_services
 prepare_deps $1
 pushd ${WORKSPACE}/build-deps/$1
 unit_test $1
