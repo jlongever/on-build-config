@@ -1,4 +1,5 @@
 - name: add dh-virtualenv repository
+  become: true
   apt_repository:
     repo: 'ppa:spotify-jyrki/dh-virtualenv'
 
