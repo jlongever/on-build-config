@@ -149,9 +149,9 @@ def functionTest(String test_name, String label_name, String TEST_GROUP, Boolean
                                 set +e
                                 mkdir '''+"$artifact_dir"+'''
                                 ./build-config/post-deploy.sh
-                                files=$( ls build-deps/*.flv )
+                                files=$( ls build-log/*.flv )
                                 if [ ! -z "$files" ];then
-                                    cp build-deps/*.flv '''+"$artifact_dir" +'''
+                                    cp build-log/*.flv '''+"$artifact_dir" +'''
                                 fi
                                 files=$( ls RackHD/test/*.xml )
                                 if [ ! -z "$files" ];then
