@@ -219,8 +219,8 @@ vnc_record_start(){
   #trying various ways to  detach the process from the shell,  but all not working 
   # including vagrant ssh -c "nohup bash xx.sh & "
   # including vagrant ssh -c "bash xx.sh " &
-  nohup vagrant ssh -c "cd /home/vagrant/src/build-config/;   bash vnc_record.sh /home/vagrant/src/ $fname_prefix" &
-  #/home/vagrant/src/ will be mapped to host(outside vagrant)'s $WORKSPACE/build-deps
+  nohup vagrant ssh -c "cd /home/vagrant/src/build-config/;   bash vnc_record.sh /home/vagrant/log/ $fname_prefix" &
+  #/home/vagrant/log/ will be mapped to host(outside vagrant)'s $WORKSPACE/build-log
 }
 
 vnc_record_stop(){
