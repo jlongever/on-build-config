@@ -149,10 +149,6 @@ def functionTest(String test_name, String label_name, String TEST_GROUP, Boolean
                                 set +e
                                 mkdir '''+"$artifact_dir"+'''
                                 ./build-config/post-deploy.sh
-                                files=$( ls build-deps/*.log )
-                                if [ ! -z "$files" ];then
-                                    cp build-deps/*.log '''+"$artifact_dir"+'''
-                                fi
                                 files=$( ls build-deps/*.flv )
                                 if [ ! -z "$files" ];then
                                     cp build-deps/*.flv '''+"$artifact_dir" +'''
@@ -161,11 +157,14 @@ def functionTest(String test_name, String label_name, String TEST_GROUP, Boolean
                                 if [ ! -z "$files" ];then
                                     cp RackHD/test/*.xml '''+"$artifact_dir" +'''
                                 fi
-                                if [ -d build-deps/mongodb ];then
-                                    cp -r build-deps/mongodb '''+"$artifact_dir" +'''
+                                files=$( ls build-log/*.log )
+                                if [ ! -z "$files" ];then
+                                    cp build-log/*.log '''+"$artifact_dir"+'''
+                                fi
+                                if [ -d build-log/mongodb ];then
+                                    cp -r build-log/mongodb '''+"$artifact_dir" +'''
                                 fi
                                 '''
-                            
                                 def junitFiles = findFiles glob: 'RackHD/test/*.xml'
                                 boolean exists = junitFiles.length > 0
                                 if (exists){

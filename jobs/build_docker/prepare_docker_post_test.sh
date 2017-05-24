@@ -37,6 +37,6 @@ for repo_tag in $image_list; do
     sed -i "s#${repo}.*#${repo_tag}#g" docker-compose-mini.yml
 done
 
-mkdir -p $WORKSPACE/build-deps
-docker-compose -f docker-compose-mini.yml up > $WORKSPACE/build-deps/vagrant.log &
+mkdir -p $WORKSPACE/build-log
+docker-compose -f docker-compose-mini.yml up > $WORKSPACE/build-log/vagrant.log &
 

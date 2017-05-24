@@ -162,6 +162,7 @@ CONFIG_PATH=${CONFIG_PATH-build-config/vagrant/config/mongo}
 vagrantUp() {
   cd ${WORKSPACE}/RackHD/example
   cp -rf ${WORKSPACE}/build-config/vagrant/* .
+  mkdir -p ${WORKSPACE}/build-log
   result=0
   for i in {1..2}
   do
@@ -238,13 +239,13 @@ generateSolLog(){
 
 generateSysLog(){
   cd ${WORKSPACE}/RackHD/example
-  vagrant ssh -c 'dmesg > /home/vagrant/src/dmesg.log'
-  vagrant ssh -c 'cp /var/log/syslog /home/vagrant/src/syslog.log'
+  vagrant ssh -c 'dmesg > /home/vagrant/log/dmesg.log'
+  vagrant ssh -c 'cp /var/log/syslog /home/vagrant/log/syslog.log'
 }
 
 generateMongoLog(){
   cd ${WORKSPACE}/RackHD/example
-  vagrant ssh -c 'cp -r /var/log/mongodb /home/vagrant/src/'
+  vagrant ssh -c 'cp -r /var/log/mongodb /home/vagrant/log'
 }
 
 setupVirtualEnv(){
@@ -339,9 +340,9 @@ fetchOVALog(){
     pushd $ansible_workspace
       echo "ova-post-test ansible_host=$OVA_INTERNAL_IP ansible_user=$OVA_USER ansible_ssh_pass=$OVA_PASSWORD ansible_become_pass=$OVA_PASSWORD" > hosts
       ansible-playbook -i hosts main.yml --tags "after-test"
-      mkdir -p ${WORKSPACE}/build-deps
+      mkdir -p ${WORKSPACE}/build-log
       for log in `ls *.log | xargs` ; do
-        cp $log ${WORKSPACE}/build-deps
+        cp $log ${WORKSPACE}/build-log
       done
     popd
 }

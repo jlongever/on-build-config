@@ -25,13 +25,13 @@ while [ ${timeout} != ${maxto} ]; do
                     echo "ipmi cmd: ipmitool -I lanplus -H $ip -U XXXXX -P XXXXX -R 1 -N 3 chassis power status"
                     ipmitool -I lanplus -H $ip -U ${bmc%:*} -P ${bmc#*:} -R 1 -N 3 chassis power status |grep on
                     if [ $? == 0 ]; then
-                        #raw logs saved in /home/vagrant/src/, which is the $WORKSPACE/build-deps of host.
+                        #raw logs saved in /home/vagrant/log/, which is the $WORKSPACE/build-log of host.
                         #in post-deploy raw logs are convert into html by ansi2html tool
                         cmd='ipmitool -I lanplus -H ${bmc_ip} -U ${bmc_user} -P ${bmc_password} sol activate |
                                     tr 'A-Z' 'a-z' |
                                     while IFS= read -r line; do 
                                         echo "$(date) $line"; 
-                                    done > /home/vagrant/src/${vnode_num}.sol.log.raw'
+                                    done > /home/vagrant/log/${vnode_num}.sol.log.raw'
                         #dump cmd to cmd.sh, replace vars with actual value.
                         echo -e "bmc_ip=$ip\nbmc_user=${bmc%:*}\nbmc_password=${bmc#*:}\nvnode_num=${vnode_num}"|\
                         sed 's/[\%]/\\&/g;s/\([^=]*\)=\(.*\)/s%${\1}%\2%/' > sed.script
