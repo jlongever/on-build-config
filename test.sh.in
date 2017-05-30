@@ -326,12 +326,14 @@ portForwarding(){
     socat TCP4-LISTEN:9092,forever,reuseaddr,fork TCP4:$1:9080 &
     socat TCP4-LISTEN:9093,forever,reuseaddr,fork TCP4:$1:8443 &
     socat TCP4-LISTEN:2222,forever,reuseaddr,fork TCP4:$1:22 &
+    socat TCP4-LISTEN:7080,forever,reuseaddr,fork TCP4:$1:7080 &
     echo "Finished ova -> localhost port forwarding"
     echo "5672->9091"
     echo "8080->9090"
     echo "9080->9092"
     echo "8443->9093"
     echo "22->2222"
+    echo "7080->7080"
 }
 
 fetchOVALog(){
