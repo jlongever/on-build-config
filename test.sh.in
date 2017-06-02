@@ -265,12 +265,19 @@ runTests() {
   if [ "$RUN_FIT_TEST" == true ] ; then
      cd ${WORKSPACE}/RackHD/test
      #TODO Parameterize FIT args
-     python run_tests.py -test deploy/rackhd_stack_init.py -stack vagrant  -port 9090 -xunit
+     tstack=${TEST_STACK}
+     read hwarray<<<"${EXTRA_HW}"
+     for item in $hwarray; do
+         if [ "${item}" == "ucs" ] && [ "${TEST_STACK}" == "-stack vagrant" ]; then
+             tstack="-stack vagrant_ucs"
+         fi
+     done
+     python run_tests.py -test deploy/rackhd_stack_init.py ${tstack} -xunit
      if [ $? -ne 0 ]; then
          echo "Test FIT failed running deploy/rackhd_stack_init.py"
          exit 1
      fi
-     python run_tests.py -test tests -group smoke -stack vagrant -port 9090 -v 9 -xunit
+     python run_tests.py ${TEST_GROUP} ${tstack} -v 4 -xunit
      if [ $? -ne 0 ]; then
          echo "Test FIT failed running smoke test"
          exit 1

@@ -2,11 +2,11 @@ import groovy.transform.Field;
 
 // The default test config: ALL_TESTS (a global variable)
 @Field def ALL_TESTS=[:]
-ALL_TESTS["FIT"]=["TEST_GROUP":"smoke-tests","RUN_FIT_TEST":true,"RUN_CIT_TEST":false,"label":"smoke_test"]
-ALL_TESTS["CIT"]=["TEST_GROUP":"smoke-tests","RUN_FIT_TEST":false,"RUN_CIT_TEST":true,"label":"smoke_test"]
-ALL_TESTS["Install Ubuntu 14.04"]=["TEST_GROUP":"ubuntu-minimal-install.v2.0.test","RUN_FIT_TEST":false,"RUN_CIT_TEST":true,"label":"os_install"]
-ALL_TESTS["Install ESXI 6.0"]=["TEST_GROUP":"esxi-6-min-install.v2.0.test","RUN_FIT_TEST":false,"RUN_CIT_TEST":true,"label":"os_install"]
-ALL_TESTS["Install Centos 6.5"]=["TEST_GROUP":"centos-6-5-minimal-install.v2.0.test","RUN_FIT_TEST":false,"RUN_CIT_TEST":true,"label":"os_install"]
+ALL_TESTS["FIT"]=["TEST_GROUP":"-test tests -group smoke","RUN_FIT_TEST":true,"RUN_CIT_TEST":false,"label":"smoke_test", "EXTRA_HW":"ucs"]
+ALL_TESTS["CIT"]=["TEST_GROUP":"smoke-tests","RUN_FIT_TEST":false,"RUN_CIT_TEST":true,"label":"smoke_test", "EXTRA_HW":""]
+ALL_TESTS["Install Ubuntu 14.04"]=["TEST_GROUP":"ubuntu-minimal-install.v2.0.test","RUN_FIT_TEST":false,"RUN_CIT_TEST":true,"label":"os_install", "EXTRA_HW":""]
+ALL_TESTS["Install ESXI 6.0"]=["TEST_GROUP":"esxi-6-min-install.v2.0.test","RUN_FIT_TEST":false,"RUN_CIT_TEST":true,"label":"os_install", "EXTRA_HW":""]
+ALL_TESTS["Install Centos 6.5"]=["TEST_GROUP":"centos-6-5-minimal-install.v2.0.test","RUN_FIT_TEST":false,"RUN_CIT_TEST":true,"label":"os_install", "EXTRA_HW":""]
 
 String repo_dir
 String stash_manifest_name
@@ -35,7 +35,7 @@ def setDocker(String docker_stash_name, String docker_stash_path, String docker_
     this.docker_record_stash_path = docker_record_stash_path
 }
 
-def functionTest(String test_name, String label_name, String TEST_GROUP, Boolean RUN_FIT_TEST, Boolean RUN_CIT_TEST, String repo_dir, String test_type){
+def functionTest(String test_name, String label_name, String TEST_GROUP, Boolean RUN_FIT_TEST, Boolean RUN_CIT_TEST, String repo_dir, String test_type, String test_stack, String extra_hw){
     def shareMethod = load(repo_dir + "/jobs/ShareMethod.groovy")
     lock(label:label_name,quantity:1){
         // Occupy an avaliable resource which contains the label
@@ -85,6 +85,8 @@ def functionTest(String test_name, String label_name, String TEST_GROUP, Boolean
                         "NODE_NAME=${env.NODE_NAME}",
                         "PYTHON_REPOS=ucs-service",
                         "TEST_TYPE=$test_type",
+                        "TEST_STACK=$test_stack",
+                        "EXTRA_HW=$extra_hw",
                         "KEEP_FAILURE_ENV=${env.KEEP_FAILURE_ENV}",
                         "KEEP_MINUTES=${env.KEEP_MINUTES}"]
                     ){
@@ -222,7 +224,7 @@ def functionTest(String test_name, String label_name, String TEST_GROUP, Boolean
     }
 }
 
-def triggerTestsParallely(TESTS, test_type, repo_dir){
+def triggerTestsParallely(TESTS, test_type, repo_dir, test_stack){
     def RUN_TESTS_DICT=[:]
     // TESTS is a checkbox parameter.
     // Its value is a string looks like:
@@ -243,8 +245,9 @@ def triggerTestsParallely(TESTS, test_type, repo_dir){
         def test_group = RUN_TESTS_DICT[test_name]["TEST_GROUP"]
         def run_fit_test = RUN_TESTS_DICT[test_name]["RUN_FIT_TEST"]
         def run_cit_test = RUN_TESTS_DICT[test_name]["RUN_CIT_TEST"]
+        def extra_hw = RUN_TESTS_DICT[test_name]["EXTRA_HW"]
         test_branches[test_name] = {
-            functionTest(test_name,label_name,test_group, run_fit_test, run_cit_test, repo_dir, test_type)
+            functionTest(test_name,label_name,test_group, run_fit_test, run_cit_test, repo_dir, test_type, test_stack, extra_hw)
         }
     }
     if(test_branches.size() > 0){
@@ -275,7 +278,7 @@ def archiveArtifactsToTarget(target, TESTS, test_type){
     }
 }
 
-def runTest(TESTS, test_type, repo_dir){
+def runTest(TESTS, test_type, repo_dir, test_stack){
     // Run test in parallel
     try{
         withEnv([
@@ -305,7 +308,7 @@ def runTest(TESTS, test_type, repo_dir){
                 string(credentialsId: 'INTERNAL_HTTP_ZIP_FILE_URL', variable: 'INTERNAL_HTTP_ZIP_FILE_URL'),
                 string(credentialsId: 'INTERNAL_TFTP_ZIP_FILE_URL', variable: 'INTERNAL_TFTP_ZIP_FILE_URL')
                 ]) {
-                triggerTestsParallely(TESTS, test_type, repo_dir)
+                triggerTestsParallely(TESTS, test_type, repo_dir, test_stack)
             }
         }
     } catch(error){
@@ -317,17 +320,20 @@ def runTest(TESTS, test_type, repo_dir){
 
 def dockerPostTest(TESTS, docker_stash_name, docker_stash_path, docker_record_stash_path, repo_dir, test_type){
     setDocker(docker_stash_name, docker_stash_path, docker_record_stash_path)
-    runTest(TESTS, test_type, repo_dir)
+    test_stack = "-stack vagrant"
+    runTest(TESTS, test_type, repo_dir, test_stack)
 }
 
 def ovaPostTest(TESTS, ova_stash_name, ova_stash_path, repo_dir, test_type){
     setOVA(ova_stash_name, ova_stash_path)
-    runTest(TESTS, test_type, repo_dir)
+    test_stack = "-stack vagrant"
+    runTest(TESTS, test_type, repo_dir, test_stack)
 }
 
 def manifestTest(TESTS, manifest_stash_name, manifest_stash_path, repo_dir, test_type){
     setManifest(manifest_stash_name, manifest_stash_path)
-    runTest(TESTS, test_type, repo_dir)
+    test_stack = "-stack vagrant"
+    runTest(TESTS, test_type, repo_dir, test_stack)
 }
 
 return this
