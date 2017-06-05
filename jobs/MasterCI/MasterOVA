@@ -1,0 +1,89 @@
+node{
+    // MasterOVA Jenkins test pipeline
+    // This Pipeline optionally build OVA, Load OVA, Run Post Tests
+    // This Pipeline uses these jenkins credentials:
+    // BINTRAY_CREDS, SUDO_CREDS (Debian), vCenter_IP
+    // This Pipeline uses these jenkins parameters:
+    // OVA_GATEWAY, OVA_NET_INTERFACE, OVA_STASH_NAME, OVA_FILE, USE_PREBUILT_OVA, MANIFEST_FILE_URL
+    
+    withEnv([
+        "branch=${env.branch}",
+        "IS_OFFICIAL_RELEASE=false",
+        "date=current",
+        "timezone=-0500",
+        "OS_VER=${env.OS_VER}",
+        "TFTP_STATIC_FILES=${env.TFTP_STATIC_FILES}",
+        "HTTP_STATIC_FILES=${env.HTTP_STATIC_FILES}",
+        "USE_VCOMPUTE=${env.USE_VCOMPUTE}",
+        "TESTS=${env.TESTS}",
+        "OVA_POST_TESTS=${env.OVA_POST_TESTS}",
+        "BINTRAY_SUBJECT=${env.BINTRAY_SUBJECT}",
+        "CI_BINTRAY_SUBJECT=${env.CI_BINTRAY_SUBJECT}",
+        "PUBLISH=${env.PUBLISH}",
+        "OVA_CACHE_BUILD=false"])
+    {
+        deleteDir()
+        dir("build-config"){
+            checkout scm
+        }
+        def shareMethod = load("build-config/jobs/ShareMethod.groovy")
+        try{
+            stage("Process Manifest"){
+                // Generate a manifest file according to branch, date and timezone if manifest file url is null
+                if("${MANIFEST_FILE_URL}" == null || "${MANIFEST_FILE_URL}" == "null" || "${MANIFEST_FILE_URL}" == ""){
+                    timestamps{
+                        withEnv([
+                            "branch=${env.branch}",
+                            "date=current",
+                            "timezone=-0500"
+                        ]){
+                            sh '''#!/bin/bash -ex
+                            pushd $WORKSPACE
+                            ./build-config/build-release-tools/HWIMO-BUILD build-config/build-release-tools/application/generate_manifest.py \
+                            --branch "$branch" \
+                            --date "$date" \
+                            --timezone "$timezone" \
+                            --builddir b \
+                            --force \
+                            --jobs 8
+
+                            arrBranch=($(echo $branch | tr "/" "\n"))
+                            slicedBranch=${arrBranch[-1]}
+                            manifest_file=$(find -maxdepth 1 -name "$slicedBranch-[0-9]*" -printf "%f\n")
+                            mv $manifest_file manifest
+                            '''
+                        }
+                    }
+                }
+                else{
+                    sh 'curl -L $MANIFEST_FILE_URL -o manifest'
+                }
+            }
+            stage("Generate OVA"){
+                stash name: "masterci_manifest", includes: "manifest"
+                env.stash_manifest_name = "masterci_manifest"
+                env.stash_manifest_path = "manifest"
+                
+                def repo_dir = pwd() + "/build-config"
+                def TESTS = "${env.TESTS}"
+                def test_type = "manifest"
+
+                // Never publish results
+                Boolean create_tag = false
+                Boolean publish = false
+                // Use pre built ova or build ova from manifest 
+		if(env.USE_PREBUILT_OVA == "true"){
+                    stage("OVA Post Test"){
+                        shareMethod.testOVA(repo_dir)
+                    }
+                } else {
+                    shareMethod.buildandtestOVA(repo_dir)
+		}
+            }
+        } finally{
+            echo "Pipeline is Complete"
+            // Test jenkins need Plugins to send test results
+            // shareMethod.sendResult(false, false)
+        }
+    }
+}

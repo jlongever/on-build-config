@@ -1,8 +1,14 @@
 #!/bin/bash -x
 
 set +e
-mv $WORKSPACE/cache_image/RackHD/packer/* $WORKSPACE/build/packer/
-ls $WORKSPACE/build/packer/*
+
+# If OVA_CACHE_BUILD is not used, cache_image directory does not exist
+if [ -d  $WORKSPACE/cache_image/RackHD/packer/ ] ; then
+    echo "Copy Cache images from PACKER_CACHE_BUILD job archiving"
+    mv $WORKSPACE/cache_image/RackHD/packer/* $WORKSPACE/build/packer/
+    ls $WORKSPACE/build/packer/*
+fi
+
 vmware -v
 
 cd $WORKSPACE/build/packer/ansible/roles/rackhd-builds/tasks
