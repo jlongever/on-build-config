@@ -14,6 +14,9 @@ node{
         "CI_BINTRAY_SUBJECT=${env.CI_BINTRAY_SUBJECT}",
         "PUBLISH=${env.PUBLISH}"
     ]){
+        def message = "Job Name: ${env.JOB_NAME} \n" + "Build Full URL: ${env.BUILD_URL} \n" + "Phase: STARTED \n"
+        echo "$message"
+        slackSend "$message"
         deleteDir()
         checkout scm
         def shareMethod = load("jobs/ShareMethod.groovy")
