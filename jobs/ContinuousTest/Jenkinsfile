@@ -1,4 +1,7 @@
 node{
+    def message = "Job Name: ${env.JOB_NAME} \n" + "Build Full URL: ${env.BUILD_URL} \n" + "Phase: STARTED \n"
+    echo "$message"
+    slackSend "$message"
     deleteDir()
     dir("build-config"){
         checkout scm
