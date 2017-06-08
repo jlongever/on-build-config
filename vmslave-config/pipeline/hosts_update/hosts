@@ -1,0 +1,53 @@
+[slave]
+vmslave-packer-1 ansible_host=10.62.59.125 ansible_user=jenkins ansible_ssh_pass=Zilog256 ansible_become_pass=Zilog256
+
+[packer-bri]
+vmslave-packer-1 ansible_host=10.62.59.125 ansible_user=jenkins ansible_ssh_pass=Zilog256 ansible_become_pass=Zilog256
+
+[packer]
+vmslave-packer-1 ansible_host=10.62.59.125 ansible_user=jenkins ansible_ssh_pass=Zilog256 ansible_become_pass=Zilog256
+vmslave-packer-2 ansible_host=10.62.59.126 ansible_user=jenkins ansible_ssh_pass=Zilog256 ansible_become_pass=Zilog256
+
+[parallel-deb-build]
+vmslave-deb-1 ansible_host=10.62.59.128 ansible_user=jenkins ansible_ssh_pass=Zilog256 ansible_become_pass=Zilog256
+
+[vmslave-config]
+vmslave20 ansible_host=10.62.59.146 ansible_user=jenkins ansible_ssh_pass=Zilog256 ansible_become_pass=Zilog256
+
+[smoke-test]
+vmslave10 ansible_host=10.62.59.169 ansible_user=jenkins ansible_ssh_pass=Zilog256 ansible_become_pass=Zilog256
+vmslave11 ansible_host=10.62.59.164 ansible_user=jenkins ansible_ssh_pass=Zilog256 ansible_become_pass=Zilog256
+vmslave12 ansible_host=10.62.59.140 ansible_user=jenkins ansible_ssh_pass=Zilog256 ansible_become_pass=Zilog256
+vmslave13 ansible_host=10.62.59.153 ansible_user=jenkins ansible_ssh_pass=Zilog256 ansible_become_pass=Zilog256
+vmslave17 ansible_host=10.62.59.143 ansible_user=jenkins ansible_ssh_pass=Zilog256 ansible_become_pass=Zilog256
+vmslave18 ansible_host=10.62.59.144 ansible_user=jenkins ansible_ssh_pass=Zilog256 ansible_become_pass=Zilog256
+vmslave19 ansible_host=10.62.59.145 ansible_user=jenkins ansible_ssh_pass=Zilog256 ansible_become_pass=Zilog256
+vmslave20 ansible_host=10.62.59.146 ansible_user=jenkins ansible_ssh_pass=Zilog256 ansible_become_pass=Zilog256
+
+[ova]
+vmslave-packer-2 ansible_host=10.62.59.126 ansible_user=jenkins ansible_ssh_pass=Zilog256 ansible_become_pass=Zilog256
+
+[prgate]
+vmslave14 ansible_host=10.62.59.159 ansible_user=jenkins ansible_ssh_pass=Zilog256 ansible_become_pass=Zilog256
+vmslave15 ansible_host=10.62.59.121 ansible_user=jenkins ansible_ssh_pass=Zilog256 ansible_become_pass=Zilog256
+vmslave16 ansible_host=10.62.59.142 ansible_user=jenkins ansible_ssh_pass=Zilog256 ansible_become_pass=Zilog256
+vmslave21 ansible_host=10.62.59.147 ansible_user=jenkins ansible_ssh_pass=Zilog256 ansible_become_pass=Zilog256
+vmslave22 ansible_host=10.62.59.148 ansible_user=jenkins ansible_ssh_pass=Zilog256 ansible_become_pass=Zilog256
+vmslave23 ansible_host=10.62.59.149 ansible_user=jenkins ansible_ssh_pass=Zilog256 ansible_become_pass=Zilog256
+
+[bri]
+vmslave-packer-1 ansible_host=10.62.59.125 ansible_user=jenkins ansible_ssh_pass=Zilog256 ansible_become_pass=Zilog256
+
+[test]
+test-vmslave10 ansible_host=10.62.59.210 ansible_user=jenkins ansible_ssh_pass=Zilog256 ansible_become_pass=Zilog256
+test-vmslave11 ansible_host=10.62.59.211 ansible_user=jenkins ansible_ssh_pass=Zilog256 ansible_become_pass=Zilog256
+test-vmslave12 ansible_host=10.62.59.212 ansible_user=jenkins ansible_ssh_pass=Zilog256 ansible_become_pass=Zilog256
+test-vmslave13 ansible_host=10.62.59.213 ansible_user=jenkins ansible_ssh_pass=Zilog256 ansible_become_pass=Zilog256
+test-vmslave14 ansible_host=10.62.59.214 ansible_user=jenkins ansible_ssh_pass=Zilog256 ansible_become_pass=Zilog256
+
+[deb]
+vmslave-deb-1 ansible_host=10.62.59.128 ansible_user=jenkins ansible_ssh_pass=Zilog256 ansible_become_pass=Zilog256
+
+[docker]
+vmslave-docker-1 ansible_host=10.62.59.127 ansible_user=jenkins ansible_ssh_pass=Zilog256 ansible_become_pass=Zilog256
+

@@ -57,6 +57,15 @@ node{
             Boolean create_tag = false
             Boolean publish = PUBLISH.toBoolean()
             shareMethod.buildAndPublish(publish, create_tag, repo_dir)
+            // trigger unfreeze procedure
+            try {
+                build job: env.MERGE_FREEZER_TRIGGER, parameters: [[$class: 'StringParameterValue', name: 'MANUAL', value:"false"],[$class: 'BooleanParameterValue', name: 'FREEZE_OR_UNFREEZE', value:false]]
+            } catch (error){
+                echo "Failed to trigger merge freezer!"
+            }
+        } catch(error){
+            // trigger freeze procedure
+            build job: env.MERGE_FREEZER_TRIGGER, parameters: [[$class: 'StringParameterValue', name: 'MANUAL', value:"false"],[$class: 'BooleanParameterValue', name: 'FREEZE_OR_UNFREEZE', value:true]]
         } finally{
             shareMethod.sendResult(true, true)
         }
