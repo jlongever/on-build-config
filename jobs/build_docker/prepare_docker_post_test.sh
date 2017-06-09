@@ -10,10 +10,25 @@ echo $SUDO_PASSWORD |sudo -S service mongodb stop
 echo $SUDO_PASSWORD |sudo -S service rabbitmq-server stop
 
 rackhd_docker_images=`ls ${DOCKER_PATH}`
+# load docker images
+docker load -i $rackhd_docker_images | tee ${WORKSPACE}/docker_load_output
+
+if [ ${USE_PREBUILT_IMAGES} == true ] ; then
+    # This path is followed when using the prebuilt images to get image tag
+    #file=${WORKSPACE}/docker_load_output
+    while IFS=:  read -r load imagename tag 
+    do
+       echo $tag
+       break
+    done < "${WORKSPACE}/docker_load_output"
+    repo_list=$(echo "rackhd/files:${tag} rackhd/on-core:${tag} rackhd/on-syslog:${tag} rackhd/on-dhcp-proxy:${tag} \
+                          rackhd/on-tftp:${tag} rackhd/on-wss:${tag} rackhd/on-statsd:${tag} rackhd/on-tasks:${tag} rackhd/on-taskgraph:${tag} \
+                          rackhd/on-http:${tag} rackhd/ucs-service:${tag}")
+    echo $repo_list >> ${WORKSPACE}/build_record
+    DOCKER_RECORD_PATH=${WORKSPACE}/build_record
+fi
 build_record=`ls ${DOCKER_RECORD_PATH}`
 
-# load docker images
-docker load -i $rackhd_docker_images
 image_list=`head -n 1 $build_record`
 
 pushd $BUILD_CONFIG_DIR
