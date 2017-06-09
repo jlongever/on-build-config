@@ -12,7 +12,8 @@ node{
         "OVA_POST_TESTS=${env.OVA_POST_TESTS}",
         "BINTRAY_SUBJECT=${env.BINTRAY_SUBJECT}",
         "CI_BINTRAY_SUBJECT=${env.CI_BINTRAY_SUBJECT}",
-        "PUBLISH=${env.PUBLISH}"
+        "PUBLISH=${env.PUBLISH}",
+        "OVA_CACHE_BUILD=true"
     ]){
         def message = "Job Name: ${env.JOB_NAME} \n" + "Build Full URL: ${env.BUILD_URL} \n" + "Phase: STARTED \n"
         echo "$message"
@@ -47,12 +48,12 @@ node{
                     unit_test.runTest(env.stash_manifest_name, env.stash_manifest_path, repo_dir)
                 }
                 stage("Function Test"){
-                    // Call the function run to run function test
-                    function_test.manifestTest(TESTS, env.stash_manifest_name, env.stash_manifest_path, repo_dir, test_type)
+                    // Run function test
+                    load("jobs/FunctionTest/SourceBasedTest.groovy")
                 }
             } finally{
                 unit_test.archiveArtifactsToTarget("UnitTest")
-                function_test.archiveArtifactsToTarget("FunctionTest", TESTS, test_type)
+                function_test.archiveArtifactsToTarget("FunctionTest", TESTS)
             }
             Boolean create_tag = false
             Boolean publish = PUBLISH.toBoolean()

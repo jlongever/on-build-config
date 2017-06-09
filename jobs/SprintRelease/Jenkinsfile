@@ -60,12 +60,12 @@ node{
                     unit_test.runTest(env.stash_manifest_name, env.stash_manifest_path, repo_dir)
                 }
                 stage("Function Test"){
-                    // Call the function run to run function test
-                    function_test.manifestTest(TESTS, env.stash_manifest_name, env.stash_manifest_path, repo_dir, test_type)
+                    // Run function test
+                    load("jobs/FunctionTest/SourceBasedTest.groovy")
                 }
             } finally{
                 unit_test.archiveArtifactsToTarget("UnitTest")
-                function_test.archiveArtifactsToTarget("FunctionTest", TESTS, test_type)
+                function_test.archiveArtifactsToTarget("FunctionTest", TESTS)
             }
             Boolean create_tag = TAG.toBoolean()
             Boolean publish = PUBLISH.toBoolean()

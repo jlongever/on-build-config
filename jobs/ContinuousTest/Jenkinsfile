@@ -60,9 +60,9 @@ node{
             def repo_dir = pwd() + "/build-config"
             def function_test = load("build-config/jobs/FunctionTest/FunctionTest.groovy")
             try{
-                function_test.manifestTest(TESTS, env.stash_manifest_name, env.stash_manifest_path, repo_dir, test_type)
+                load("build-config/jobs/FunctionTest/SourceBasedTest.groovy")
             } finally{
-                function_test.archiveArtifactsToTarget("FunctionTest", TESTS, test_type)
+                function_test.archiveArtifactsToTarget("FunctionTest", TESTS)
             }
         }
     } finally{

@@ -17,14 +17,14 @@ node{
         }
         stage("Function Test"){
             // Start to run test
-            function_test.manifestTest(TESTS, env.stash_manifest_name, env.stash_manifest_path, repo_dir, test_type)
+            load("jobs/FunctionTest/SourceBasedTest.groovy")
         }
     } catch(error){
         echo "Caught: ${error}"    
         currentBuild.result = "FAILURE"
     } finally{
         unit_test.archiveArtifactsToTarget("UnitTest")
-        function_test.archiveArtifactsToTarget("FunctionTest", TESTS, test_type)
+        function_test.archiveArtifactsToTarget("FunctionTest", TESTS)
         stage("Write Back"){
             load("jobs/write_back_github/write_back_github.groovy")
         }

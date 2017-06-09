@@ -5,7 +5,7 @@ VCOMPUTE="${VCOMPUTE}"
 if [ -z "${VCOMPUTE}" ]; then
   VCOMPUTE=("jvm-Quanta_T41-1" "jvm-vRinjin-1" "jvm-vRinjin-2")
 fi
-
+VCOMPUTE+=("${NODE_NAME}-ova-for-post-test")
 cleanupVMs(){
     vagrantDestroy
     # Suspend any other running vagrant boxes
@@ -40,9 +40,6 @@ virtualBoxDestroyAll() {
 nodesDelete() {
   cd ${WORKSPACE}/build-config/deployment/
   if [ "${USE_VCOMPUTE}" != "false" ]; then
-    if [ $TEST_TYPE == "ova" ]; then
-      VCOMPUTE+=("${NODE_NAME}-ova-for-post-test")
-    fi
     for i in ${VCOMPUTE[@]}; do
       ./vm_control.sh "${ESXI_HOST},${ESXI_USER},${ESXI_PASS},delete,1,${i}_*"
     done

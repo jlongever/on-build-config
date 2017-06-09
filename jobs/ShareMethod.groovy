@@ -55,33 +55,70 @@ def buildPackage(String repo_dir){
     }
 }
 
+def testOVA(String repo_dir){
+    def ova_post_test = load(repo_dir + "/jobs/build_ova/ova_post_test.groovy")
+    ova_post_test.runTests()
+}
+
+def testDocker(String repo_dir){
+    def docker_post_test = load(repo_dir + "/jobs/build_docker/docker_post_test.groovy")
+    docker_post_test.runTests()
+}
+
+def testVagrant(String repo_dir){
+    load(repo_dir + "/jobs/build_vagrant/vagrant_post_test.groovy")
+}
+
+def buildOVA(String repo_dir){
+    load(repo_dir + "/jobs/build_ova/build_ova.groovy")
+}
+
+def buildDocker(String repo_dir){
+    load(repo_dir + "/jobs/build_docker/build_docker.groovy")
+}
+
+def buildVagrant(String repo_dir){
+    load(repo_dir + "/jobs/build_vagrant/build_vagrant.groovy")
+}
+
 def buildImages(String repo_dir){
     // retry times for images build to avoid failing caused by network
     int retry_times = 3
     stage("Images Build"){
         parallel 'vagrant build':{
             retry(retry_times){
-                load(repo_dir + "/jobs/build_vagrant/build_vagrant.groovy")
+                buildVagrant(repo_dir)
             }
         }, 'ova build':{
             retry(retry_times){
-                load(repo_dir + "/jobs/build_ova/build_ova.groovy")
+                buildOVA(repo_dir)
             }
         }, 'build docker':{
             retry(retry_times){
-                load(repo_dir + "/jobs/build_docker/build_docker.groovy")
+                buildDocker(repo_dir)
             }
         }
     }
 
     stage("Post Test"){
-        parallel 'vagrant post test':{
-            load(repo_dir + "/jobs/build_vagrant/vagrant_post_test.groovy")
-        }, 'ova post test loader':{
-            load(repo_dir + "/jobs/build_ova/ova_post_test.groovy")
-        }, 'docker post test loader':{
-            load(repo_dir + "/jobs/build_docker/docker_post_test.groovy")
+        load(repo_dir + "/jobs/FunctionTest/PostTest.groovy")
+    }
+}
+
+def buildandtestOVA(String repo_dir){
+    // retry times for images build to avoid failing caused by network
+    int retry_times = 3
+
+    buildPackage(repo_dir)
+
+    stage("OVA Images Build"){
+        retry(retry_times){
+            buildOVA(repo_dir)
         }
+    }
+
+    stage("OVA Post Test"){
+        testOVA(repo_dir)
     }
 }
 
