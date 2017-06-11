@@ -11,17 +11,6 @@ if [ ! -z "${5}" ]; then
 fi
 MODIFY_API_PACKAGE="${MODIFY_API_PACKAGE}"
 
-cleanupVMs(){
-    vagrantDestroy
-    # Suspend any other running vagrant boxes
-    vagrantSuspendAll
-
-    # Delete any running VMs
-    virtualBoxDestroyAll
-
-    rm -rf "$HOME/VirtualBox VMs"
-}
-
 cleanUpDockerImages(){
     images=`echo $SUDO_PASSWORD| sudo -S docker images | awk '{print $3}' | sort | uniq`
     if [ -n "$images" ]; then
@@ -178,78 +167,14 @@ nodesCreate() {
   fi
 }
 
-vagrantSuspendAll() {
- for box in `vagrant global-status --prune | awk '/running/{print $1}'`; do
-     vagrant suspend ${box}
- done
-}
-
-CONFIG_PATH=${CONFIG_PATH-build-config/vagrant/config/mongo}
-vagrantUp() {
-  cd ${WORKSPACE}/RackHD/example
-  cp -rf ${WORKSPACE}/build-config/vagrant/* .
-  mkdir -p ${WORKSPACE}/build-log
-  result=0
-  for i in {1..2}
-  do
-      CONFIG_DIR=${CONFIG_PATH} WORKSPACE=${WORKSPACE} vagrant up --provision
-      result=$?
-      if [ $result -ne 0 ]; then
-          echo "Vagrant up failed!! retry one more time"
-          vagrant destroy -f
-          #suspend all running instance
-          vagrantSuspendAll
-          #rmeove all VMs before retying
-          rm -rf "$HOME/VirtualBox VMs"
-          rm "$HOME/.config/VirtualBox/VirtualBox.xml"
-      else
-          echo "Vagrant up passed."
-          break
-      fi
-  done
-  if [ $result -ne 0 ]; then
-      echo "Vagrant up failed."
-      exit 1
-  fi
-}
-
-vagrantDestroy() {
-  cd ${WORKSPACE}/RackHD/example
-  vagrant destroy -f
-}
-
-vagrantHalt() {
-  cd ${WORKSPACE}/RackHD/example
-  vagrant halt
-}
-
-virtualBoxDestroyAll() {
-  set +e
-  for uuid in `vboxmanage list vms | awk '{print $2}' | tr -d '{}'`; do
-    echo "shutting down vm ${uuid}"
-    vboxmanage controlvm ${uuid} poweroff
-    echo "deleting vm ${uuid}"
-    vboxmanage unregistervm ${uuid}
-  done
-  set -e
-}
-
 vnc_record_start(){
   mkdir -p ${WORKSPACE}/build-log
-  pushd ${WORKSPACE}/build-config # to use the Vagrantfile in it
+  pushd ${WORKSPACE}/build-config 
   export fname_prefix="vNode"
   if [ ! -z $BUILD_ID ]; then
       export fname_prefix=${fname_prefix}_b${BUILD_ID}
   fi
-
-  #http://stackoverflow.com/questions/25331758/vagrant-ssh-c-and-keeping-a-background-process-running-after-connection-closed/27327955
-  #trying various ways to  detach the process from the shell,  but all not working 
-  # including vagrant ssh -c "nohup bash xx.sh & "
-  # including vagrant ssh -c "bash xx.sh " &
   bash vnc_record.sh ${WORKSPACE}/build-log $fname_prefix &
-  #/home/vagrant/src/ will be mapped to host(outside vagrant)'s $WORKSPACE/build-deps
-  #nohup vagrant ssh -c "cd /home/vagrant/src/build-config/;   bash vnc_record.sh /home/vagrant/log/ $fname_prefix" &
-  #/home/vagrant/log/ will be mapped to host(outside vagrant)'s $WORKSPACE/build-log
 }
 
 vnc_record_stop(){
@@ -367,32 +292,15 @@ fetchOVALog(){
     popd
 }
 
-prepareDockerImage(){
+dockerUp(){
     pushd $WORKSPACE
-    echo "[Info] Downloading rackhd_pipeline_docker image"
-
-    # -c  resume getting a partially-downloaded file.
-    # -nv reduce the verbose output
-    # -t 5  the retry counter
-    wget -c -t 5 -nv --no-check-certificate http://rackhdci.lss.emc.com/job/Archiving/job/BuildDockerImage/lastSuccessfulBuild/artifact/rackhd_pipeline_docker.tar
-
-    if [ $? -ne 0 ]; then
-        echo "[Error]: wget download failed: ${remote_file}"
-        exit 2
-    else
-        echo "[Info] wget download successfully ${remote_file}"
-    fi
     echo $SUDO_PASSWORD |sudo -S docker load -i rackhd_pipeline_docker.tar
     popd
-}
-
-dockerUp(){
-    prepareDockerImage
     cp -r ${WORKSPACE}/build-deps ${WORKSPACE}/build-config/jobs/pr_gate/docker
     pushd ${WORKSPACE}/build-config/jobs/pr_gate/docker
     #cp -r ${WORKSPACE}/build-config/jobs/pr_gate/docker/* .
     echo $SUDO_PASSWORD |sudo -S docker build -t my/test .
-    echo $SUDO_PASSWORD |sudo -S docker run --net=host -d -t my/test
+    echo $SUDO_PASSWORD |sudo -S docker run --net=host -v /etc/localtime:/etc/localtime:ro -d -t my/test
     popd
 }
 
@@ -562,15 +470,9 @@ if [ "$RUN_CIT_TEST" == true ] || [ "$RUN_FIT_TEST" == true ] ; then
     cleanUp
     # register the signal handler to export log
     trap exportLog SIGINT SIGTERM SIGKILL EXIT
-
     nodesCreate
     dockerUp
-    # We setup the virtual-environment here, since once we
-    # call "nodesOn", it's a race to get to the first test
-    # before the nodes get booted far enough to start being
-    # seen by RackHD. Logically, it would be better IN runTests.
-    # We do it between the vagrant and waitForAPI to use the
-    # time to make the env instead of doing sleeps...
+    # Setup the virtual-environment
     setupVirtualEnv
     waitForAPI
     nodesOn

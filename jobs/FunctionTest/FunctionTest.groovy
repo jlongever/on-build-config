@@ -88,8 +88,9 @@ def functionTest(String test_name, String label_name, String TEST_GROUP, Boolean
                         "TEST_STACK=$test_stack",
                         "EXTRA_HW=$extra_hw",
                         "KEEP_FAILURE_ENV=${env.KEEP_FAILURE_ENV}",
-                        "KEEP_MINUTES=${env.KEEP_MINUTES}"]
-                    ){
+                        "KEEP_MINUTES=${env.KEEP_MINUTES}",
+                        "KEEP_DOCKER_ON_FAILURE=${env.KEEP_DOCKER_ON_FAILURE}"])
+                    {
                         try{
                             timeout(90){
                                 // Prepare RackHD
@@ -102,6 +103,9 @@ def functionTest(String test_name, String label_name, String TEST_GROUP, Boolean
                                         // This scipts can be separated into manifest_src_prepare and common_prepare
                                         sh './build-config/jobs/FunctionTest/prepare_manifest.sh'
                                     }
+                                    step ([$class: 'CopyArtifact',
+                                    projectName: 'Docker_Image_Build',
+                                    target: "$WORKSPACE"]);
                                 }
 
                                 // Get main test scripts for un-manifest-src test
@@ -194,7 +198,7 @@ def functionTest(String test_name, String label_name, String TEST_GROUP, Boolean
                                     }
                                 }
                                 if(result == "FAILURE"){
-                                    if(test_type == "manifest") {
+                                    if(test_type == "manifest" && KEEP_DOCKER_ON_FAILURE == "true") {
                                         def docker_tag = JOB_NAME + "_" + test_name.replaceAll(' ', '-') + ":" + BUILD_NUMBER
                                         sh '''#!/bin/bash -x
                                         set +e
