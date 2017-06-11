@@ -193,12 +193,24 @@ def functionTest(String test_name, String label_name, String TEST_GROUP, Boolean
                                         result = "SUCCESS"
                                     }
                                 }
-                                if(result == "FAILURE" && KEEP_FAILURE_ENV == "true"){
-                                    int sleep_mins = Integer.valueOf(KEEP_MINUTES)
-                                    def message = "Job Name: ${env.JOB_NAME} \n" + "Build Full URL: ${env.BUILD_URL} \n" + "Status: FAILURE \n" + "Stage: $test_name \n" + "Node Name: $node_name \n" + "Reserve Duration: $sleep_mins minutes \n"
-                                    echo "$message"
-                                    slackSend "$message"
-                                    sleep time: sleep_mins, unit: 'MINUTES'
+                                if(result == "FAILURE"){
+                                    if(test_type == "manifest") {
+                                        def docker_tag = JOB_NAME + "_" + test_name.replaceAll(' ', '-') + ":" + BUILD_NUMBER
+                                        sh '''#!/bin/bash -x
+                                        set +e
+                                        pushd $WORKSPACE
+                                        ./build-config/jobs/pr_gate/save_docker.sh ''' + "$docker_tag" + '''
+                                        cp build-log/*.log '''+"$artifact_dir"+'''
+                                        popd
+                                        '''
+                                    }
+                                    if(KEEP_FAILURE_ENV == "true"){
+                                        int sleep_mins = Integer.valueOf(KEEP_MINUTES)
+                                        def message = "Job Name: ${env.JOB_NAME} \n" + "Build Full URL: ${env.BUILD_URL} \n" + "Status: FAILURE \n" + "Stage: $test_name \n" + "Node Name: $node_name \n" + "Reserve Duration: $sleep_mins minutes \n"
+                                        echo "$message"
+                                        slackSend "$message"
+                                        sleep time: sleep_mins, unit: 'MINUTES'
+                                    }
                                 }
                             }finally{
                                 // Clean up test stack
@@ -300,6 +312,9 @@ def runTest(TESTS, test_type, repo_dir, test_stack){
                 usernamePassword(credentialsId: 'ff7ab8d2-e678-41ef-a46b-dd0e780030e1',
                                  passwordVariable: 'SUDO_PASSWORD',
                                  usernameVariable: 'SUDO_USER'),
+                usernamePassword(credentialsId: 'da1e60c6-f23a-429d-b0f5-19e3b287f5dc',
+                                 passwordVariable: 'DOCKERHUB_PASSWD',
+                                 usernameVariable: 'DOCKERHUB_USER'),
                 string(credentialsId: 'SENTRY_HOST', variable: 'SENTRY_HOST'),
                 string(credentialsId: 'SMB_USER', variable: 'SMB_USER'), 
                 string(credentialsId: 'RACKHD_SMB_WINDOWS_REPO_PATH', variable: 'RACKHD_SMB_WINDOWS_REPO_PATH'),
@@ -332,7 +347,7 @@ def ovaPostTest(TESTS, ova_stash_name, ova_stash_path, repo_dir, test_type){
 
 def manifestTest(TESTS, manifest_stash_name, manifest_stash_path, repo_dir, test_type){
     setManifest(manifest_stash_name, manifest_stash_path)
-    test_stack = "-stack vagrant"
+    test_stack = "-stack local_run"
     runTest(TESTS, test_type, repo_dir, test_stack)
 }
 

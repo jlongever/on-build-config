@@ -22,6 +22,32 @@ cleanupVMs(){
     rm -rf "$HOME/VirtualBox VMs"
 }
 
+cleanUpDockerImages(){
+    images=`echo $SUDO_PASSWORD| sudo -S docker images | awk '{print $3}' | sort | uniq`
+    if [ -n "$images" ]; then
+        docker rmi -f $images
+    fi
+}
+
+cleanUpDockerContainer(){
+    local containers=$(echo $SUDO_PASSWORD |sudo -S docker ps -a -q)
+    if [ "$containers" != "" ]; then
+        echo "Clean Up containers : " ${containers}
+        docker stop ${containers}
+        docker rm  ${containers}
+    fi
+}
+
+cleanUp(){
+    set +e
+    cleanUpDockerContainer
+    cleanUpDockerImages
+    echo $SUDO_PASSWORD |sudo -S service mongodb stop
+    echo $SUDO_PASSWORD |sudo -S service rabbitmq-server stop
+    set -e
+}
+
+
 apiPackageModify() {
     pushd ${WORKSPACE}/build-deps/on-http/extra
     sed -i "s/.*git symbolic-ref.*/ continue/g" make-deb.sh
@@ -209,7 +235,8 @@ virtualBoxDestroyAll() {
 }
 
 vnc_record_start(){
-  pushd ${WORKSPACE}/RackHD/example # to use the Vagrantfile in it
+  mkdir -p ${WORKSPACE}/build-log
+  pushd ${WORKSPACE}/build-config # to use the Vagrantfile in it
   export fname_prefix="vNode"
   if [ ! -z $BUILD_ID ]; then
       export fname_prefix=${fname_prefix}_b${BUILD_ID}
@@ -219,33 +246,44 @@ vnc_record_start(){
   #trying various ways to  detach the process from the shell,  but all not working 
   # including vagrant ssh -c "nohup bash xx.sh & "
   # including vagrant ssh -c "bash xx.sh " &
-  nohup vagrant ssh -c "cd /home/vagrant/src/build-config/;   bash vnc_record.sh /home/vagrant/log/ $fname_prefix" &
+  bash vnc_record.sh ${WORKSPACE}/build-log $fname_prefix &
+  #/home/vagrant/src/ will be mapped to host(outside vagrant)'s $WORKSPACE/build-deps
+  #nohup vagrant ssh -c "cd /home/vagrant/src/build-config/;   bash vnc_record.sh /home/vagrant/log/ $fname_prefix" &
   #/home/vagrant/log/ will be mapped to host(outside vagrant)'s $WORKSPACE/build-log
 }
 
 vnc_record_stop(){
   #sleep 2 sec to ensure FLV finishes the disk I/O before VM destroyed
-  vagrant ssh -c 'set +e ;    pkill flvrec.py;  sleep 2 ' 
-
+  set +e
+  pkill flvrec.py
+  sleep 2
+  set -e
 }
 
-
-
 generateSolLog(){
-  cd ${WORKSPACE}/RackHD/example
-  vagrant ssh -c 'cd /home/vagrant/src/build-config/; \
-        bash generate-sol-log.sh' > ${WORKSPACE}/sol.log &
+  pushd ${WORKSPACE}/build-config
+  bash generate-sol-log.sh > ${WORKSPACE}/sol.log &
 }
 
 generateSysLog(){
-  cd ${WORKSPACE}/RackHD/example
-  vagrant ssh -c 'dmesg > /home/vagrant/log/dmesg.log'
-  vagrant ssh -c 'cp /var/log/syslog /home/vagrant/log/syslog.log'
+  set +e
+  containerId=$( echo $SUDO_PASSWORD |sudo -S docker ps|grep "my/test" | awk '{print $1}' )
+  docker exec -it $containerId dmesg > ${WORKSPACE}/build-log/dmesg.log
 }
 
 generateMongoLog(){
-  cd ${WORKSPACE}/RackHD/example
-  vagrant ssh -c 'cp -r /var/log/mongodb /home/vagrant/log'
+  set +e
+  containerId=$( echo $SUDO_PASSWORD |sudo -S docker ps|grep "my/test" | awk '{print $1}' )
+  echo $SUDO_PASSWORD |sudo -S docker cp $containerId:/var/log/mongodb ${WORKSPACE}/build-log
+  echo $SUDO_PASSWORD |sudo -S chown -R $USER:$USER ${WORKSPACE}/build-log/mongodb
+}
+
+generateRackHDLog(){
+  set +e
+  containerId=$( echo $SUDO_PASSWORD |sudo -S docker ps|grep "my/test" | awk '{print $1}' )
+  echo $SUDO_PASSWORD |sudo -S docker cp $containerId:/root/.pm2/logs ${WORKSPACE}/build-log
+  echo $SUDO_PASSWORD |sudo -S chown -R $USER:$USER ${WORKSPACE}/build-log/logs
+  mv ${WORKSPACE}/build-log/logs/*.log ${WORKSPACE}/build-log
 }
 
 setupVirtualEnv(){
@@ -262,42 +300,13 @@ setupVirtualEnv(){
 BASE_REPO_URL="${BASE_REPO_URL}"
 runTests() {
   set +e
+  netstat -ntlp
   if [ "$RUN_FIT_TEST" == true ] ; then
-     cd ${WORKSPACE}/RackHD/test
-     #TODO Parameterize FIT args
-     tstack=${TEST_STACK}
-     read hwarray<<<"${EXTRA_HW}"
-     for item in $hwarray; do
-         if [ "${item}" == "ucs" ] && [ "${TEST_STACK}" == "-stack vagrant" ]; then
-             tstack="-stack vagrant_ucs"
-         fi
-     done
-     python run_tests.py -test deploy/rackhd_stack_init.py ${tstack} -xunit
-     if [ $? -ne 0 ]; then
-         echo "Test FIT failed running deploy/rackhd_stack_init.py"
-         exit 1
-     fi
-     python run_tests.py ${TEST_GROUP} ${tstack} -v 4 -xunit
-     if [ $? -ne 0 ]; then
-         echo "Test FIT failed running smoke test"
-         exit 1
-     fi
-     mkdir -p ${WORKSPACE}/xunit-reports
-     cp *.xml ${WORKSPACE}/xunit-reports
+      fitSmokeTest
   fi
   if [ "$RUN_CIT_TEST" == true ] ; then
-     read array<<<"${TEST_GROUP}"
-     args=()
-     group=" --group="
-     for item in $array; do
-        args+="${group}${item}"
-     done
-     cp -f ${WORKSPACE}/build-config/config.ini ${WORKSPACE}/RackHD/test/config
-     cd ${WORKSPACE}/RackHD/test
-     RACKHD_BASE_REPO_URL=${BASE_REPO_URL} RACKHD_TEST_LOGLVL=INFO \
-     python run.py ${args} --with-xunit
-     mkdir -p ${WORKSPACE}/xunit-reports
-     cp *.xml ${WORKSPACE}/xunit-reports
+      cp -f ${WORKSPACE}/build-config/config.ini ${WORKSPACE}/RackHD/test/config
+      citSmokeTest
   fi
   set -e
 }
@@ -358,6 +367,126 @@ fetchOVALog(){
     popd
 }
 
+prepareDockerImage(){
+    pushd $WORKSPACE
+    echo "[Info] Downloading rackhd_pipeline_docker image"
+
+    # -c  resume getting a partially-downloaded file.
+    # -nv reduce the verbose output
+    # -t 5  the retry counter
+    wget -c -t 5 -nv --no-check-certificate http://rackhdci.lss.emc.com/job/Archiving/job/BuildDockerImage/lastSuccessfulBuild/artifact/rackhd_pipeline_docker.tar
+
+    if [ $? -ne 0 ]; then
+        echo "[Error]: wget download failed: ${remote_file}"
+        exit 2
+    else
+        echo "[Info] wget download successfully ${remote_file}"
+    fi
+    echo $SUDO_PASSWORD |sudo -S docker load -i rackhd_pipeline_docker.tar
+    popd
+}
+
+dockerUp(){
+    prepareDockerImage
+    cp -r ${WORKSPACE}/build-deps ${WORKSPACE}/build-config/jobs/pr_gate/docker
+    pushd ${WORKSPACE}/build-config/jobs/pr_gate/docker
+    #cp -r ${WORKSPACE}/build-config/jobs/pr_gate/docker/* .
+    echo $SUDO_PASSWORD |sudo -S docker build -t my/test .
+    echo $SUDO_PASSWORD |sudo -S docker run --net=host -d -t my/test
+    popd
+}
+
+setupTestsConfig(){
+    if [ "$RUN_FIT_TEST" == true ] ; then
+        cp ${WORKSPACE}/build-config/jobs/pr_gate/test_config/FIT/*.* ${WORKSPACE}/RackHD/test/config
+    fi
+    if [ "$RUN_CIT_TEST" == true ] ; then
+        cp ${WORKSPACE}/build-config/jobs/pr_gate/test_config/CIT/config.ini ${WORKSPACE}/RackHD/test/config/
+    fi
+    pushd ${WORKSPACE}/RackHD/test/config
+    sed -i "s/RACKHD_SSH_USER = vagrant/RACKHD_SSH_USER = ${SUDO_USER}/g" config.ini
+    sed -i "s/RACKHD_SSH_PASSWORD = vagrant/RACKHD_SSH_PASSWORD = $SUDO_PASSWORD/g" config.ini
+    sed -i "s/\"username\": \"vagrant\"/\"username\": \"${SUDO_USER}\"/g" credentials_default.json
+    sed -i "s/\"password\": \"vagrant\"/\"password\": \"$SUDO_PASSWORD\"/g" credentials_default.json
+    popd
+}
+
+runTestsForDocker() {
+    set +e
+    netstat -ntlp
+    setupTestsConfig
+    if [ "$RUN_FIT_TEST" == true ] ; then
+        fitSmokeTest
+    fi
+    if [ "$RUN_CIT_TEST" == true ] ; then
+        citSmokeTest
+    fi
+    set -e
+}
+
+collectTestReport()
+{
+    pushd ${WORKSPACE}/RackHD/test
+    mkdir -p ${WORKSPACE}/xunit-reports
+    cp *.xml ${WORKSPACE}/xunit-reports
+    popd
+}
+
+fitSmokeTest()
+{
+    set +e
+    echo "########### Run FIT Stack Init #############"
+    pushd ${WORKSPACE}/RackHD/test
+    #TODO Parameterize FIT args
+    echo ${TEST_STACK}
+    tstack="${TEST_STACK}"
+    read hwarray<<<"${EXTRA_HW}"
+    for item in $hwarray; do
+        if [ "${item}" == "ucs" ] && [ "${TEST_STACK}" == "-stack vagrant" ]; then
+            tstack="-stack vagrant_ucs"
+        fi
+    done
+    echo ${tstack}
+    #python run_tests.py -test deploy/rackhd_stack_init.py -stack local_run -numvms 3 -rackhd_host localhost -port 9090 -v 4 -xunit
+    python run_tests.py -test deploy/rackhd_stack_init.py ${tstack} -xunit
+    if [ $? -ne 0 ]; then
+        echo "Test FIT failed running deploy/rackhd_stack_init.py"
+        collectTestReport
+        exit 1
+    fi
+    echo "########### Run FIT Smoke Test #############"
+    #python run_tests.py ${TEST_GROUP} -stack local_run -numvms 3 -rackhd_host localhost -port 9090 -v 4 -xunit
+    python run_tests.py ${TEST_GROUP} ${tstack} -v 4 -xunit
+    if [ $? -ne 0 ]; then
+        echo "Test FIT failed running smoke test"
+        collectTestReport
+        exit 1
+    fi
+    collectTestReport
+    popd
+    set -e
+}
+
+citSmokeTest(){
+    echo "########### Run CIT Smoke Test #############"
+    read array<<<"${TEST_GROUP}"
+    args=()
+    group=" --group="
+    for item in $array; do
+        args+="${group}${item}"
+    done
+    pushd ${WORKSPACE}/RackHD/test
+    RACKHD_BASE_REPO_URL=${BASE_REPO_URL} RACKHD_TEST_LOGLVL=INFO \
+    python run.py ${args} --with-xunit
+    collectTestReport
+    popd
+}
+
+exportLog(){
+    vnc_record_stop
+    generateRackHDLog
+    generateMongoLog   
+}
 ######################################
 #  OVA POST SMOKE TEST RELATED END   #
 ######################################
@@ -430,16 +559,12 @@ if [ "$RUN_CIT_TEST" == true ] || [ "$RUN_FIT_TEST" == true ] ; then
   else
     # rese the UCSPE emulators 
     ucsReset
+    cleanUp
+    # register the signal handler to export log
+    trap exportLog SIGINT SIGTERM SIGKILL EXIT
 
-    # register the signal handler to clean up( vagrantDestroy ), with process being killed
-    trap cleanupVMs SIGINT SIGTERM SIGKILL
-    cleanupVMs
-
-    # based on the assumption that in the same folder, the VMs has been exist normally. so don't destroy VM here.
-    
     nodesCreate
-    # Power on vagrant box and nodes 
-    vagrantUp
+    dockerUp
     # We setup the virtual-environment here, since once we
     # call "nodesOn", it's a race to get to the first test
     # before the nodes get booted far enough to start being
@@ -448,19 +573,12 @@ if [ "$RUN_CIT_TEST" == true ] || [ "$RUN_FIT_TEST" == true ] ; then
     # time to make the env instead of doing sleeps...
     setupVirtualEnv
     waitForAPI
-    nodesOn &
+    nodesOn
+
     generateSolLog
     vnc_record_start
     # Run tests
-    runTests
-    generateSysLog
-    generateMongoLog
-    vnc_record_stop
-    # Clean Up below
-
-    #shutdown vagrant box and delete all resource (like removing vm disk files in "~/VirtualBox VMs/")
-    #cleanupVMs
-    #nodesDelete
+    runTestsForDocker
   fi
 
 fi

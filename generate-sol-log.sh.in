@@ -31,7 +31,7 @@ while [ ${timeout} != ${maxto} ]; do
                                     tr 'A-Z' 'a-z' |
                                     while IFS= read -r line; do 
                                         echo "$(date) $line"; 
-                                    done > /home/vagrant/log/${vnode_num}.sol.log.raw'
+                                    done > ${WORKSPACE}/build-log/${vnode_num}.sol.log.raw'
                         #dump cmd to cmd.sh, replace vars with actual value.
                         echo -e "bmc_ip=$ip\nbmc_user=${bmc%:*}\nbmc_password=${bmc#*:}\nvnode_num=${vnode_num}"|\
                         sed 's/[\%]/\\&/g;s/\([^=]*\)=\(.*\)/s%${\1}%\2%/' > sed.script

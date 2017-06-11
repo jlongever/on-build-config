@@ -1,0 +1,32 @@
+node{
+    deleteDir()
+    checkout scm
+    def shareMethod = load("jobs/ShareMethod.groovy")
+    def label_name = "unittest"
+    lock(label:label_name,quantity:1){
+        resources_name = shareMethod.getLockedResourceName(label_name)
+        if(resources_name.size>0){
+            node_name = resources_name[0]
+        }
+        else{
+            error("Failed to find resource with label " + label_name)
+        }
+        node(node_name){
+            deleteDir()
+            dir("on-build-config"){
+                checkout scm
+            }
+            stage("build base image"){
+                withCredentials([
+                    usernamePassword(credentialsId: 'ff7ab8d2-e678-41ef-a46b-dd0e780030e1',
+                                     passwordVariable: 'SUDO_PASSWORD',
+                                     usernameVariable: 'SUDO_USER')
+                ]){
+                    sh './on-build-config/jobs/BuildBaseImage/build_base_image.sh'
+                    archiveArtifacts 'rackhd_pipeline_docker.tar'
+                }
+            }
+        }
+    }
+}
+
