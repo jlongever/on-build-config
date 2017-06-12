@@ -1,5 +1,6 @@
 node{
-    // MasterOVA Jenkins test pipeline
+    // PostTestOVA Jenkins test pipeline
+    // This pipeline is intended to be run only on the Test Jenkins Server
     // This Pipeline optionally build OVA, Load OVA, Run Post Tests
     // This Pipeline uses these jenkins credentials:
     // BINTRAY_CREDS, SUDO_CREDS (Debian), vCenter_IP
