@@ -2,9 +2,16 @@
   become: true
   apt: name=python-pip state=present
 
+- name: Install pip
+  become: true
+  pip:
+    name: pip
+    version: {{pip_version}}
+    extra_args: --upgrade
+
 - name: Install python tools
   become: true
   pip: name={{item}} state=present
   with_items:
-    - virtualenv
+    - virtualenv={{virtualenv_version}}
     - ansi2html
