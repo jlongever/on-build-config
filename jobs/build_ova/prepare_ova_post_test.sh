@@ -7,7 +7,14 @@
 #   2. Gateway, connect to external net through $OVA_NET_INTERFACE(eth1) with $OVA_GATEWAY IP
 
 set -x
-OVA=`ls ${OVA_PATH}`
+
+# If using a passed in ova file from an external http server and bypassing ova build,
+# use the path as is, else get the path via ls
+if [[ "${OVA_PATH}" == "http"* ]]; then
+    OVA="${OVA_PATH}"
+else
+    OVA=`ls ${OVA_PATH}`
+fi
 
 echo "Post Test starts "
 

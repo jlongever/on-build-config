@@ -12,7 +12,8 @@ node{
         "OVA_POST_TESTS=${env.OVA_POST_TESTS}",
         "BINTRAY_SUBJECT=${env.BINTRAY_SUBJECT}",
         "CI_BINTRAY_SUBJECT=${env.CI_BINTRAY_SUBJECT}",
-        "PUBLISH=${env.PUBLISH}"
+        "PUBLISH=${env.PUBLISH}",
+        "OVA_CACHE_BUILD=true"
     ]){
         def message = "Job Name: ${env.JOB_NAME} \n" + "Build Full URL: ${env.BUILD_URL} \n" + "Phase: STARTED \n"
         echo "$message"

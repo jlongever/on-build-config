@@ -127,8 +127,12 @@ def functionTest(String test_name, String label_name, String TEST_GROUP, Boolean
                                 // next steps must run after above steps
                                 if(test_type == "ova"){
                                     // env vars in this sh are defined in jobs/build_ova/ova_post_test.groovy
-                                    unstash "$ova_stash_name"
-                                    env.OVA_PATH = "$ova_stash_path"
+                                    if (env.USE_PREBUILT_OVA == "true") {
+                                        env.OVA_PATH = "$env.OVA_FILE" 
+                                    } else {
+                                        unstash "$ova_stash_name"
+                                        env.OVA_PATH = "$ova_stash_path"
+                                    }
                                     sh './build-config/jobs/build_ova/prepare_ova_post_test.sh'
                                 }
 
@@ -326,7 +330,7 @@ def dockerPostTest(TESTS, docker_stash_name, docker_stash_path, docker_record_st
 
 def ovaPostTest(TESTS, ova_stash_name, ova_stash_path, repo_dir, test_type){
     setOVA(ova_stash_name, ova_stash_path)
-    test_stack = "-stack vagrant"
+    test_stack = "-stack ova"
     runTest(TESTS, test_type, repo_dir, test_stack)
 }
 

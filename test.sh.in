@@ -265,7 +265,7 @@ runTests() {
   if [ "$RUN_FIT_TEST" == true ] ; then
      cd ${WORKSPACE}/RackHD/test
      #TODO Parameterize FIT args
-     tstack=${TEST_STACK}
+     tstack="${TEST_STACK}"
      read hwarray<<<"${EXTRA_HW}"
      for item in $hwarray; do
          if [ "${item}" == "ucs" ] && [ "${TEST_STACK}" == "-stack vagrant" ]; then

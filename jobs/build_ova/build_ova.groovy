@@ -22,6 +22,7 @@ lock("ova_build"){
                     "RACKHD_COMMIT=${env.RACKHD_COMMIT}",
                     "RACKHD_VERSION=${env.RACKHD_VERSION}",
                     "IS_OFFICIAL_RELEASE=${env.IS_OFFICIAL_RELEASE}",
+                    "OVA_CACHE_BUILD=${env.OVA_CACHE_BUILD}",
                     "OS_VER=${env.OS_VER}",
                     "BUILD_TYPE=vmware", 
                     "BINTRAY_SUBJECT=${env.BINTRAY_SUBJECT}",
@@ -40,10 +41,12 @@ lock("ova_build"){
                     def branch = "${env.RACKHD_COMMIT}"
                     def targetDir = "build"
                     shareMethod.checkout(url, branch, targetDir)
-                    step ([$class: 'CopyArtifact',
-                    projectName: 'OVA_CACHE_BUILD',
-                    target: 'cache_image']);
-
+                    // Test jenkins server doesn't use OVA cache build 
+                    if (OVA_CACHE_BUILD == "true"){
+                        step ([$class: 'CopyArtifact',
+                        projectName: 'OVA_CACHE_BUILD',
+                        target: 'cache_image']);
+                    }
                     timeout(180){
                         withEnv(["WORKSPACE=${current_workspace}"]){
                             sh './on-build-config/jobs/build_ova/build_ova.sh'
