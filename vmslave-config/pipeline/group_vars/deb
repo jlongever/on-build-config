@@ -1,2 +1,2 @@
 # on-imagebuilder is not working in ansible more than 2.0
-slave_ansible_version: "{{ lookup('env','SLAVE_ANSIBLE_VERSION') }}"
+slave_ansible_version: "{{ lookup('env','DEB_ANSIBLE_VERSION') }}"

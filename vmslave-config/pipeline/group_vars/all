@@ -1,2 +1,12 @@
 # If not set, default: use roles/replace-apt-source/files/sources.list
 sources_list_url: "{{ lookup('env','SOURCES_LIST_URL') }}"
+
+#Versions
+node_version:"{{ lookup('env','NODE_VERSION') | default(4.7.3) }}"
+rabbitmq_version:"{{ lookup('env','RABBITMQ_VERSION') | default(3.2.4-1) }}"
+mongodb_version:"{{ lookup('env','MONGODB_VERSION') | default(2.4.9) }}"
+ipmitool_version:"{{ lookup('env','IPMITOOL_VERSION') | default(1.8.13) }}"
+slave_ansible_version:"{{ lookup('env','ANSIBLE_VERSION') | default(2.3.0.0) }}"
+pip_version:"{{ lookup('env','PIP_VERSION') | default(9.0.1) }}"
+virtualenv_version:"{{ lookup('env','VIRTUALENV_VERSION') | default(14.0.0) }}"
+docker_version:"{{ lookup('env','DOCKER_VERSION') | default(17.03.1-ce) }}"

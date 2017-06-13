@@ -50,8 +50,10 @@
 
 - name: Install Docker CE
   become: yes
-  apt: name=docker-ce state=present
+  apt: name={{item}} state=present
   when: docker_check.rc != 0
+  with_items:
+    - docker-ce={{docker_version}}
 
 - name: Docker with no sudo, create docker group
   become: yes

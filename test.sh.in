@@ -346,7 +346,6 @@ fitSmokeTest()
     echo "########### Run FIT Stack Init #############"
     pushd ${WORKSPACE}/RackHD/test
     #TODO Parameterize FIT args
-    echo ${TEST_STACK}
     tstack="${TEST_STACK}"
     read hwarray<<<"${EXTRA_HW}"
     for item in $hwarray; do
@@ -354,8 +353,6 @@ fitSmokeTest()
             tstack="-stack vagrant_ucs"
         fi
     done
-    echo ${tstack}
-    #python run_tests.py -test deploy/rackhd_stack_init.py -stack local_run -numvms 3 -rackhd_host localhost -port 9090 -v 4 -xunit
     python run_tests.py -test deploy/rackhd_stack_init.py ${tstack} -xunit
     if [ $? -ne 0 ]; then
         echo "Test FIT failed running deploy/rackhd_stack_init.py"
@@ -363,7 +360,6 @@ fitSmokeTest()
         exit 1
     fi
     echo "########### Run FIT Smoke Test #############"
-    #python run_tests.py ${TEST_GROUP} -stack local_run -numvms 3 -rackhd_host localhost -port 9090 -v 4 -xunit
     python run_tests.py ${TEST_GROUP} ${tstack} -v 4 -xunit
     if [ $? -ne 0 ]; then
         echo "Test FIT failed running smoke test"
