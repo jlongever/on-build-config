@@ -72,6 +72,11 @@
             "branch": "",
             "commit-id": "",
             "repository": "https://github.com/RackHD/ucs-service.git"
+        },
+        {
+            "branch": "",
+            "commit-id": "",
+            "repository": "https://github.com/RackHD/on-web-ui.git"
         }
     ]
 }
