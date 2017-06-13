@@ -41,7 +41,13 @@ def unitTest(repo_name, used_resources){
                 env.MANIFEST_FILE_PATH = "$stash_manifest_path"
                 timeout(30){
                     try{
-                        sh "./build-config/jobs/UnitTest/unit_test.sh ${repo_name}"
+                        withCredentials([
+                             usernamePassword(credentialsId: 'ff7ab8d2-e678-41ef-a46b-dd0e780030e1',
+                                 passwordVariable: 'SUDO_PASSWORD',
+                                 usernameVariable: 'SUDO_USER')
+                         ]){
+                             sh "./build-config/jobs/UnitTest/unit_test.sh ${repo_name}"
+                         }
                     } finally{
                         // stash logs with the repo name which is the argument of the function ,for example: on-http
                         // The repo_name comes from the global variable test_repos
