@@ -231,7 +231,7 @@ runTests() {
   fi
   if [ "$RUN_CIT_TEST" == true ] ; then
       cp -f ${WORKSPACE}/build-config/config.ini ${WORKSPACE}/RackHD/test/config
-      citSmokeTest
+      citSmokeTest " --config=${WORKSPACE}/build-config/config.ini"
   fi
   set -e
 }
@@ -306,17 +306,20 @@ dockerUp(){
 
 setupTestsConfig(){
     if [ "$RUN_FIT_TEST" == true ] ; then
+        pushd ${WORKSPACE}/build-config/jobs/pr_gate/test_config/FIT
+        sed -i "s/RACKHD_SSH_USER = vagrant/RACKHD_SSH_USER = ${SUDO_USER}/g" config.ini
+        sed -i "s/RACKHD_SSH_PASSWORD = vagrant/RACKHD_SSH_PASSWORD = $SUDO_PASSWORD/g" config.ini
+        sed -i "s/\"username\": \"vagrant\"/\"username\": \"${SUDO_USER}\"/g" credentials_default.json
+        sed -i "s/\"password\": \"vagrant\"/\"password\": \"$SUDO_PASSWORD\"/g" credentials_default.json
+        popd
         cp ${WORKSPACE}/build-config/jobs/pr_gate/test_config/FIT/*.* ${WORKSPACE}/RackHD/test/config
     fi
     if [ "$RUN_CIT_TEST" == true ] ; then
-        cp ${WORKSPACE}/build-config/jobs/pr_gate/test_config/CIT/config.ini ${WORKSPACE}/RackHD/test/config/
+        pushd ${WORKSPACE}/build-config/jobs/pr_gate/test_config/CIT
+        sed -i "s/RACKHD_SSH_USER = vagrant/RACKHD_SSH_USER = ${SUDO_USER}/g" config.ini
+        sed -i "s/RACKHD_SSH_PASSWORD = vagrant/RACKHD_SSH_PASSWORD = $SUDO_PASSWORD/g" config.ini
+        popd
     fi
-    pushd ${WORKSPACE}/RackHD/test/config
-    sed -i "s/RACKHD_SSH_USER = vagrant/RACKHD_SSH_USER = ${SUDO_USER}/g" config.ini
-    sed -i "s/RACKHD_SSH_PASSWORD = vagrant/RACKHD_SSH_PASSWORD = $SUDO_PASSWORD/g" config.ini
-    sed -i "s/\"username\": \"vagrant\"/\"username\": \"${SUDO_USER}\"/g" credentials_default.json
-    sed -i "s/\"password\": \"vagrant\"/\"password\": \"$SUDO_PASSWORD\"/g" credentials_default.json
-    popd
 }
 
 runTestsForDocker() {
@@ -327,7 +330,7 @@ runTestsForDocker() {
         fitSmokeTest
     fi
     if [ "$RUN_CIT_TEST" == true ] ; then
-        citSmokeTest
+        citSmokeTest " --config=${WORKSPACE}/build-config/jobs/pr_gate/test_config/CIT/config.ini"
     fi
     set -e
 }
@@ -379,6 +382,9 @@ citSmokeTest(){
     for item in $array; do
         args+="${group}${item}"
     done
+    if [ ! -z "$1" ];then
+        args+="$1"
+    fi
     pushd ${WORKSPACE}/RackHD/test
     RACKHD_BASE_REPO_URL=${BASE_REPO_URL} RACKHD_TEST_LOGLVL=INFO \
     python run.py ${args} --with-xunit
