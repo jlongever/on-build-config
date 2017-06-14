@@ -1,4 +1,5 @@
-from github import Github
+from github import Github, Requester
+import random
 
 class MergeFreezer(object):
     """
@@ -6,13 +7,26 @@ class MergeFreezer(object):
     Freeze means a "success" or "failure" commit status will be add to PR
     parameters freeze_* is for customing this commit status
     """
-    def __init__(self, ghtoken, repo_list, freeze_context, freeze_desc, unfreeze_desc):
-        self.__ghtoken = ghtoken
+    def __init__(self, admin_ghtoken, puller_ghtoken_pool ,repo_list, freeze_context, freeze_desc, unfreeze_desc):
+        self.__admin_ghtoken = admin_ghtoken
+        self.__puller_ghtoken_pool = puller_ghtoken_pool
+        self.__puller_ghtoken_pool = puller_ghtoken_pool.split()
         self.__repo_list = repo_list
-        self.__gh = Github(ghtoken)
         self.__freeze_context = freeze_context
         self.__freeze_desc = freeze_desc
         self.__unfreeze_desc = unfreeze_desc
+        # a pygithub private class method
+        self.__admin_requester = Requester.Requester(self.__admin_ghtoken,None,"https://api.github.com", 10, None, None,'PyGithub/Python',30,False)
+    
+    @property
+    def __gh(self):
+        """
+        return a Github instance with random token
+        """
+        ghtoken_pool_size = len(self.__puller_ghtoken_pool)
+        random_index = random.randint(0, ghtoken_pool_size-1)
+        this_choice = self.__puller_ghtoken_pool[random_index]
+        return Github(this_choice)
 
     def get_repo_open_prs(self, repo):
         return self.__gh.get_repo(repo).get_pulls(state="open")
@@ -21,6 +35,7 @@ class MergeFreezer(object):
         try:
             commit = pr.get_commits().reversed[0]
             print "Freezing PR: {0}".format(pr.title)
+            commit._requester = self.__admin_requester
             commit.create_status(state="failure", \
                                 description=self.__freeze_desc, \
                                 context=self.__freeze_context)
@@ -47,6 +62,7 @@ class MergeFreezer(object):
         try:
             commit = pr.get_commits().reversed[0]
             print "Unfreezing PR: {0}".format(pr.title)
+            commit._requester = self.__admin_requester
             commit.create_status(state="success", \
                         description=self.__unfreeze_desc, \
                         context=self.__freeze_context)
