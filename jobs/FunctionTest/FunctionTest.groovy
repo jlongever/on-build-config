@@ -355,7 +355,7 @@ def ovaPostTest(TESTS, ova_stash_name, ova_stash_path, repo_dir, test_type){
 
 def manifestTest(TESTS, manifest_stash_name, manifest_stash_path, repo_dir, test_type){
     setManifest(manifest_stash_name, manifest_stash_path)
-    test_stack = "-stack local_run"
+    test_stack = "-stack docker_local_run"
     runTest(TESTS, test_type, repo_dir, test_stack)
 }
 

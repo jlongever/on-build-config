@@ -14,7 +14,7 @@ MODIFY_API_PACKAGE="${MODIFY_API_PACKAGE}"
 cleanUpDockerImages(){
     images=`echo $SUDO_PASSWORD| sudo -S docker images | awk '{print $3}' | sort | uniq`
     if [ -n "$images" ]; then
-        docker rmi -f $images
+        echo $SUDO_PASSWORD |sudo -S docker rmi -f $images
     fi
 }
 
@@ -22,8 +22,8 @@ cleanUpDockerContainer(){
     local containers=$(echo $SUDO_PASSWORD |sudo -S docker ps -a -q)
     if [ "$containers" != "" ]; then
         echo "Clean Up containers : " ${containers}
-        docker stop ${containers}
-        docker rm  ${containers}
+        echo $SUDO_PASSWORD |sudo -S docker stop ${containers}
+        echo $SUDO_PASSWORD |sudo -S docker rm  ${containers}
     fi
 }
 
@@ -180,7 +180,7 @@ vnc_record_start(){
 vnc_record_stop(){
   #sleep 2 sec to ensure FLV finishes the disk I/O before VM destroyed
   set +e
-  pkill flvrec.py
+  pkill -f flvrec.py
   sleep 2
   set -e
 }
@@ -190,10 +190,14 @@ generateSolLog(){
   bash generate-sol-log.sh > ${WORKSPACE}/sol.log &
 }
 
+generateSolLogStop(){
+  pkill -f SCREEN
+}
+
 generateSysLog(){
   set +e
   containerId=$( echo $SUDO_PASSWORD |sudo -S docker ps|grep "my/test" | awk '{print $1}' )
-  docker exec -it $containerId dmesg > ${WORKSPACE}/build-log/dmesg.log
+  echo $SUDO_PASSWORD |sudo -S docker exec -it $containerId dmesg > ${WORKSPACE}/build-log/dmesg.log
 }
 
 generateMongoLog(){
@@ -306,13 +310,10 @@ dockerUp(){
 
 setupTestsConfig(){
     if [ "$RUN_FIT_TEST" == true ] ; then
-        pushd ${WORKSPACE}/build-config/jobs/pr_gate/test_config/FIT
-        sed -i "s/RACKHD_SSH_USER = vagrant/RACKHD_SSH_USER = ${SUDO_USER}/g" config.ini
-        sed -i "s/RACKHD_SSH_PASSWORD = vagrant/RACKHD_SSH_PASSWORD = $SUDO_PASSWORD/g" config.ini
+        pushd ${WORKSPACE}/RackHD/test/config
         sed -i "s/\"username\": \"vagrant\"/\"username\": \"${SUDO_USER}\"/g" credentials_default.json
         sed -i "s/\"password\": \"vagrant\"/\"password\": \"$SUDO_PASSWORD\"/g" credentials_default.json
         popd
-        cp ${WORKSPACE}/build-config/jobs/pr_gate/test_config/FIT/*.* ${WORKSPACE}/RackHD/test/config
     fi
     if [ "$RUN_CIT_TEST" == true ] ; then
         pushd ${WORKSPACE}/build-config/jobs/pr_gate/test_config/CIT
@@ -327,7 +328,7 @@ runTestsForDocker() {
     netstat -ntlp
     setupTestsConfig
     if [ "$RUN_FIT_TEST" == true ] ; then
-        fitSmokeTest
+        fitSmokeTest " --sm-amqp-use-user guest"
     fi
     if [ "$RUN_CIT_TEST" == true ] ; then
         citSmokeTest " --config=${WORKSPACE}/build-config/jobs/pr_gate/test_config/CIT/config.ini"
@@ -356,14 +357,18 @@ fitSmokeTest()
             tstack="-stack vagrant_ucs"
         fi
     done
-    python run_tests.py -test deploy/rackhd_stack_init.py ${tstack} -xunit
+    args=()
+    if [ ! -z "$1" ];then
+        args+="$1"
+    fi
+    python run_tests.py -test deploy/rackhd_stack_init.py ${tstack} ${args} -xunit
     if [ $? -ne 0 ]; then
         echo "Test FIT failed running deploy/rackhd_stack_init.py"
         collectTestReport
         exit 1
     fi
     echo "########### Run FIT Smoke Test #############"
-    python run_tests.py ${TEST_GROUP} ${tstack} -v 4 -xunit
+    python run_tests.py ${TEST_GROUP} ${tstack} ${args} -v 4 -xunit
     if [ $? -ne 0 ]; then
         echo "Test FIT failed running smoke test"
         collectTestReport
@@ -394,8 +399,10 @@ citSmokeTest(){
 
 exportLog(){
     vnc_record_stop
+    generateSolLogStop
     generateRackHDLog
-    generateMongoLog   
+    generateMongoLog
+    echo $SUDO_PASSWORD| sudo -S chown -R $USER:$USER ${WORKSPACE}
 }
 ######################################
 #  OVA POST SMOKE TEST RELATED END   #
