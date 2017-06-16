@@ -1,20 +1,24 @@
-- name: Check if node4 is installed
+- name: Check if nvm is installed
   shell: |
-    node --version | grep v4
+    . ~/.nvm/nvm.sh && nvm --version
   ignore_errors: yes
-  register: node4_check
+  register: nvm_check
 
-- name: Install node4 if it's not installed
-  become: true
+- name: Install nvm if not installed
   shell: |
-    curl -sL https://deb.nodesource.com/setup_4.x | sudo -E bash -
-    apt-get install -y nodejs
-  when: node4_check.rc == 1
+    curl -o- {{ nvm_install_script }} | bash
+    . ~/.nvm/nvm.sh
+  when: nvm_check.rc != 0
+
+- name: Install node if it's not installed
+  become: yes
+  shell: |
+    . ~/.nvm/nvm.sh && nvm install v"{{ node_version }}"
 
 - name: Install external dependent packages
   become: true
   apt: name={{item}} state=present
   with_items:
-    - rabbitmq-server
-    - mongodb
-    - ipmitool
+    - rabbitmq-server="{{rabbitmq_version}}"
+    - mongodb="{{mongodb_version}}"
+    - ipmitool="{{ipmitool_version}}"
