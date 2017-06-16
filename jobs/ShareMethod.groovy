@@ -158,8 +158,8 @@ def buildAndPublish(Boolean publish, Boolean tag, String repo_dir){
 def sendResult(boolean sendJenkinsBuildResults, boolean sendTestResults){
     stage("Send Test Result"){
         try{
-            if ("${currentBuild.result}" == null || "${currentBuild.result}" == "null"){
-                currentBuild.result = "SUCCESS"
+            if ("${currentBuild.result}" != "SUCCESS"){
+                currentBuild.result = "FAILURE"
             }
             step([$class: 'VTestResultsAnalyzerStep', sendJenkinsBuildResults: sendJenkinsBuildResults, sendTestResults: sendTestResults])
             def message = "Job Name: ${env.JOB_NAME} \n" + "Build Full URL: ${env.BUILD_URL} \n" + "Status: " + currentBuild.result + "\n"

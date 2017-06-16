@@ -24,17 +24,22 @@ node{
                 lock(label:label_name,quantity:1){
                     // Occupy an avaliable resource which contains the label
                     node_name = shareMethod.occupyAvailableLockedResource(label_name, used_resources)
-                    echo "1111111111111111111111111111"
-                    print used_resources
                     node(node_name){
                         withEnv([
                             "SKIP_PREP_DEP=false",
+                            "USE_VCOMPUTE=${env.USE_VCOMPUTE}",
                             "HTTP_STATIC_FILES=${env.HTTP_STATIC_FILES}",
                             "TFTP_STATIC_FILES=${env.TFTP_STATIC_FILES}",
                             "stash_manifest_name=${env.stash_manifest_name}",
                             "stash_manifest_path=${env.stash_manifest_path}"])
                         {
                             withCredentials([
+                                usernamePassword(credentialsId: 'ESXI_CREDS',
+                                                 passwordVariable: 'ESXI_PASS',
+                                                 usernameVariable: 'ESXI_USER'),
+                                usernamePassword(credentialsId: 'ff7ab8d2-e678-41ef-a46b-dd0e780030e1',
+                                                     passwordVariable: 'SUDO_PASSWORD',
+                                                     usernameVariable: 'SUDO_USER'),
                                 string(credentialsId: 'INTERNAL_HTTP_ZIP_FILE_URL', variable: 'INTERNAL_HTTP_ZIP_FILE_URL'),
                                 string(credentialsId: 'INTERNAL_TFTP_ZIP_FILE_URL', variable: 'INTERNAL_TFTP_ZIP_FILE_URL')])
                             {
@@ -78,11 +83,7 @@ node{
                     }
                 }
             } finally{
-                echo "22222222222222222222222222"
-                print used_resources
                 used_resources.remove(node_name)
-                echo "33333333333333333333333333333"
-                print used_resources
             }
         }
     }
