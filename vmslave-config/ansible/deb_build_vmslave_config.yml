@@ -8,3 +8,4 @@
     - install-rackhd-dependency
     - install-python-tools
     - install-ansible
+    - tmp-clean

@@ -6,3 +6,4 @@
     - install-fundamental-tools
     - install-docker
     - install-python-tools
+    - tmp-clean

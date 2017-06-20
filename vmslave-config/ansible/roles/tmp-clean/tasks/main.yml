@@ -1,0 +1,6 @@
+- name: copy clear-ci-log cron script
+  become: yes
+  copy:
+    src: clear-ci-log
+    dest: /etc/cron.daily/clear-ci-log
+    mode: 755

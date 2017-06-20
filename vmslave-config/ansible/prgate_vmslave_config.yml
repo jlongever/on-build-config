@@ -14,3 +14,4 @@
     - fix-apt-dependency
     - install-docker
     - install-ansible
+    - tmp-clean
