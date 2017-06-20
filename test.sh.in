@@ -191,6 +191,7 @@ generateSolLog(){
 }
 
 generateSolLogStop(){
+  set +e
   pkill -f SCREEN
 }
 
@@ -398,11 +399,13 @@ citSmokeTest(){
 }
 
 exportLog(){
+    set +e
     vnc_record_stop
     generateSolLogStop
     generateRackHDLog
     generateMongoLog
     echo $SUDO_PASSWORD| sudo -S chown -R $USER:$USER ${WORKSPACE}
+    set -e
 }
 ######################################
 #  OVA POST SMOKE TEST RELATED END   #
