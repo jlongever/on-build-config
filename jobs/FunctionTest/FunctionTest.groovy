@@ -91,7 +91,7 @@ def functionTest(String test_name, String label_name, String TEST_GROUP, Boolean
                         "KEEP_MINUTES=${env.KEEP_MINUTES}"]
                     ){
                         try{
-                            timeout(90){
+                            timeout(120){
                                 // Prepare RackHD
                                 // Prepare common must before prepare all other preparations
                                 sh './build-config/jobs/FunctionTest/prepare_common.sh'
