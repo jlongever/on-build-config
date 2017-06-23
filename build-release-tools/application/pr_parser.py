@@ -11,18 +11,19 @@ import sys
 import os
 import github
 import collections
+import random
 
 from github import Github
 from manifest import Manifest
 
 class PrParser(object):
 
-    def __init__(self, change_url, target_branch, ghtoken):
+    def __init__(self, change_url, target_branch, puller_ghtoken_pool):
         """
         Initialize PrParser with change_url
         """
         assert change_url, "Error: PR URL is None!"
-        assert ghtoken, "Error: ghtoken is None!"
+        assert puller_ghtoken_pool, "Error: puller_ghtoken_pool is None!"
         assert target_branch, "Error: target_branch is None!"
         url_segments = change_url.split("/")
         self.__repo = "/".join(change_url.split("/")[-4:-2]).lower()
@@ -31,11 +32,21 @@ class PrParser(object):
         self.__merge_commit_sha = "origin/pr/{0}/merge".format(self.__pr_number)
         self.__pr_list = [self.__repo]
         self.__pr_connectivity_map = collections.defaultdict(dict)
-        self.__gh = Github(ghtoken)
+        self.__puller_ghtoken_pool = puller_ghtoken_pool.split()
         # If the prs of this build is valid, 
         # -1 haven't parse pr, 1 is valid, 0 invalid
         # unmergeable pr will set this var to 1
         self.__valid_pr_group = -1
+
+    @property
+    def __gh(self):
+        """
+        return a Github instance with random token
+        """
+        ghtoken_pool_size = len(self.__puller_ghtoken_pool)
+        random_index = random.randint(0, ghtoken_pool_size-1)
+        this_choice = self.__puller_ghtoken_pool[random_index]
+        return Github(this_choice)
 
     def pr_group_is_valid(self):
         if self.__valid_pr_group == 1:
@@ -280,8 +291,8 @@ def parse_args(args):
                         help="The target branch of the pr for the named repo",
                         required=True,
                         action="store")
-    parser.add_argument("--ghtoken",
-                        help="Github token that have commit status set permission.",
+    parser.add_argument("--puller-ghtoken-pool",
+                        help="Github token pool that have basic pull permission.",
                         required=True,
                         action="store")
     parser.add_argument("--manifest-file-path",
@@ -294,7 +305,7 @@ def parse_args(args):
 
 def main():
     parsed_args = parse_args(sys.argv[1:])
-    pr_parser = PrParser(parsed_args.change_url, parsed_args.target_branch, parsed_args.ghtoken)
+    pr_parser = PrParser(parsed_args.change_url, parsed_args.target_branch, parsed_args.puller_ghtoken_pool)
     pr_parser.wrap_manifest_file(parsed_args.manifest_file_path)
     if not pr_parser.pr_group_is_valid:
         print "There are unmergable PRs!"

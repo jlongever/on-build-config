@@ -10,13 +10,13 @@ node{
         }
         try{
             env.stash_manifest_path = "manifest"
-            withCredentials([string(credentialsId: 'JENKINSRHD_GITHUB_TOKEN',
-                                    variable: 'GITHUB_TOKEN')]) {
+            withCredentials([string(credentialsId: 'PULLER_GITHUB_TOKEN_POOL',
+                                    variable: 'PULLER_GITHUB_TOKEN_POOL')]) {
                 sh '''#!/bin/bash -ex
                 ./on-build-config/build-release-tools/HWIMO-BUILD ./on-build-config/build-release-tools/application/pr_parser.py \
                 --change-url $ghprbPullLink \
                 --target-branch $ghprbTargetBranch \
-                --ghtoken ${GITHUB_TOKEN} \
+                --puller-ghtoken-pool "${PULLER_GITHUB_TOKEN_POOL}" \
                 --manifest-file-path "${stash_manifest_path}"
                 '''
              }

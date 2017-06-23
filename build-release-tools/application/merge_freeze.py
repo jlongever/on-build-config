@@ -6,8 +6,12 @@ import json
 
 def parse_args(args):
     parser = ArgumentParser()
-    parser.add_argument("--ghtoken",
+    parser.add_argument("--admin-ghtoken",
                         help="Github token that have commit status set permission.",
+                        required=True,
+                        action="store")
+    parser.add_argument("--puller-ghtoken-pool",
+                        help="Github token pool that have basic pull permission.",
                         required=True,
                         action="store")
     parser.add_argument("--manifest-file",
@@ -45,7 +49,8 @@ def main():
         repo_name = "/".join(repo_url[:-4].split("/")[-2:])
         repo_list.append(repo_name)
 
-    mf = MergeFreezer(parsed_args.ghtoken, \
+    mf = MergeFreezer(parsed_args.admin_ghtoken, \
+                      parsed_args.puller_ghtoken_pool, \
                       repo_list, \
                       parsed_args.freeze_context, \
                       parsed_args.freeze_desc, \
