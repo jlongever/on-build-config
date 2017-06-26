@@ -9,7 +9,7 @@ node{
 
     // ova post test
     def TESTS = "${env.TESTS}"
-    def test_stack = "-stack vagrant"
+    def test_stack = "-stack docker_local_run"
     List tests_group = Arrays.asList(TESTS.split(','))
     for(int i=0; i<tests_group.size(); i++){
         def test_name = tests_group[i]
@@ -31,7 +31,8 @@ node{
                             "HTTP_STATIC_FILES=${env.HTTP_STATIC_FILES}",
                             "TFTP_STATIC_FILES=${env.TFTP_STATIC_FILES}",
                             "stash_manifest_name=${env.stash_manifest_name}",
-                            "stash_manifest_path=${env.stash_manifest_path}"])
+                            "stash_manifest_path=${env.stash_manifest_path}",
+                            "TEST_TYPE=manifest"])
                         {
                             withCredentials([
                                 usernamePassword(credentialsId: 'ESXI_CREDS',
@@ -76,7 +77,10 @@ node{
                                 // This scipts can be separated into manifest_src_prepare and common_prepare
                                 sh './build-config/jobs/FunctionTest/prepare_manifest.sh'
                             }
-                            
+                            step ([$class: 'CopyArtifact',
+                            projectName: 'Docker_Image_Build',
+                            target: "$WORKSPACE"]);
+
                             function_test.functionTest(test_name,test_group, run_fit_test, run_cit_test, test_stack, extra_hw)
                             }
                         }

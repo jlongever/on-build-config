@@ -4,9 +4,9 @@ import groovy.transform.Field;
 @Field def ALL_TESTS = [:]
 ALL_TESTS["FIT"]=["TEST_GROUP":"-test tests -group smoke","RUN_FIT_TEST":true,"RUN_CIT_TEST":false,"label":"smoke_test", "EXTRA_HW":"ucs"]
 ALL_TESTS["CIT"]=["TEST_GROUP":"smoke-tests","RUN_FIT_TEST":false,"RUN_CIT_TEST":true,"label":"smoke_test", "EXTRA_HW":""]
-ALL_TESTS["Install Ubuntu 14.04"]=["TEST_GROUP":"ubuntu-minimal-install.v2.0.test","RUN_FIT_TEST":false,"RUN_CIT_TEST":true,"label":"os_install", "EXTRA_HW":""]
-ALL_TESTS["Install ESXI 6.0"]=["TEST_GROUP":"esxi-6-min-install.v2.0.test","RUN_FIT_TEST":false,"RUN_CIT_TEST":true,"label":"os_install", "EXTRA_HW":""]
-ALL_TESTS["Install Centos 6.5"]=["TEST_GROUP":"centos-6-5-minimal-install.v2.0.test","RUN_FIT_TEST":false,"RUN_CIT_TEST":true,"label":"os_install", "EXTRA_HW":""]
+ALL_TESTS["Install Ubuntu 14.04"]=["TEST_GROUP":"-test tests/bootstrap/test_api20_linux_bootstrap.py -extra install_ubuntu14.04_minimum.json","RUN_FIT_TEST":true,"RUN_CIT_TEST":false,"label":"os_install", "EXTRA_HW":""]
+ALL_TESTS["Install ESXI 6.0"]=["TEST_GROUP":"-test tests/bootstrap/test_api20_esxi_bootstrap.py -extra install_esxi6.0_minimum.json","RUN_FIT_TEST":true,"RUN_CIT_TEST":false,"label":"os_install", "EXTRA_HW":""]
+ALL_TESTS["Install Centos 6.5"]=["TEST_GROUP":"-test tests/bootstrap/test_api20_linux_bootstrap.py -extra install_centos65_minimum.json","RUN_FIT_TEST":true,"RUN_CIT_TEST":false,"label":"os_install", "EXTRA_HW":""]
 
 @Field ArrayList<String> used_resources = []
 
@@ -111,12 +111,24 @@ def functionTest(String test_name, String TEST_GROUP, Boolean RUN_FIT_TEST, Bool
                             }
                         }
                     }
-                    if(result == "FAILURE" && KEEP_FAILURE_ENV == "true"){
-                        int sleep_mins = Integer.valueOf(KEEP_MINUTES)
-                        def message = "Job Name: ${env.JOB_NAME} \n" + "Build Full URL: ${env.BUILD_URL} \n" + "Status: FAILURE \n" + "Stage: $test_name \n" + "Node Name: $node_name \n" + "Reserve Duration: $sleep_mins minutes \n"
-                        echo "$message"
-                        slackSend "$message"
-                        sleep time: sleep_mins, unit: 'MINUTES'
+                    if(result == "FAILURE"){
+                        if(test_type == "manifest" && KEEP_DOCKER_ON_FAILURE == "true") {
+                            def docker_tag = JOB_NAME + "_" + test_name.replaceAll(' ', '-') + ":" + BUILD_NUMBER
+                            sh '''#!/bin/bash -x
+                            set +e
+                            pushd $WORKSPACE
+                            ./build-config/jobs/pr_gate/save_docker.sh ''' + "$docker_tag" + '''
+                            cp build-log/*.log '''+"$artifact_dir"+'''
+                            popd
+                            '''
+                        }
+                        if(KEEP_FAILURE_ENV == "true"){
+                            int sleep_mins = Integer.valueOf(KEEP_MINUTES)
+                            def message = "Job Name: ${env.JOB_NAME} \n" + "Build Full URL: ${env.BUILD_URL} \n" + "Status: FAILURE \n" + "Stage: $test_name \n" + "Node Name: $node_name \n" + "Reserve Duration: $sleep_mins minutes \n"
+                            echo "$message"
+                            slackSend "$message"
+                            sleep time: sleep_mins, unit: 'MINUTES'
+                        }
                     }
                 }finally{
                     // Clean up test stack
@@ -131,7 +143,7 @@ def functionTest(String test_name, String TEST_GROUP, Boolean RUN_FIT_TEST, Bool
                     if(result == "FAILURE"){
                         error("there are failed test cases")
                     }
-                }
+                } 
             }
         }
     }

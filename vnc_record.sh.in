@@ -26,9 +26,7 @@ fname_prefix=$2
 
 
 #Install vnc2flv is not installed
-if [ "$(which flvrec.py)" == "" ]; then
-     sudo pip install vnc2flv
-fi
+pip install vnc2flv
 FLVREC=flvrec.py
 
 #Using cutomized flvrec.py, which can do multiple retry when vNode power cycled (adding '-R' option)
