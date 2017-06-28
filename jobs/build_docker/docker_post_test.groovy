@@ -1,10 +1,9 @@
-def generateTestBranches(){
+def generateTestBranches(function_test){
     def test_branches = [:]
     node{
         deleteDir()
         checkout scm
         def shareMethod = load("jobs/ShareMethod.groovy")
-        def function_test = load("jobs/FunctionTest/FunctionTest.groovy")
         def ALL_TESTS = function_test.getAllTests()
         def used_resources= function_test.getUsedResources()
 

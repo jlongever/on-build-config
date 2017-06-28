@@ -11,8 +11,8 @@ node{
     test_branches["vagrant post test"] = {
         load("jobs/build_vagrant/vagrant_post_test.groovy")
     }
-    test_branches += ova_post_test.generateTestBranches()
-    test_branches += docker_post_test.generateTestBranches()
+    test_branches += ova_post_test.generateTestBranches(function_test)
+    test_branches += docker_post_test.generateTestBranches(function_test)
     if(test_branches.size() > 0){
         try{
             parallel test_branches
