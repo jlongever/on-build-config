@@ -142,9 +142,18 @@ def functionTest(String test_name, String label_name, String TEST_GROUP, Boolean
 
                                 if(test_type == "docker"){
                                     // env vars in this sh are defined in jobs/build_ova/ova_post_test.groovy
-                                    unstash "$docker_stash_name"
-                                    env.DOCKER_PATH = "$docker_stash_path"
-                                    env.DOCKER_RECORD_PATH = "$docker_record_stash_path"
+                                    if (env.USE_PREBUILT_IMAGES == "true"){
+                                        if (env.DOCKER_IMAGES.contains("http")){
+                                            sh 'wget -c -nv -O rackhd_docker_images.tar $DOCKER_IMAGES'
+                                            env.DOCKER_PATH = pwd() + "/rackhd_docker_images.tar"
+                                        } else {
+                                            env.DOCKER_PATH = "$env.DOCKER_IMAGES"
+                                        } 
+                                    } else {
+                                        unstash "$docker_stash_name"
+                                        env.DOCKER_PATH = "$docker_stash_path"
+                                        env.DOCKER_RECORD_PATH = "$docker_record_stash_path"
+                                    }
                                     sh './build-config/jobs/build_docker/prepare_docker_post_test.sh'
                                 }
 
