@@ -15,7 +15,6 @@ docker load -i $rackhd_docker_images | tee ${WORKSPACE}/docker_load_output
 
 if [ ${USE_PREBUILT_IMAGES} == true ] ; then
     # This path is followed when using the prebuilt images to get image tag
-    #file=${WORKSPACE}/docker_load_output
     while IFS=:  read -r load imagename tag 
     do
        echo $tag
