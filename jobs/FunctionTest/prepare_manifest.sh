@@ -16,8 +16,8 @@ if [ ! -z "${3}" ]; then
   SKIP_PREP_DEP=$3
 fi
 
+########################################
 wget_download(){
-
   argv=($@)
   argc=$#
   retry_time=5
@@ -32,8 +32,17 @@ wget_download(){
   if [ $? -ne 0 ]; then
      echo "[Error]: wget download failed: ${remote_file}"
      exit 2
- else
+  else
      echo "[Info] wget download successfully ${remote_file}"
+  fi
+  local_file=${remote_file##*/}
+  if [[ $remote_file == *zip* ]]; then
+      echo "[Info] Checking zip file integrity for ${remote_file}"
+      zip -T $local_file
+      if [ $? -ne 0 ]; then
+          echo "[Error] the download file(${remote_file}) is incompleted !"
+          exit 3
+      fi
   fi
 
 }
