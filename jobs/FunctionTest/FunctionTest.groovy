@@ -343,7 +343,7 @@ def runTest(TESTS, test_type, repo_dir, test_stack){
 
 def dockerPostTest(TESTS, docker_stash_name, docker_stash_path, docker_record_stash_path, repo_dir, test_type){
     setDocker(docker_stash_name, docker_stash_path, docker_record_stash_path)
-    test_stack = "-stack vagrant"
+    test_stack = "-stack docker"
     runTest(TESTS, test_type, repo_dir, test_stack)
 }
 
