@@ -7,7 +7,6 @@ node{
     def used_resources = function_test.getUsedResources()
     def test_branches = [:]
 
-    // ova post test
     def TESTS = "${env.TESTS}"
     def test_stack = "-stack docker_local_run"
     List tests_group = Arrays.asList(TESTS.split(','))

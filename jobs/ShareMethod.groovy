@@ -56,13 +56,15 @@ def buildPackage(String repo_dir){
 }
 
 def testOVA(String repo_dir){
+    def function_test = load(repo_dir + "/jobs/FunctionTest/FunctionTest.groovy")
     def ova_post_test = load(repo_dir + "/jobs/build_ova/ova_post_test.groovy")
-    ova_post_test.runTests()
+    ova_post_test.runTests(function_test)
 }
 
 def testDocker(String repo_dir){
+    def function_test = load(repo_dir + "/jobs/FunctionTest/FunctionTest.groovy")
     def docker_post_test = load(repo_dir + "/jobs/build_docker/docker_post_test.groovy")
-    docker_post_test.runTests()
+    docker_post_test.runTests(function_test)
 }
 
 def testVagrant(String repo_dir){
@@ -119,6 +121,23 @@ def buildandtestOVA(String repo_dir){
 
     stage("OVA Post Test"){
         testOVA(repo_dir)
+    }
+}
+
+def buildandtestDocker(String repo_dir){
+    // retry times for images build to avoid failing caused by network
+    int retry_times = 3
+
+    buildPackage(repo_dir)
+
+    stage("Docker Images Build"){
+        retry(retry_times){
+            buildDocker(repo_dir)
+        }
+    }
+
+    stage("Docker Post Test"){
+        testDocker(repo_dir)
     }
 }
 

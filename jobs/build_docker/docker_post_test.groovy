@@ -26,8 +26,6 @@ def generateTestBranches(function_test){
                         node(node_name){
                             withEnv([
                                 "DOCKER_STASH_NAME=${env.DOCKER_STASH_NAME}",
-                                "DOCKER_PATH=${env.DOCKER_STASH_PATH}",
-                                "DOCKER_RECORD_PATH=${env.DOCKER_RECORD_STASH_PATH}",
                                 "DOCKER_RACKHD_IP=${env.DOCKER_RACKHD_IP}",
                                 "SKIP_PREP_DEP=false",
                                 "USE_VCOMPUTE=${env.USE_VCOMPUTE}",
@@ -52,8 +50,19 @@ def generateTestBranches(function_test){
                                     def targetDir = "RackHD"
                                     env.RackHD_DIR = targetDir
                                     shareMethod.checkout(url, branch, targetDir)
-                                    // env vars in this sh are defined in jobs/build_ova/ova_post_test.groovy
-                                    unstash "$DOCKER_STASH_NAME"
+                                    
+                                    if (env.USE_PREBUILT_IMAGES == "true"){
+                                        if (env.DOCKER_IMAGES.contains("http")){
+                                            sh 'wget -c -nv -O rackhd_docker_images.tar $DOCKER_IMAGES'
+                                            env.DOCKER_PATH = pwd() + "/rackhd_docker_images.tar"
+                                        } else {
+                                            env.DOCKER_PATH = "$env.DOCKER_IMAGES"
+                                        } 
+                                    } else {
+                                        unstash "$DOCKER_STASH_NAME"
+                                        env.DOCKER_PATH="${env.DOCKER_STASH_PATH}"
+                                        env.DOCKER_RECORD_PATH="${env.DOCKER_RECORD_STASH_PATH}"
+                                    }
                                     sh '''#!/bin/bash
                                     ./build-config/jobs/FunctionTest/prepare_common.sh
                                     ./build-config/jobs/build_docker/prepare_docker_post_test.sh
@@ -73,25 +82,20 @@ def generateTestBranches(function_test){
     return test_branches
 }
 
-def runTests(){
-    def test_branches = generateTestBranches()
+def runTests(function_test){
+    def test_branches = generateTestBranches(function_test)
     if(test_branches.size() > 0){
         try{
             parallel test_branches
         } finally{
-            archiveArtifacts()
+            archiveArtifacts(function_test)
         }
     }
 }
 
-def archiveArtifacts(){
+def archiveArtifacts(function_test){
     def DOCKER_TESTS = "${env.DOCKER_POST_TESTS}"
-    node{
-        deleteDir()
-        checkout scm
-        def function_test = load("jobs/FunctionTest/FunctionTest.groovy")
-        function_test.archiveArtifactsToTarget("DOCKER_POST_SMOKE_TEST", DOCKER_TESTS)
-    }
+    function_test.archiveArtifactsToTarget("DOCKER_POST_SMOKE_TEST", DOCKER_TESTS)
 }
 
 return this

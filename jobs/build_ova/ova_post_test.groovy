@@ -85,25 +85,20 @@ def generateTestBranches(function_test){
     return test_branches
 }
 
-def runTests(){
-    def test_branches = generateTestBranches()
+def runTests(function_test){
+    def test_branches = generateTestBranches(function_test)
     if(test_branches.size() > 0){
         try{
             parallel test_branches
         } finally{
-            archiveArtifacts()
+            archiveArtifacts(function_test)
         }
     }
 }
 
-def archiveArtifacts(){
+def archiveArtifacts(function_test){
     def OVA_TESTS = "${env.OVA_POST_TESTS}"
-    node{
-        deleteDir()
-        checkout scm
-        def function_test = load("jobs/FunctionTest/FunctionTest.groovy")
-        function_test.archiveArtifactsToTarget("OVA_POST_TEST", OVA_TESTS)
-    }
+    function_test.archiveArtifactsToTarget("OVA_POST_TEST", OVA_TESTS)
 }
 
 return this
