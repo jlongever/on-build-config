@@ -8,7 +8,7 @@ def generateTestBranches(function_test){
         def used_resources= function_test.getUsedResources()
 
         def DOCKER_TESTS = "${env.DOCKER_POST_TESTS}"
-        def docker_test_stack = "-stack vagrant"
+        def docker_test_stack = "-stack docker"
         List docker_tests_group = Arrays.asList(DOCKER_TESTS.split(','))
         for(int i=0; i<docker_tests_group.size(); i++){
             def test_name = docker_tests_group[i]
