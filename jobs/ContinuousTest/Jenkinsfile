@@ -58,10 +58,11 @@ node{
                 def TESTS = "${env.TESTS}"
                 def repo_dir = pwd() + "/build-config"
                 def function_test = load("build-config/jobs/FunctionTest/FunctionTest.groovy")
+                def source_based_test = load("build-config/jobs/FunctionTest/SourceBasedTest.groovy")
                 try{
-                    load("build-config/jobs/FunctionTest/SourceBasedTest.groovy")
+                    source_based_test.runTests(function_test)
                 } finally{
-                    function_test.archiveArtifactsToTarget("FunctionTest", TESTS)
+                    source_based_test.archiveArtifacts(function_test)
                 }
             }
             currentBuild.result="SUCCESS"

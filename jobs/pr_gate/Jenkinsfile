@@ -7,8 +7,10 @@ node{
         def repo_dir = pwd()
         def prgate_unit_test = load("jobs/UnitTest/PRGateUnitTest.groovy")
         def function_test = load("jobs/FunctionTest/FunctionTest.groovy")
+        def source_based_test = load("jobs/FunctionTest/SourceBasedTest.groovy")
         def TESTS = "${env.TESTS}"
         def test_type = "manifest"
+
         try{
             stage("Parse Pull Request"){
                 load("jobs/pr_gate/pr_parser.groovy")
@@ -18,12 +20,12 @@ node{
             }
             stage("Function Test"){
                 // Start to run test
-                load("jobs/FunctionTest/SourceBasedTest.groovy")
+                source_based_test.runTests(function_test)
             }
             currentBuild.result="SUCCESS"
         } finally{
             unit_test.archiveArtifactsToTarget("UnitTest")
-            function_test.archiveArtifactsToTarget("FunctionTest", TESTS)
+            source_based_test.archiveArtifacts(function_test)
             stage("Write Back"){
                 load("jobs/write_back_github/write_back_github.groovy")
             }

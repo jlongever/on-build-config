@@ -42,7 +42,7 @@ node{
                 def unit_test = load("jobs/UnitTest/UnitTest.groovy")
                 // Create an instance of FunctionTest/FunctionTest.groovy
                 def function_test = load("jobs/FunctionTest/FunctionTest.groovy")
-
+                def source_based_test = load("jobs/FunctionTest/SourceBasedTest.groovy")
                 try{
                     stage("Unit Test"){
                         // Call the function runTest to run unit test
@@ -50,11 +50,11 @@ node{
                     }
                     stage("Function Test"){
                         // Run function test
-                        load("jobs/FunctionTest/SourceBasedTest.groovy")
+                        source_based_test.runTests(function_test)
                     }
                 } finally{
                     unit_test.archiveArtifactsToTarget("UnitTest")
-                    function_test.archiveArtifactsToTarget("FunctionTest", TESTS)
+                    source_based_test.archiveArtifacts(function_test)
                 }
                 Boolean create_tag = false
                 Boolean publish = PUBLISH.toBoolean()

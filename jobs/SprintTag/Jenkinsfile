@@ -21,6 +21,8 @@ node{
     def unit_test = load("jobs/UnitTest/UnitTest.groovy")
     // Create an instance of FunctionTest/FunctionTest.groovy
     def function_test = load("jobs/FunctionTest/FunctionTest.groovy")
+    def source_based_test = load("build-config/jobs/FunctionTest/SourceBasedTest.groovy")
+
     def test_type = "manifest"
     def retry_times = Integer.valueOf(env.Test_Time);
     int failed_times = 0
@@ -31,7 +33,7 @@ node{
                 unit_test.runTest(env.stash_manifest_name, env.stash_manifest_path, repo_dir)
             }
             stage("Function Test${i}"){
-                load("jobs/FunctionTest/SourceBasedTest.groovy")
+                source_based_test.runTests(function_test)
             }
         } catch(error){
             echo "Caught: ${error}"

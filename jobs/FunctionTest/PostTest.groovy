@@ -18,8 +18,8 @@ node{
             parallel test_branches
         }
         finally{
-            ova_post_test.archiveArtifacts()
-            docker_post_test.archiveArtifacts()           
+            ova_post_test.archiveArtifacts(function_test)
+            docker_post_test.archiveArtifacts(function_test)
         }
     }
 }
