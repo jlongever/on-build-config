@@ -64,6 +64,9 @@ doBuild() {
             exit 1
         fi
         pushd $repo
+            # Add version/commit in commitstring.txt for docker image build.
+            git log -n 1 --pretty=format:%h.%ai.%s > commitstring.txt
+            
             PKG_TAG=""
             if [ "$BUILD_NIGHTLY" == true ]; then
                 TAG=:nightly
