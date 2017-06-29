@@ -38,7 +38,7 @@ wget_download(){
   local_file=${remote_file##*/}
   if [[ $remote_file == *zip* ]]; then
       echo "[Info] Checking zip file integrity for ${remote_file}"
-      zip -T $local_file
+      unzip -t $local_file
       if [ $? -ne 0 ]; then
           echo "[Error] the download file(${remote_file}) is incompleted !"
           exit 3
