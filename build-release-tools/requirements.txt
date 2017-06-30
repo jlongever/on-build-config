@@ -8,3 +8,4 @@ PyGithub
 pyparsing
 JIRA
 python-jenkins
+configparser
