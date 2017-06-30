@@ -21,9 +21,11 @@ cleanup()
        set -e
     fi
 }
-
-mv $WORKSPACE/cache_image/RackHD/packer/* $WORKSPACE/build/packer/
-ls $WORKSPACE/build/packer/*
+if [ -d  $WORKSPACE/cache_image/RackHD/packer/ ] ; then
+     echo "Copy Cache images from PACKER_CACHE_BUILD job archiving"
+     mv $WORKSPACE/cache_image/RackHD/packer/* $WORKSPACE/build/packer/
+     ls $WORKSPACE/build/packer/*
+fi
 
 pushd $WORKSPACE/build/packer/ansible/roles/rackhd-builds/tasks
 sed -i "s#https://dl.bintray.com/rackhd/debian trusty release#https://dl.bintray.com/$CI_BINTRAY_SUBJECT/debian trusty main#" main.yml
