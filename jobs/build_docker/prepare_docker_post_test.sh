@@ -52,12 +52,10 @@ for repo_tag in $image_list; do
 done
 
 mkdir -p $WORKSPACE/build-log
-n=0
-until [ $n -ge 2 ]
-do
-    docker-compose -f docker-compose-mini.yml pull && break
-    n=$[$n+1]
-    sleep 5
-done
+set +e
+docker pull mongo:latest
+docker pull rabbitmq:management
+set -e
+
 docker-compose -f docker-compose-mini.yml up > $WORKSPACE/build-log/vagrant.log &
 
