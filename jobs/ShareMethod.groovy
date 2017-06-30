@@ -56,11 +56,15 @@ def buildPackage(String repo_dir){
 }
 
 def testOVA(String repo_dir){
-    load(repo_dir + "/jobs/build_ova/ova_post_test.groovy")
+    def function_test = load(repo_dir + "/jobs/FunctionTest/FunctionTest.groovy")
+    def ova_post_test = load(repo_dir + "/jobs/build_ova/ova_post_test.groovy")
+    ova_post_test.runTests(function_test)
 }
 
 def testDocker(String repo_dir){
-    load(repo_dir + "/jobs/build_docker/docker_post_test.groovy")
+    def function_test = load(repo_dir + "/jobs/FunctionTest/FunctionTest.groovy")
+    def docker_post_test = load(repo_dir + "/jobs/build_docker/docker_post_test.groovy")
+    docker_post_test.runTests(function_test)
 }
 
 def testVagrant(String repo_dir){
@@ -99,13 +103,7 @@ def buildImages(String repo_dir){
     }
 
     stage("Post Test"){
-        parallel 'vagrant post test':{
-            testVagrant(repo_dir)
-        }, 'ova post test loader':{
-            testOVA(repo_dir)
-        }, 'docker post test loader':{
-            testDocker(repo_dir)
-        }
+        load(repo_dir + "/jobs/FunctionTest/PostTest.groovy")
     }
 }
 
@@ -179,8 +177,8 @@ def buildAndPublish(Boolean publish, Boolean tag, String repo_dir){
 def sendResult(boolean sendJenkinsBuildResults, boolean sendTestResults){
     stage("Send Test Result"){
         try{
-            if ("${currentBuild.result}" == null || "${currentBuild.result}" == "null"){
-                currentBuild.result = "SUCCESS"
+            if ("${currentBuild.result}" != "SUCCESS"){
+                currentBuild.result = "FAILURE"
             }
             step([$class: 'VTestResultsAnalyzerStep', sendJenkinsBuildResults: sendJenkinsBuildResults, sendTestResults: sendTestResults])
             def message = "Job Name: ${env.JOB_NAME} \n" + "Build Full URL: ${env.BUILD_URL} \n" + "Status: " + currentBuild.result + "\n"

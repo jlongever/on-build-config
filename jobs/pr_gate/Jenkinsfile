@@ -1,34 +1,36 @@
 node{
-    deleteDir()
-    def pull_id = env.ghprbPullLink.tokenize('/')[-1];
-    currentBuild.description = "<a href=${env.ghprbPullLink}> PR #${pull_id}: ${ghprbPullTitle}</a>";
-    checkout scm
-    def repo_dir = pwd()
-    def prgate_unit_test = load("jobs/UnitTest/PRGateUnitTest.groovy")
-    def function_test = load("jobs/FunctionTest/FunctionTest.groovy")
-    def TESTS = "${env.TESTS}"
-    def test_type = "manifest"
-    try{
-        stage("Parse Pull Request"){
-            load("jobs/pr_gate/pr_parser.groovy")
+    timestamps{
+        deleteDir()
+        def pull_id = env.ghprbPullLink.tokenize('/')[-1];
+        currentBuild.description = "<a href=${env.ghprbPullLink}> PR #${pull_id}: ${ghprbPullTitle}</a>";
+        checkout scm
+        def repo_dir = pwd()
+        def prgate_unit_test = load("jobs/UnitTest/PRGateUnitTest.groovy")
+        def function_test = load("jobs/FunctionTest/FunctionTest.groovy")
+        def source_based_test = load("jobs/FunctionTest/SourceBasedTest.groovy")
+        def TESTS = "${env.TESTS}"
+        def test_type = "manifest"
+
+        try{
+            stage("Parse Pull Request"){
+                load("jobs/pr_gate/pr_parser.groovy")
+            }
+            stage("Unit Test"){
+                prgate_unit_test.runTest(env.stash_manifest_name, env.stash_manifest_path, repo_dir)
+            }
+            stage("Function Test"){
+                // Start to run test
+                source_based_test.runTests(function_test)
+            }
+            currentBuild.result="SUCCESS"
+        } finally{
+            unit_test.archiveArtifactsToTarget("UnitTest")
+            source_based_test.archiveArtifacts(function_test)
+            stage("Write Back"){
+                load("jobs/write_back_github/write_back_github.groovy")
+            }
+            def shareMethod = load("jobs/ShareMethod.groovy")
+            shareMethod.sendResult(true,true)
         }
-        stage("Unit Test"){
-            prgate_unit_test.runTest(env.stash_manifest_name, env.stash_manifest_path, repo_dir)
-        }
-        stage("Function Test"){
-            // Start to run test
-            function_test.manifestTest(TESTS, env.stash_manifest_name, env.stash_manifest_path, repo_dir, test_type)
-        }
-    } catch(error){
-        echo "Caught: ${error}"    
-        currentBuild.result = "FAILURE"
-    } finally{
-        unit_test.archiveArtifactsToTarget("UnitTest")
-        function_test.archiveArtifactsToTarget("FunctionTest", TESTS, test_type)
-        stage("Write Back"){
-            load("jobs/write_back_github/write_back_github.groovy")
-        }
-        def shareMethod = load("jobs/ShareMethod.groovy")
-        shareMethod.sendResult(true,true)
     }
 }

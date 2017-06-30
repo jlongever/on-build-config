@@ -30,8 +30,8 @@ clean_running_containers() {
     local containers=$(docker ps -a -q)
     if [ "$containers" != "" ]; then
         echo "Clean Up containers : " ${containers}
-        docker stop ${containers}
-        docker rm  ${containers}
+        echo $SUDO_PASSWORD |sudo -S docker stop ${containers}
+        echo $SUDO_PASSWORD |sudo -S docker rm  ${containers}
     fi
 }
 
