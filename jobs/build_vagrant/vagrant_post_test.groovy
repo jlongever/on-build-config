@@ -16,15 +16,13 @@ lock(label:label_name,quantity:1){
         error("Failed to find resource with label " + label_name)
     }
     node(node_name){
-        timestamps{
-            deleteDir()
-            unstash "vagrant"
-            dir("build-config"){
-                checkout scm
-            }
-            timeout(90){
-                sh './build-config/jobs/build_vagrant/vagrant_post_test.sh'
-            }
+        deleteDir()
+        unstash "vagrant"
+        dir("build-config"){
+            checkout scm
+        }
+        timeout(90){
+            sh './build-config/jobs/build_vagrant/vagrant_post_test.sh'
         }
     }
 }

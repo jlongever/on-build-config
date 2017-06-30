@@ -8,7 +8,6 @@ String stash_manifest_path
 String repo_dir
 @Field label_name = "unittest"
 @Field def test_repos = ["on-core", "on-tasks", "on-http", "on-taskgraph", "on-dhcp-proxy", "on-tftp", "on-syslog"]
-
 def setManifest(String manifest_name, String manifest_path){
     this.stash_manifest_name = manifest_name
     this.stash_manifest_path = manifest_path
@@ -41,7 +40,13 @@ def unitTest(repo_name, used_resources){
                 env.MANIFEST_FILE_PATH = "$stash_manifest_path"
                 timeout(30){
                     try{
-                        sh "./build-config/jobs/UnitTest/unit_test.sh ${repo_name}"
+                        withCredentials([
+                             usernamePassword(credentialsId: 'ff7ab8d2-e678-41ef-a46b-dd0e780030e1',
+                                 passwordVariable: 'SUDO_PASSWORD',
+                                 usernameVariable: 'SUDO_USER')
+                         ]){
+                             sh "./build-config/jobs/UnitTest/unit_test.sh ${repo_name}"
+                         }
                     } finally{
                         // stash logs with the repo name which is the argument of the function ,for example: on-http
                         // The repo_name comes from the global variable test_repos
@@ -97,24 +102,18 @@ def archiveArtifactsToTarget(target){
 def runTest(String manifest_name, String manifest_path, String repo_dir){
     setManifest(manifest_name, manifest_path)
     setRepoDir(repo_dir)
-    try{
-        def used_resources=[]
-        def test_branches = [:]
-        // test_repos is a global variable
-        for(int i=0; i<test_repos.size; i++){
-            def repo_name = test_repos.get(i)
-            test_branches["${repo_name}"] = {
-                unitTest(repo_name, used_resources)
-            }
+    def used_resources=[]
+    def test_branches = [:]
+    // test_repos is a global variable
+    for(int i=0; i<test_repos.size; i++){
+        def repo_name = test_repos.get(i)
+        test_branches["${repo_name}"] = {
+            unitTest(repo_name, used_resources)
         }
-        if(test_branches.size() > 0){
-            parallel test_branches
-        }
-    } catch(error){
-        echo "Caught: ${error}"
-        currentBuild.result = "FAILURE"
-        throw error
-    } 
+    }
+    if(test_branches.size() > 0){
+        parallel test_branches
+    }
 }
 
 return this

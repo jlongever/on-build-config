@@ -2,24 +2,23 @@
 export VCOMPUTE=("${NODE_NAME}-Rinjin1","${NODE_NAME}-Rinjin2","${NODE_NAME}-Quanta")
 export UCSPE=("${NODE_NAME}-UCSPE")
 RUN_FIT_TEST="${RUN_FIT_TEST}"
-if [ ! -z "${4}" ]; then
-  RUN_FIT_TEST=$4
-fi
-RUN_CIT_TEST="${RUN_CIT_TEST}"
-if [ ! -z "${5}" ]; then
-  RUN_FIT_TEST=$5
-fi
 MODIFY_API_PACKAGE="${MODIFY_API_PACKAGE}"
 
-cleanupVMs(){
-    vagrantDestroy
-    # Suspend any other running vagrant boxes
-    vagrantSuspendAll
+cleanUpDockerImages(){
+    echo $SUDO_PASSWORD |sudo -S docker rmi $(echo $SUDO_PASSWORD |sudo -S docker images -q)
+}
 
-    # Delete any running VMs
-    virtualBoxDestroyAll
+cleanUpDockerContainer(){
+    echo $SUDO_PASSWORD |sudo -S docker rm $(echo $SUDO_PASSWORD |sudo -S docker ps -a -q)
+}
 
-    rm -rf "$HOME/VirtualBox VMs"
+cleanUp(){
+    set +e
+    cleanUpDockerContainer
+    cleanUpDockerImages
+    echo $SUDO_PASSWORD |sudo -S service mongodb stop
+    echo $SUDO_PASSWORD |sudo -S service rabbitmq-server stop
+    set -e
 }
 
 apiPackageModify() {
@@ -152,100 +151,53 @@ nodesCreate() {
   fi
 }
 
-vagrantSuspendAll() {
- for box in `vagrant global-status --prune | awk '/running/{print $1}'`; do
-     vagrant suspend ${box}
- done
-}
-
-CONFIG_PATH=${CONFIG_PATH-build-config/vagrant/config/mongo}
-vagrantUp() {
-  cd ${WORKSPACE}/RackHD/example
-  cp -rf ${WORKSPACE}/build-config/vagrant/* .
-  mkdir -p ${WORKSPACE}/build-log
-  result=0
-  for i in {1..2}
-  do
-      CONFIG_DIR=${CONFIG_PATH} WORKSPACE=${WORKSPACE} vagrant up --provision
-      result=$?
-      if [ $result -ne 0 ]; then
-          echo "Vagrant up failed!! retry one more time"
-          vagrant destroy -f
-          #suspend all running instance
-          vagrantSuspendAll
-          #rmeove all VMs before retying
-          rm -rf "$HOME/VirtualBox VMs"
-          rm "$HOME/.config/VirtualBox/VirtualBox.xml"
-      else
-          echo "Vagrant up passed."
-          break
-      fi
-  done
-  if [ $result -ne 0 ]; then
-      echo "Vagrant up failed."
-      exit 1
-  fi
-}
-
-vagrantDestroy() {
-  cd ${WORKSPACE}/RackHD/example
-  vagrant destroy -f
-}
-
-vagrantHalt() {
-  cd ${WORKSPACE}/RackHD/example
-  vagrant halt
-}
-
-virtualBoxDestroyAll() {
-  set +e
-  for uuid in `vboxmanage list vms | awk '{print $2}' | tr -d '{}'`; do
-    echo "shutting down vm ${uuid}"
-    vboxmanage controlvm ${uuid} poweroff
-    echo "deleting vm ${uuid}"
-    vboxmanage unregistervm ${uuid}
-  done
-  set -e
-}
-
 vnc_record_start(){
-  pushd ${WORKSPACE}/RackHD/example # to use the Vagrantfile in it
+  mkdir -p ${WORKSPACE}/build-log
+  pushd ${WORKSPACE}/build-config 
   export fname_prefix="vNode"
   if [ ! -z $BUILD_ID ]; then
       export fname_prefix=${fname_prefix}_b${BUILD_ID}
   fi
-
-  #http://stackoverflow.com/questions/25331758/vagrant-ssh-c-and-keeping-a-background-process-running-after-connection-closed/27327955
-  #trying various ways to  detach the process from the shell,  but all not working 
-  # including vagrant ssh -c "nohup bash xx.sh & "
-  # including vagrant ssh -c "bash xx.sh " &
-  nohup vagrant ssh -c "cd /home/vagrant/src/build-config/;   bash vnc_record.sh /home/vagrant/log/ $fname_prefix" &
-  #/home/vagrant/log/ will be mapped to host(outside vagrant)'s $WORKSPACE/build-log
+  bash vnc_record.sh ${WORKSPACE}/build-log $fname_prefix &
 }
 
 vnc_record_stop(){
   #sleep 2 sec to ensure FLV finishes the disk I/O before VM destroyed
-  vagrant ssh -c 'set +e ;    pkill flvrec.py;  sleep 2 ' 
-
+  set +e
+  pkill -f flvrec.py
+  sleep 2
+  set -e
 }
 
-
-
 generateSolLog(){
-  cd ${WORKSPACE}/RackHD/example
-  vagrant ssh -c 'cd /home/vagrant/src/build-config/; \
-        bash generate-sol-log.sh' > ${WORKSPACE}/sol.log &
+  pushd ${WORKSPACE}/build-config
+  bash generate-sol-log.sh > ${WORKSPACE}/sol.log &
+}
+
+generateSolLogStop(){
+  set +e
+  pkill -f SCREEN
 }
 
 generateSysLog(){
-  cd ${WORKSPACE}/RackHD/example
-  vagrant ssh -c 'dmesg > /home/vagrant/log/dmesg.log'
-  vagrant ssh -c 'cp /var/log/syslog /home/vagrant/log/syslog.log'
+  set +e
+  containerId=$( echo $SUDO_PASSWORD |sudo -S docker ps|grep "my/test" | awk '{print $1}' )
+  echo $SUDO_PASSWORD |sudo -S docker exec -it $containerId dmesg > ${WORKSPACE}/build-log/dmesg.log
 }
 
 generateMongoLog(){
-  cd ${WORKSPACE}/RackHD/example
-  vagrant ssh -c 'cp -r /var/log/mongodb /home/vagrant/log'
+  set +e
+  containerId=$( echo $SUDO_PASSWORD |sudo -S docker ps|grep "my/test" | awk '{print $1}' )
+  echo $SUDO_PASSWORD |sudo -S docker cp $containerId:/var/log/mongodb ${WORKSPACE}/build-log
+  echo $SUDO_PASSWORD |sudo -S chown -R $USER:$USER ${WORKSPACE}/build-log/mongodb
+}
+
+generateRackHDLog(){
+  set +e
+  containerId=$( echo $SUDO_PASSWORD |sudo -S docker ps|grep "my/test" | awk '{print $1}' )
+  echo $SUDO_PASSWORD |sudo -S docker cp $containerId:/root/.pm2/logs ${WORKSPACE}/build-log
+  echo $SUDO_PASSWORD |sudo -S chown -R $USER:$USER ${WORKSPACE}/build-log/logs
+  mv ${WORKSPACE}/build-log/logs/*.log ${WORKSPACE}/build-log
 }
 
 setupVirtualEnv(){
@@ -262,42 +214,13 @@ setupVirtualEnv(){
 BASE_REPO_URL="${BASE_REPO_URL}"
 runTests() {
   set +e
-  if [ "$RUN_FIT_TEST" == true ] ; then
-     cd ${WORKSPACE}/RackHD/test
-     #TODO Parameterize FIT args
-     tstack="${TEST_STACK}"
-     read hwarray<<<"${EXTRA_HW}"
-     for item in $hwarray; do
-         if [ "${item}" == "ucs" ] && [ "${TEST_STACK}" == "-stack vagrant" ]; then
-             tstack="-stack vagrant_ucs"
-         fi
-     done
-     python run_tests.py -test deploy/rackhd_stack_init.py ${tstack} -xunit
-     if [ $? -ne 0 ]; then
-         echo "Test FIT failed running deploy/rackhd_stack_init.py"
-         exit 1
-     fi
-     python run_tests.py ${TEST_GROUP} ${tstack} -v 4 -xunit
-     if [ $? -ne 0 ]; then
-         echo "Test FIT failed running smoke test"
-         exit 1
-     fi
-     mkdir -p ${WORKSPACE}/xunit-reports
-     cp *.xml ${WORKSPACE}/xunit-reports
+  netstat -ntlp
+  args=()
+  if [ ! -z "$1" ];then
+      args+="$1"
   fi
-  if [ "$RUN_CIT_TEST" == true ] ; then
-     read array<<<"${TEST_GROUP}"
-     args=()
-     group=" --group="
-     for item in $array; do
-        args+="${group}${item}"
-     done
-     cp -f ${WORKSPACE}/build-config/config.ini ${WORKSPACE}/RackHD/test/config
-     cd ${WORKSPACE}/RackHD/test
-     RACKHD_BASE_REPO_URL=${BASE_REPO_URL} RACKHD_TEST_LOGLVL=INFO \
-     python run.py ${args} --with-xunit
-     mkdir -p ${WORKSPACE}/xunit-reports
-     cp *.xml ${WORKSPACE}/xunit-reports
+  if [ "$RUN_FIT_TEST" == true ] ; then
+      fitSmokeTest "${args}"
   fi
   set -e
 }
@@ -333,7 +256,9 @@ portForwarding(){
     socat TCP4-LISTEN:9092,forever,reuseaddr,fork TCP4:$1:9080 &
     socat TCP4-LISTEN:9093,forever,reuseaddr,fork TCP4:$1:8443 &
     socat TCP4-LISTEN:2222,forever,reuseaddr,fork TCP4:$1:22 &
-    socat TCP4-LISTEN:7080,forever,reuseaddr,fork TCP4:$1:7080 &
+    if [ "$1" != "localhost" ]; then
+        socat TCP4-LISTEN:7080,forever,reuseaddr,fork TCP4:$1:7080 &
+    fi
     socat TCP4-LISTEN:37017,forever,reuseaddr,fork TCP4:$1:27017 &
     echo "Finished ova -> localhost port forwarding"
     echo "5672->9091"
@@ -358,11 +283,92 @@ fetchOVALog(){
     popd
 }
 
+dockerUp(){
+    pushd $WORKSPACE
+    echo $SUDO_PASSWORD |sudo -S docker load -i rackhd_pipeline_docker.tar
+    popd
+    cp -r ${WORKSPACE}/build-deps ${WORKSPACE}/build-config/jobs/pr_gate/docker
+    pushd ${WORKSPACE}/build-config/jobs/pr_gate/docker
+    #cp -r ${WORKSPACE}/build-config/jobs/pr_gate/docker/* .
+    echo $SUDO_PASSWORD |sudo -S docker build -t my/test .
+    echo $SUDO_PASSWORD |sudo -S docker run --net=host -v /etc/localtime:/etc/localtime:ro -d -t my/test
+    popd
+}
+
+setupTestsConfig(){
+    RACKHD_DHCP_HOST_IP=$(ifconfig | awk '/inet addr/{print substr($2,6)}' |grep 172.31.128)
+    if [ -n "$RACKHD_CONFIG_FILE_URL" ]; then
+      wget --tries=3 $RACKHD_CONFIG_FILE_URL -O ${WORKSPACE}/build-config/jobs/pr_gate/docker/monorail/config.json
+    fi
+    sed -i "s/172.31.128.1/${RACKHD_DHCP_HOST_IP}/g" ${WORKSPACE}/build-config/jobs/pr_gate/docker/monorail/config.json
+    if [ "$RUN_FIT_TEST" == true ] ; then
+        pushd ${WORKSPACE}/RackHD/test/config
+        sed -i "s/\"username\": \"vagrant\"/\"username\": \"${SUDO_USER}\"/g" credentials_default.json
+        sed -i "s/\"password\": \"vagrant\"/\"password\": \"$SUDO_PASSWORD\"/g" credentials_default.json
+        popd
+        pushd ${WORKSPACE}/RackHD
+        find ./ -type f -exec sed -i -e "s/172.31.128.1/${RACKHD_DHCP_HOST_IP}/g" {} \;
+        popd
+    fi
+}
+
+collectTestReport()
+{
+    pushd ${WORKSPACE}/RackHD/test
+    mkdir -p ${WORKSPACE}/xunit-reports
+    cp *.xml ${WORKSPACE}/xunit-reports
+    popd
+}
+
+fitSmokeTest()
+{
+    set +e
+    echo "########### Run FIT Stack Init #############"
+    pushd ${WORKSPACE}/RackHD/test
+    #TODO Parameterize FIT args
+    tstack="${TEST_STACK}"
+    read hwarray<<<"${EXTRA_HW}"
+    for item in $hwarray; do
+        if [ "${item}" == "ucs" ] && [ "${TEST_STACK}" == "-stack vagrant" ]; then
+            tstack="-stack vagrant_ucs"
+        fi
+    done
+    args=()
+    if [ ! -z "$1" ];then
+        args+="$1"
+    fi
+    python run_tests.py -test deploy/rackhd_stack_init.py ${tstack} ${args} -xunit
+    if [ $? -ne 0 ]; then
+        echo "Test FIT failed running deploy/rackhd_stack_init.py"
+        collectTestReport
+        exit 1
+    fi
+    echo "########### Run FIT Smoke Test #############"
+    python run_tests.py ${TEST_GROUP} ${tstack} ${args} -v 4 -xunit
+    if [ $? -ne 0 ]; then
+        echo "Test FIT failed running smoke test"
+        collectTestReport
+        exit 1
+    fi
+    collectTestReport
+    popd
+    set -e
+}
+
+exportLog(){
+    set +e
+    vnc_record_stop
+    generateSolLogStop
+    generateRackHDLog
+    generateMongoLog
+    echo $SUDO_PASSWORD| sudo -S chown -R $USER:$USER ${WORKSPACE}
+    set -e
+}
 ######################################
 #  OVA POST SMOKE TEST RELATED END   #
 ######################################
 
-if [ "$RUN_CIT_TEST" == true ] || [ "$RUN_FIT_TEST" == true ] ; then
+if [ "$RUN_FIT_TEST" == true ] ; then
   if [ "$TEST_TYPE" == "ova" ]; then
     # based on the assumption that in the same folder, the VMs has been exist normally. so don't destroy VM here.
     
@@ -430,37 +436,21 @@ if [ "$RUN_CIT_TEST" == true ] || [ "$RUN_FIT_TEST" == true ] ; then
   else
     # rese the UCSPE emulators 
     ucsReset
-
-    # register the signal handler to clean up( vagrantDestroy ), with process being killed
-    trap cleanupVMs SIGINT SIGTERM SIGKILL
-    cleanupVMs
-
-    # based on the assumption that in the same folder, the VMs has been exist normally. so don't destroy VM here.
-    
+    cleanUp
+    # register the signal handler to export log
+    trap exportLog SIGINT SIGTERM SIGKILL EXIT
     nodesCreate
-    # Power on vagrant box and nodes 
-    vagrantUp
-    # We setup the virtual-environment here, since once we
-    # call "nodesOn", it's a race to get to the first test
-    # before the nodes get booted far enough to start being
-    # seen by RackHD. Logically, it would be better IN runTests.
-    # We do it between the vagrant and waitForAPI to use the
-    # time to make the env instead of doing sleeps...
+    setupTestsConfig
+    dockerUp
+    # Setup the virtual-environment
     setupVirtualEnv
     waitForAPI
-    nodesOn &
+    nodesOn
+
     generateSolLog
     vnc_record_start
     # Run tests
-    runTests
-    generateSysLog
-    generateMongoLog
-    vnc_record_stop
-    # Clean Up below
-
-    #shutdown vagrant box and delete all resource (like removing vm disk files in "~/VirtualBox VMs/")
-    #cleanupVMs
-    #nodesDelete
+    runTests " --sm-amqp-use-user guest"
   fi
 
 fi

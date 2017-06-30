@@ -10,8 +10,8 @@ node{
         unstash "${stash_manifest_name}"
         withCredentials([string(credentialsId: 'JENKINSRHD_GITHUB_TOKEN', 
                                 variable: 'GITHUB_TOKEN')]) {
-            if ("${currentBuild.result}" == null || "${currentBuild.result}" == "null"){
-                currentBuild.result = "SUCCESS"
+            if ("${currentBuild.result}" == "null"){
+                currentBuild.result = "FAILURE"
             }
             env.status = "${currentBuild.result}"
             sh './build-config/jobs/write_back_github/write_back_github.sh'

@@ -6,6 +6,7 @@ import os
 from github import Github
 from manifest import Manifest
 from urlparse import urlparse
+import time
 
 # jenkins-url is not suggested for our internal Jenkins
 def parse_args(args):
@@ -57,7 +58,10 @@ def set_commit_status(repo, pull_id, status, description, build_url = None):
     print "Set commit status for {0} pull {1} successfully".format(repo, pull_id)
 
 def set_commit_status_bat(pr_list, status, build_url = None):
-    description = "Build finished."
+    gmt = time.gmtime()
+    gmtStr = time.strftime("%b %d, %Y, %I:%M:%S %p ", gmt) + 'GMT'
+    description = "Build finished. " + gmtStr
+
     if len(pr_list) > 1:
         description = description + "[interdependent]"
     for pr in pr_list:

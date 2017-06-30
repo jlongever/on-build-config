@@ -16,8 +16,8 @@ lock("ova_build"){
         else{
             error("Failed to find resource with label " + label_name)
         }
-        node(node_name){ws{
-            timestamps{
+        node(node_name){
+            ws{
                 withEnv([
                     "RACKHD_COMMIT=${env.RACKHD_COMMIT}",
                     "RACKHD_VERSION=${env.RACKHD_VERSION}",
@@ -61,5 +61,5 @@ lock("ova_build"){
             }
         }
     }
-}}
+}
 
