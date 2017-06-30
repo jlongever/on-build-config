@@ -9,3 +9,4 @@ pyparsing
 JIRA
 python-jenkins
 configparser
+pyOpenSSL
