@@ -2,18 +2,36 @@ apps:
   - script: index.js
     name: on-taskgraph
     cwd: /RackHD/on-taskgraph
+    out_file: /var/log/RackHD.log
+    error_file: /var/log/RackHD.log
+    merge_logs: true
   - script: index.js
     name: on-http
     cwd: /RackHD/on-http
+    out_file: /var/log/RackHD.log
+    error_file: /var/log/RackHD.log
+    merge_logs: true
   - script: index.js
     name: on-dhcp-proxy
     cwd: /RackHD/on-dhcp-proxy
+    out_file: /var/log/RackHD.log
+    error_file: /var/log/RackHD.log
+    merge_logs: true
   - script: index.js
     name: on-syslog
     cwd: /RackHD/on-syslog
+    out_file: /var/log/RackHD.log
+    error_file: /var/log/RackHD.log
+    merge_logs: true
   - script: index.js
     name: on-tftp
     cwd: /RackHD/on-tftp
+    out_file: /var/log/RackHD.log
+    error_file: /var/log/RackHD.log
+    merge_logs: true
   - script: app.py
     name: ucs-service
     cwd: /RackHD/ucs-service
+    out_file: /var/log/RackHD.log
+    error_file: /var/log/RackHD.log
+    merge_logs: true

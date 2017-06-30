@@ -195,7 +195,7 @@ generateMongoLog(){
 generateRackHDLog(){
   set +e
   containerId=$( echo $SUDO_PASSWORD |sudo -S docker ps|grep "my/test" | awk '{print $1}' )
-  echo $SUDO_PASSWORD |sudo -S docker cp $containerId:/root/.pm2/logs ${WORKSPACE}/build-log
+  echo $SUDO_PASSWORD |sudo -S docker cp $containerId:/var/log/RackHD.log ${WORKSPACE}/build-log
   echo $SUDO_PASSWORD |sudo -S chown -R $USER:$USER ${WORKSPACE}/build-log/logs
   mv ${WORKSPACE}/build-log/logs/*.log ${WORKSPACE}/build-log
 }
