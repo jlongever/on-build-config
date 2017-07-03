@@ -62,7 +62,6 @@ clean_up on-wss
 clean_up on-statsd
 clean_up on-core
 clean_up rackhd
-clean_up ucs-service
 
 echo "clean up /var/lib/docker/volumes"
 docker volume ls -qf dangling=true | xargs -r docker volume rm

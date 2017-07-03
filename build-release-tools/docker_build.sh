@@ -50,7 +50,7 @@ doBuild() {
     # List order is important, on-tasks image build is based on on-core image, 
     # on-http and on-taskgraph ard based on on-tasks image 
     # others are based on on-core image
-    repos=$(echo "on-imagebuilder on-core on-syslog on-dhcp-proxy on-tftp on-wss on-statsd on-tasks on-taskgraph on-http ucs-service")
+    repos=$(echo "on-imagebuilder on-core on-syslog on-dhcp-proxy on-tftp on-wss on-statsd on-tasks on-taskgraph on-http")
     #Record all repo:tag for post-pushing
     repos_tags=""
     #Set an empty TAG before each build
