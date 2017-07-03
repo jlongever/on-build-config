@@ -158,7 +158,7 @@ do
         echo "ERROR: file $operation_file scp fails"
         continue
     fi
-    echo "power_on power_off reset delete" | grep -w ${node_info[3]} > /dev/null 2>&1
+    echo "power_on power_off reset delete snapshot_create snapshot_revert" | grep -w ${node_info[3]} > /dev/null 2>&1
     if [ $? -ne 0 ];then
         echo "ERROR: value of action ${node_info[3]} is not expected"
         continue
