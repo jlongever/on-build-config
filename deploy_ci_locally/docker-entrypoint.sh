@@ -11,6 +11,9 @@ chmod 666 /var/lib/dhcp/dhcpd.leases
 
 service isc-dhcp-server stop
 
+cd /RackHD/ucs-service
+pip install -r requirements.txt
+cd /RackHD
 mongod &
 sleep 1
 service rabbitmq-server start
