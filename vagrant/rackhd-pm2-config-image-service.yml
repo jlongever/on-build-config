@@ -1,0 +1,22 @@
+apps:
+   - script: index.js
+     name: on-taskgraph
+     cwd: ./src/on-taskgraph
+   - script: index.js
+     name: on-http
+     cwd: ./src/on-http
+   - script: index.js
+     name: on-dhcp
+     cwd: ./src/on-dhcp-proxy
+   - script: index.js
+     name: on-syslog
+     cwd: ./src/on-syslog
+   - script: index.js
+     name: on-tftp
+     cwd: ./src/on-tftp
+   - script: app.py
+     name: ucs-service
+     cwd: ./src/ucs-service
+   - script: index.js
+     name: image-service
+     cwd: ./src/image-service

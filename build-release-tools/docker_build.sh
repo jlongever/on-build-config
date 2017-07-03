@@ -34,7 +34,7 @@ tagCalculate() {
     else
         CHANGELOG_VERSION=$RACKHD_CHANGELOG_VERSION
     fi
-    
+
     #generate real TAG
     if [ "$IS_OFFICIAL_RELEASE" == "true" ]; then
         PKG_TAG="$CHANGELOG_VERSION"
@@ -47,10 +47,11 @@ tagCalculate() {
 }
 
 doBuild() {
-    # List order is important, on-tasks image build is based on on-core image, 
-    # on-http and on-taskgraph ard based on on-tasks image 
+    # List order is important, on-tasks image build is based on on-core image,
+    # on-http and on-taskgraph ard based on on-tasks image
     # others are based on on-core image
-    repos=$(echo "on-imagebuilder on-core on-syslog on-dhcp-proxy on-tftp on-wss on-statsd on-tasks on-taskgraph on-http ucs-service")
+    repos=$(echo "on-imagebuilder on-core on-syslog on-dhcp-proxy on-tftp on-wss on-statsd on-tasks
+    on-taskgraph on-http ucs-service")
     #Record all repo:tag for post-pushing
     repos_tags=""
     #Set an empty TAG before each build
@@ -90,12 +91,12 @@ doBuild() {
                 "on-tasks")
                     PRE_TAG=$TAG
                     ;;
-            esac 
+            esac
             mv ../Dockerfile.bak Dockerfile
         popd
     done
 
-    # write build list to a file for guiding image push. 
+    # write build list to a file for guiding image push.
     pushd $WORKDIR
     echo "Imagename:tag list of this build is $repos_tags"
     echo $repos_tags >> build_record

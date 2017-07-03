@@ -49,7 +49,7 @@ def write_downstream_parameters(repos_under_test, parameters_file):
 
     repos_need_unit_test = []
     for repo_name in repos_under_test:
-        if repo_name in ["on-core", "on-tasks", "on-http", "on-tftp", "on-dhcp-proxy", "on-taskgraph", "on-syslog"]:
+        if repo_name in ["on-core", "on-tasks", "on-http", "on-tftp", "on-dhcp-proxy", "on-taskgraph", "on-syslog", "image-service"]:
             repos_need_unit_test.append(repo_name)
 
         if repo_name == "on-core":

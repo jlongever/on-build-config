@@ -49,7 +49,7 @@
             "repository": "https://github.com/RackHD/RackHD.git"
         }, 
         {
-            "branch": "", 
+            "branch": "",
             "commit-id": "",
             "repository": "https://github.com/RackHD/on-build-config.git"
         },
@@ -57,7 +57,11 @@
             "branch": "",
             "commit-id": "",
             "repository": "https://github.com/RackHD/ucs-service.git"
+        },
+        {
+            "branch": "",
+            "commit-id": "",
+            "repository": "https://github.com/RackHD/image-service.git"
         }
-
     ]
 }
