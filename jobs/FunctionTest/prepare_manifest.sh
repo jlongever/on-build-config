@@ -1,4 +1,18 @@
 #!/bin/bash -ex
+################
+# This script is to clne and npm install RackHD according to Manifest
+#
+# Precondition:
+#  $WORKSPACE : ENV Variable(Jenkins Build-in)
+#  there should be on-build-config already cloned in $WORKSPACE as folder name build-config
+#  $MANIFEST_FILE: ENV Variable. a manifest file
+#  $INTERNAL_HTTP_ZIP_FILE_URL[*]: optional ENV Variable.,where a prebuild http zip file locates 
+#  $INTERNAL_TFTP_ZIP_FILE_URL[*]: optional ENV Variable. where a prebuild tftp zip file locates
+#  $HTTP_STATIC_FILES: $1 of this script or ENV Variable: addtional file list of http static files to be downloaded
+#  $TFTP_STATIC_FILES: $2 of this script or ENV Variable: addtional file list of tftp static files to be downloaded
+#  $SKIP_PREP_DEP    : $3 of this script( if preparasion function of this script to be skipped)
+################
+
 REPOS=("on-http" "on-taskgraph" "on-dhcp-proxy" "on-tftp" "on-syslog")
 
 HTTP_STATIC_FILES="${HTTP_STATIC_FILES}"
@@ -101,11 +115,31 @@ preparePackages() {
     checkout \
     packagerefs
 
+    echo "[Info]Clone source code done, start to npm install...."
+    local pid_arr=()
+    local cnt=0
+    #### NPM Install Parallel ######
     for i in ${REPOS[@]}; do
         pushd ${WORKSPACE}/build-deps/${i}
-        npm install --production
+        echo "[${i}]: running :  npm install --production"
+        npm install --production &
+        # run in background, save its PID into pid_array
+        pid_arr[$cnt]=$!
+        cnt=$(( $cnt + 1 ))
         popd
     done
+
+    ## Wait for background npm install to finish ###
+    for index in $(seq 0 $(( ${#pid_arr[*]} -1 ))  );
+    do
+        wait ${pid_arr[$index]} # Wait for background running 'npm install' process
+        echo "[${REPOS[$index]}]: finished :  npm install"
+        if [ "$?" != "0" ] ; then
+            echo "[Error] npm install failed for repo:" ${REPOS[$index]} ", Abort !"
+            exit 3
+        fi
+    done
+
     cp -r build-deps/RackHD .
     if [ -d "build-deps/on-build-config" ]; then
         # on-build-config from manifest has high priority
