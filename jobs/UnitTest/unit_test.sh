@@ -2,8 +2,8 @@
 
 start_depends_services(){
     set +e
-    echo ${SUDO_PASSWORD} |sudo -S service mongodb start
-    echo ${SUDO_PASSWORD} |sudo -S service rabbitmq-server start
+    echo $SUDO_PASSWORD |sudo -S service mongodb start
+    echo $SUDO_PASSWORD |sudo -S service rabbitmq-server start
     set -e
 }
 
@@ -35,8 +35,7 @@ unit_test(){
     set +e
     ./node_modules/.bin/istanbul report lcov
     npm install --save-dev mocha-sonar-reporter
-    npm_package_config_mocha_sonar_reporter_classname="Tests_build.spec"
-    echo ${SUDO_PASSWORD} |sudo -S npm_package_config_mocha_sonar_reporter_outputfile=test/$1.xml ./node_modules/.bin/istanbul cover -x "**/spec/**" ./node_modules/.bin/_mocha -- $(find spec -name '*-spec.js') -R mocha-sonar-reporter --require spec/helper.js -t 10000
+    npm_package_config_mocha_sonar_reporter_classname="Tests_build.spec" npm_package_config_mocha_sonar_reporter_outputfile=test/$1.xml ./node_modules/.bin/istanbul cover -x "**/spec/**" ./node_modules/.bin/_mocha -- $(find spec -name '*-spec.js') -R mocha-sonar-reporter --require spec/helper.js -t 10000
     set -e
 }
 
@@ -45,5 +44,4 @@ prepare_deps $1
 pushd ${WORKSPACE}/build-deps/$1
 unit_test $1
 cp test/$1.xml ${WORKSPACE}/xunit-reports
-sudo chown -R ${USER}:${USER} test coverage static
 popd
