@@ -7,7 +7,7 @@ String stash_manifest_name
 String stash_manifest_path
 String repo_dir
 @Field label_name = "unittest"
-@Field def test_repos = ["on-core", "on-tasks", "on-http", "on-taskgraph", "on-dhcp-proxy", "on-tftp", "on-syslog", "image-service"]
+@Field def test_repos = ["on-core", "on-tasks", "on-http", "on-taskgraph", "on-dhcp-proxy", "on-tftp", "on-syslog"]
 def setManifest(String manifest_name, String manifest_path){
     this.stash_manifest_name = manifest_name
     this.stash_manifest_path = manifest_path
