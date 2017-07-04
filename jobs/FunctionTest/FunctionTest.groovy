@@ -54,12 +54,23 @@ def functionTest(String test_name, String TEST_GROUP, Boolean RUN_FIT_TEST, Bool
             try{
                 timeout(90){
                     // run test script
-                    sh '''#!/bin/bash -x
-                    pushd build-config
-                    ./build-config
-                    popd
-                    ./build-config/test.sh
-                    '''
+                    def repos = env.REPOS_UNDER_TEST.tokenize(',')
+                        if(repos.contains("image-service")){
+                            sh '''#!/bin/bash -x
+                                pushd build-config
+                                ./build-config image-service
+                                popd
+                                ./build-config/test.sh
+                                '''
+                        }
+                        else{
+                            sh '''#!/bin/bash -x
+                                pushd build-config
+                                ./build-config 
+                                popd
+                                ./build-config/test.sh
+                                '''
+                        }
                 }
             } finally{
                 def result = "FAILURE"

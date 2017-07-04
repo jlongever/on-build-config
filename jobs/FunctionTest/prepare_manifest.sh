@@ -1,6 +1,8 @@
 #!/bin/bash -ex
 REPOS=("on-http" "on-taskgraph" "on-dhcp-proxy" "on-tftp" "on-syslog")
-
+if (echo ${REPOS_UNDER_TEST} | grep -q  "image-service"); then
+    REPOS+=("image-service")
+fi
 HTTP_STATIC_FILES="${HTTP_STATIC_FILES}"
 TFTP_STATIC_FILES="${TFTP_STATIC_FILES}"
 MANIFEST_FILE="${MANIFEST_FILE}"
@@ -47,27 +49,36 @@ wget_download(){
 
 }
 
+dlCommonFiles() {
+    dir=$1
+    mkdir -p ${dir} && cd ${dir}
+    if [ -n "${INTERNAL_HTTP_ZIP_FILE_URL}" ]; then
+        # use INTERNAL TEMP SOURCE
+        wget_download ${INTERNAL_HTTP_ZIP_FILE_URL}
+
+        unzip common.zip && mv common/* . && rm -rf common
+    else
+        # pull down index from bintray repo and parse files from index
+        wget_download --no-check-certificate https://dl.bintray.com/rackhd/binary/builds/ && \
+            exec  cat index.html |grep -o href=.*\"|sed 's/href=//' | sed 's/"//g' > files
+        for i in `cat ./files`; do
+            wget_download --no-check-certificate https://dl.bintray.com/rackhd/binary/builds/${i}
+        done
+        # attempt to pull down user specified static files
+        for i in ${HTTP_STATIC_FILES}; do
+            wget_download --no-check-certificate https://bintray.com/artifact/download/rackhd/binary/builds/${i}
+        done
+    fi
+}
 
 dlHttpFiles() {
-  dir=${WORKSPACE}/build-deps/on-http/static/http/common
-  mkdir -p ${dir} && cd ${dir}
-  if [ -n "${INTERNAL_HTTP_ZIP_FILE_URL}" ]; then
-    # use INTERNAL TEMP SOURCE
-    wget_download ${INTERNAL_HTTP_ZIP_FILE_URL}
+    dir=${WORKSPACE}/build-deps/on-http/static/http/common
+    dlCommonFiles ${dir}
+}
 
-    unzip common.zip && mv common/* . && rm -rf common
-  else
-    # pull down index from bintray repo and parse files from index
-    wget_download --no-check-certificate https://dl.bintray.com/rackhd/binary/builds/ && \
-        exec  cat index.html |grep -o href=.*\"|sed 's/href=//' | sed 's/"//g' > files
-    for i in `cat ./files`; do
-      wget_download --no-check-certificate https://dl.bintray.com/rackhd/binary/builds/${i}
-    done
-    # attempt to pull down user specified static files
-    for i in ${HTTP_STATIC_FILES}; do
-      wget_download --no-check-certificate https://bintray.com/artifact/download/rackhd/binary/builds/${i}
-    done
-  fi
+dlImageServiceCommonFiles() {
+    dir=${WORKSPACE}/build-deps/image-service/static/common
+    dlCommonFiles ${dir}
 }
 
 dlTftpFiles() {
@@ -118,6 +129,9 @@ prepareDeps(){
   preparePackages
   dlTftpFiles
   dlHttpFiles
+  if (echo ${REPOS_UNDER_TEST} | grep -q "image-service"); then
+      dlImageServiceCommonFiles
+  fi
 }
 
 if [ "$SKIP_PREP_DEP" == false ] ; then

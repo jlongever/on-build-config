@@ -28,17 +28,17 @@ else
   rm sed.script
 fi
 
-echo "Generating pre deployment file from template"		
-if [ -e "${REPO_NAME}/pre-deploy.sh.in" ]; then		
-  env | sed 's/[\%]/\\&/g;s/\([^=]*\)=\(.*\)/s%${\1}%\2%/' > sed.script		
-  cat ${REPO_NAME}/pre-deploy.sh.in | sed -f sed.script > pre-deploy.sh		
-  chmod oug+x pre-deploy.sh		
-  rm sed.script		
-else		
-  env | sed 's/[\%]/\\&/g;s/\([^=]*\)=\(.*\)/s%${\1}%\2%/' > sed.script		
-  cat pre-deploy.sh.in | sed -f sed.script > pre-deploy.sh		
-  chmod oug+x pre-deploy.sh		
-  rm sed.script		
+echo "Generating pre deployment file from template"
+if [ -e "${REPO_NAME}/pre-deploy.sh.in" ]; then
+  env | sed 's/[\%]/\\&/g;s/\([^=]*\)=\(.*\)/s%${\1}%\2%/' > sed.script
+  cat ${REPO_NAME}/pre-deploy.sh.in | sed -f sed.script > pre-deploy.sh
+  chmod oug+x pre-deploy.sh
+  rm sed.script
+else
+  env | sed 's/[\%]/\\&/g;s/\([^=]*\)=\(.*\)/s%${\1}%\2%/' > sed.script
+  cat pre-deploy.sh.in | sed -f sed.script > pre-deploy.sh
+  chmod oug+x pre-deploy.sh
+  rm sed.script
 fi
 
 echo "Generating post deployment file from template"

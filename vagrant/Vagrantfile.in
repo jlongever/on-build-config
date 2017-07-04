@@ -99,7 +99,10 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
             pm2 logs > /home/vagrant/src/"#{ENV['REPO_NAME']}"/vagrant.log &
           fi
           waitForPM2Daemon
-          pm2 start rackhd-pm2-config.yml
+          if (echo "#{ENV['REPOS_UNDER_TEST']}"|grep -q "image-service"); then
+            cp /home/vagrant/src/build-config/vagrant/rackhd-pm2-config-image-service.yml rackhd-pm2-config.yml
+          fi
+        pm2 start rackhd-pm2-config.yml
         SHELL
 
 

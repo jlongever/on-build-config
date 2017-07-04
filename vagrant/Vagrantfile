@@ -49,6 +49,9 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
         target.vm.network "forwarded_port", guest: 8443, host: 9093
         #usc-service
         target.vm.network "forwarded_port", guest: 7080, host: 7080
+        #image-service
+        target.vm.network "forwarded_port", guest: 7070, host: 7070
+        target.vm.network "forwarded_port", guest: 8060, host: 8060
         #mongoDb service
         target.vm.network "forwarded_port", guest: 27017, host: 37017
         
@@ -90,7 +93,11 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
             pm2 logs > /home/vagrant/log/"#{ENV['REPO_NAME']}"/vagrant.log &
           fi
           waitForPM2Daemon
+          if (echo "#{ENV['REPOS_UNDER_TEST']}"|grep -q "image-service"); then
+            cp /home/vagrant/src/build-config/vagrant/rackhd-pm2-config-image-service.yml rackhd-pm2-config.yml
+          fi
           pm2 start rackhd-pm2-config.yml
+
         SHELL
 
 

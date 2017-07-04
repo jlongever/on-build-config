@@ -6,7 +6,7 @@ This is a command line program that clean up the overdue nightly builds.
 
 NOTE:
 The release build will never be deleted by this script.
-because 
+because
 get_build_date_from_version() will return NULL for bintray/dockerhub sub routine, and "continue" to skip deletion.
 for vagrant,  release build starts from 1. and old builds are only two digit(0.1x), so the sub-routine will skip the deletion also.
 
@@ -119,7 +119,7 @@ def parse_args(args):
     return parsed_args
 
 RACKHD_REPOS = ["on-imagebuilder", "on-core", "on-syslog", "on-dhcp-proxy", "files", "on-tftp", \
-                "on-wss", "on-statsd", "on-tasks", "on-taskgraph", "on-http", "rackhd", "ucs-service"]
+                "on-wss", "on-statsd", "on-tasks", "on-taskgraph", "on-http", "rackhd", "ucs-service", "image-service"]
 
 def clean_bintray_nightly_builds(bintray_cred, bintray_subject, bintray_repo, date_range):
     """
@@ -160,7 +160,7 @@ def clean_atlas_nightly_builds(atlas_cred, atlas_name, atlas_url, date_range):
     for version in versions:
         version_segments = [i for i in version.split(".")]
         if len(version_segments) < 3:
-        # atlas support version like 0.16 , but nightly builds are all 0.x.y 
+        # atlas support version like 0.16 , but nightly builds are all 0.x.y
             continue
         y = version_segments[1]
         if int(y) == 0:
