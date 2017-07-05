@@ -27,6 +27,8 @@ def generateTestBranches(function_test){
                             withEnv([
                                 "DOCKER_STASH_NAME=${env.DOCKER_STASH_NAME}",
                                 "DOCKER_RACKHD_IP=${env.DOCKER_RACKHD_IP}",
+                                "stash_manifest_name=${env.stash_manifest_name}",
+                                "stash_manifest_path=${env.stash_manifest_path}",
                                 "SKIP_PREP_DEP=false",
                                 "USE_VCOMPUTE=${env.USE_VCOMPUTE}",
                                 "TEST_TYPE=docker"])
@@ -67,6 +69,19 @@ def generateTestBranches(function_test){
                                         sh '''#!/bin/bash
                                         ./build-config/jobs/FunctionTest/prepare_common.sh
                                         ./build-config/jobs/build_docker/prepare_docker_post_test.sh
+                                        '''
+
+                                        // Add commit/version checking in docker-post-test
+                                        println "[DEBUG] stash_manifest_name:" + "$stash_manifest_name"
+                                        unstash "$stash_manifest_name"
+                                        env.MANIFEST_FILE="$stash_manifest_path"
+
+                                        env.DOCKER_REPO_HASHCODE_FILE = env.RackHD_DIR + "/docker/docker_repo_hashcode.txt"
+                                        sh "/bin/bash ./build-config/jobs/build_docker/get_docker_commit_version.sh"
+                                        sh '''#!/bin/bash
+                                        ./build-config/build-release-tools/HWIMO-BUILD ./build-config/build-release-tools/application/docker_version_check.py \
+                                        --manifest-file $MANIFEST_FILE \
+                                        --parameters-file $DOCKER_REPO_HASHCODE_FILE
                                         '''
                                     } catch(error){
                                         // Clean up test stack

@@ -65,7 +65,8 @@ doBuild() {
         fi
         pushd $repo
             # Add version/commit in commitstring.txt for docker image build.
-            git log -n 1 --pretty=format:%h.%ai.%s > commitstring.txt
+            commitstring_file="commitstring.txt"
+            git log -n 1 --pretty=format:%h.%ai.%s > ${commitstring_file}
             
             PKG_TAG=""
             if [ "$BUILD_NIGHTLY" == true ]; then
@@ -78,6 +79,7 @@ doBuild() {
             repos_tags=$repos_tags"rackhd/"$repo$TAG" "
             cp Dockerfile ../Dockerfile.bak
             if [ "$repo" == "on-imagebuilder" ]; then
+                    cp ${commitstring_file} ./common/
                     docker build -t rackhd/files$TAG .
                     repos_tags="rackhd/files"$TAG" "
             elif [ "$repo" != "on-core" ];then
