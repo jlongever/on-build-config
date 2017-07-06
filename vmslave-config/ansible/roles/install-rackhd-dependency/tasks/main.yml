@@ -15,6 +15,16 @@
   shell: |
     . ~/.nvm/nvm.sh && nvm install v"{{ node_version }}"
 
+- name: Install ucs-service deps
+  become: true
+  apt: name={{item}} state=present
+  with_items:
+    - libssl-dev
+    - libkrb5-dev
+    - libffi-dev
+    - python-dev
+    - python-pip
+
 - name: Install external dependent packages
   become: true
   apt: name={{item}} state=present

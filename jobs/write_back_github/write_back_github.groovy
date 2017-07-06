@@ -7,7 +7,7 @@ node{
         dir("build-config"){
             checkout scm
         }
-        unstash "${stash_manifest_name}"
+        unstash "${env.stash_manifest_name}"
         withCredentials([string(credentialsId: 'JENKINSRHD_GITHUB_TOKEN', 
                                 variable: 'GITHUB_TOKEN')]) {
             if ("${currentBuild.result}" == "null"){

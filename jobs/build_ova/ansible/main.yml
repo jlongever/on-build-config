@@ -6,6 +6,16 @@
         ip route add default via {{ ova_gateway }} dev {{ ova_net_interface }}
       tags:
         - config-gateway
+      ignore_errors: yes
+      register: gateway
+
+    - name: Enable external network through gateway
+      become: yes
+      shell: |
+        ip route change default via {{ ova_gateway }} dev {{ ova_net_interface }}
+      tags:
+        - config-gateway
+      when: gateway.rc != 0
 
     - name: Copy rackhd config for test
       become: yes

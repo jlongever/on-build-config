@@ -34,13 +34,13 @@ class MergeFreezer(object):
     def freeze_pr(self, pr):
         try:
             commit = pr.get_commits().reversed[0]
-            print "Freezing PR: {0}".format(pr.title)
+            print "Freezing PR: " + pr.title
             commit._requester = self.__admin_requester
             commit.create_status(state="failure", \
                                 description=self.__freeze_desc, \
                                 context=self.__freeze_context)
         except Exception as e:
-            raise Exception("Failed to set commit status of for {0}. \n{1}".format(pr.title, e))
+            raise Exception("Failed to set commit status of for " + pr.title + "\n{0}".format(e))
 
     def freeze_prs(self, pr_list):
         try:
@@ -61,13 +61,13 @@ class MergeFreezer(object):
     def unfreeze_pr(self, pr):
         try:
             commit = pr.get_commits().reversed[0]
-            print "Unfreezing PR: {0}".format(pr.title)
+            print "Unfreezing PR: " + pr.title
             commit._requester = self.__admin_requester
             commit.create_status(state="success", \
                         description=self.__unfreeze_desc, \
                         context=self.__freeze_context)
         except Exception as e:
-            raise Exception("Failed to set commit status for pr {0}. \n{1}".format(pr.title, e))
+            raise Exception("Failed to set commit status for pr " + pr.title +"\n{0}".format(e))
 
     def unfreeze_prs(self, pr_list):
         try:
@@ -96,9 +96,9 @@ class MergeFreezer(object):
                         return False
                     else:
                         print "Commit status in wrong format!"
-                        raise Exception("There's illegal frozen commit status of PR:\n{0}".format(pr.title))
+                        raise Exception("There's illegal frozen commit status of PR:\n" + pr.title)
                 else:
                     continue
             return False
         except Exception as e:
-            raise Exception("Failed to get commit status of pr {0}. \n{1}".format(pr.title, e))
+            raise Exception("Failed to get commit status of pr " + pr.title + "\n{0}".format(e))
