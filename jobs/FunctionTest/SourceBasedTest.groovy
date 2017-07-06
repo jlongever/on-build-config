@@ -7,6 +7,11 @@ def generateTestBranches(function_test){
         def ALL_TESTS = function_test.getAllTests()
         def used_resources = function_test.getUsedResources()
         def TESTS = "${env.TESTS}"
+        if(TESTS == "null" || TESTS == "" || TESTS == null){
+           print "no test need to run"
+           return 
+            }
+
         def test_stack = "-stack docker_local_run"
         List tests_group = Arrays.asList(TESTS.split(','))
         for(int i=0; i<tests_group.size(); i++){
