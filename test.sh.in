@@ -1,6 +1,5 @@
 #!/bin/bash -ex
 export VCOMPUTE=("${NODE_NAME}-Rinjin1","${NODE_NAME}-Rinjin2","${NODE_NAME}-Quanta")
-export UCSPE=("${NODE_NAME}-UCSPE")
 RUN_FIT_TEST="${RUN_FIT_TEST}"
 MODIFY_API_PACKAGE="${MODIFY_API_PACKAGE}"
 
@@ -91,15 +90,6 @@ execWithTimeout() {
        exit 1
   fi
   set -e
-}
-
-ucsReset() {
-  cd ${WORKSPACE}/build-config/deployment/
-  if [ "${USE_VCOMPUTE}" != "false" ]; then
-    for i in ${UCSPE[@]}; do
-      ./vm_control.sh "${ESXI_HOST},${ESXI_USER},${ESXI_PASS},reset,1,${i}_*"
-    done
-  fi
 }
 
 nodesOff() {
@@ -256,9 +246,6 @@ portForwarding(){
     socat TCP4-LISTEN:9092,forever,reuseaddr,fork TCP4:$1:9080 &
     socat TCP4-LISTEN:9093,forever,reuseaddr,fork TCP4:$1:8443 &
     socat TCP4-LISTEN:2222,forever,reuseaddr,fork TCP4:$1:22 &
-    if [ "$1" != "localhost" ]; then
-        socat TCP4-LISTEN:7080,forever,reuseaddr,fork TCP4:$1:7080 &
-    fi
     socat TCP4-LISTEN:37017,forever,reuseaddr,fork TCP4:$1:27017 &
     echo "Finished ova -> localhost port forwarding"
     echo "5672->9091"
@@ -266,7 +253,6 @@ portForwarding(){
     echo "9080->9092"
     echo "8443->9093"
     echo "22->2222"
-    echo "7080->7080"
     echo "27017->37017"
 }
 
@@ -327,12 +313,6 @@ fitSmokeTest()
     pushd ${WORKSPACE}/RackHD/test
     #TODO Parameterize FIT args
     tstack="${TEST_STACK}"
-    read hwarray<<<"${EXTRA_HW}"
-    for item in $hwarray; do
-        if [ "${item}" == "ucs" ] && [ "${TEST_STACK}" == "-stack vagrant" ]; then
-            tstack="-stack vagrant_ucs"
-        fi
-    done
     args=()
     if [ ! -z "$1" ];then
         args+="$1"
@@ -434,8 +414,6 @@ if [ "$RUN_FIT_TEST" == true ] ; then
     #cleanupVMs
     #nodesDelete
   else
-    # rese the UCSPE emulators 
-    ucsReset
     cleanUp
     # register the signal handler to export log
     trap exportLog SIGINT SIGTERM SIGKILL EXIT

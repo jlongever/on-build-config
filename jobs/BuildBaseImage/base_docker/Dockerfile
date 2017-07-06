@@ -46,16 +46,3 @@ RUN rm -rf /var/lib/dhcp && \
 
 COPY ./dhcp/config /etc/dhcp
 COPY ./dhcp/defaults /etc/defaults
-
-# python for ucs service
-RUN wget https://raw.githubusercontent.com/RackHD/ucs-service/master/requirements.txt \
-  && apt-get update && apt-get install -y \
-  python \
-  python-dev \
-  python-pip \
-  build-essential \
-  libffi-dev \
-  && rm -rf /var/lib/apt/lists/* \
-  && pip install --upgrade setuptools \
-  && pip install enum functools32 configparser \
-  && pip install -r requirements.txt
