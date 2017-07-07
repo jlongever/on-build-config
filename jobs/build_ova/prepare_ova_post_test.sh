@@ -7,7 +7,7 @@
 #   2. Gateway, connect to external net through $OVA_NET_INTERFACE(eth1) with $OVA_GATEWAY IP
 
 set -x
-
+source ${WORKSPACE}/build-config/shareMethod.sh
 # If using a passed in ova file from an external http server and bypassing ova build,
 # use the path as is, else get the path via ls
 if [[ "${OVA_PATH}" == "http"* ]]; then
@@ -20,22 +20,22 @@ echo "Post Test starts "
 
 deployOva() {
     if [ -n "${External_vSwitch}" ]; then
-      echo yes | ovftool \
+      execWithTimeout "echo yes | ovftool \
       --overwrite --powerOffTarget --powerOn --skipManifestCheck \
-      --net:"ADMIN=${External_vSwitch}"\
-      --net:"CONTROL=${NODE_NAME}-switch" \
+      --net:'ADMIN=${External_vSwitch}'\
+      --net:'CONTROL=${NODE_NAME}-switch' \
       --datastore=${DATASTORE} \
       --name=${NODE_NAME}-ova-for-post-test \
       ${OVA} \
-      "vi://${ESXI_USER}:${ESXI_PASS}@${ESXI_HOST}"
+      vi://${ESXI_USER}:${ESXI_PASS}@${ESXI_HOST}" 300
     else
-      echo yes | ovftool \
+      execWithTimeout "echo yes | ovftool \
       --overwrite --powerOffTarget --powerOn --skipManifestCheck \
-      --net:"CONTROL=${NODE_NAME}-switch" \
+      --net:'CONTROL=${NODE_NAME}-switch' \
       --datastore=${DATASTORE} \
       --name=${NODE_NAME}-ova-for-post-test \
       ${OVA} \
-      "vi://${ESXI_USER}:${ESXI_PASS}@${ESXI_HOST}"
+      vi://${ESXI_USER}:${ESXI_PASS}@${ESXI_HOST}" 300
     fi
 
     if [ $? = 0 ]; then
