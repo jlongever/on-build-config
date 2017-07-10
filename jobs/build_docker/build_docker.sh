@@ -17,17 +17,31 @@ on_imagebuilder_version=$( ./build-config/build-release-tools/HWIMO-BUILD ./buil
 --repo-dir ./$CLONE_DIR/on-imagebuilder \
 --is-official-release $IS_OFFICIAL_RELEASE )
 
-common_path=/var/renasar/on-http/static/http/common
-pxe_path=/var/renasar/on-tftp/static/tftp
 
 echo $SUDO_PASSWORD |sudo -S rm -rf /etc/apt/sources.list.d/rackhd.source.list
 echo "deb https://dl.bintray.com/$CI_BINTRAY_SUBJECT/debian trusty main" | sudo tee -a /etc/apt/sources.list.d/rackhd.source.list
 echo $SUDO_PASSWORD |sudo -S apt-get update
-echo $SUDO_PASSWORD |sudo -S apt-get --yes --force-yes remove on-imagebuilder
-echo $SUDO_PASSWORD |sudo -S apt-get --yes --force-yes install on-imagebuilder=$on_imagebuilder_version
+
 
 #build static files
 pushd ./$CLONE_DIR/on-imagebuilder
+
+# Download the staging on-imagebuilder.deb
+echo "[Info] Downloading on-imagebuilder deb , version = $on_imagebuilder_version ..."
+apt-get download on-imagebuilder=$on_imagebuilder_version
+
+# Extact the deb content into a folder
+if [ "$(which dpkg-deb)" == "" ]; then
+     echo $SUDO_PASSWORD |sudo -S apt-get install -y dpkg
+fi
+local STAGE_FOLDER=deb_content
+mkdir -p $STAGE_FOLDER
+dpkg-deb -x on-imagebuilder*${on_imagebuilder_version}*.deb  $STAGE_FOLDER
+local common_path=${STAGE_FOLDER}/var/renasar/on-http/static/http/common
+local pxe_path=${STAGE_FOLDER}/var/renasar/on-tftp/static/tftp/
+
+
+
 rm -rf common pxe
 mkdir common
 mkdir pxe
@@ -37,7 +51,6 @@ sudo chown -R $USER:$USER common
 sudo chown -R $USER:$USER pxe
 popd
 
-echo $SUDO_PASSWORD |sudo -S apt-get --yes --force-yes remove on-imagebuilder
 
 #docker images build
 pushd build-config/build-release-tools/
