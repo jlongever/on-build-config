@@ -8,3 +8,4 @@
     - install-vagrant-stack
     - install-packer-build-stack
     - install-ansible
+    - tmp-clean
