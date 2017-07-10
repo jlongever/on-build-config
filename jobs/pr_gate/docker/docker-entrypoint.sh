@@ -15,5 +15,7 @@ mongod &
 sleep 1
 service rabbitmq-server start
 sleep 1
+pm2 status
+pm2 logs > /var/log/rackhd.log &
 pm2 start /rackhd.yml
 dhcpd -f -cf /etc/dhcp/dhcpd.conf -lf /var/lib/dhcp/dhcpd.leases --no-pid
