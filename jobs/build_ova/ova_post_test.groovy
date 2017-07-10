@@ -38,39 +38,48 @@ def generateTestBranches(function_test){
                             {
                                 withCredentials([
                                     usernamePassword(credentialsId: 'OVA_CREDS',
-                                                     passwordVariable: 'OVA_PASSWORD',
-                                                     usernameVariable: 'OVA_USER'),
+                                                    passwordVariable: 'OVA_PASSWORD',
+                                                    usernameVariable: 'OVA_USER'),
                                     usernamePassword(credentialsId: 'ESXI_CREDS',
-                                                     passwordVariable: 'ESXI_PASS',
-                                                     usernameVariable: 'ESXI_USER'),
+                                                    passwordVariable: 'ESXI_PASS',
+                                                    usernameVariable: 'ESXI_USER'),
                                     usernamePassword(credentialsId: 'ff7ab8d2-e678-41ef-a46b-dd0e780030e1',
-                                                     passwordVariable: 'SUDO_PASSWORD',
-                                                     usernameVariable: 'SUDO_USER'),
+                                                    passwordVariable: 'SUDO_PASSWORD',
+                                                    usernameVariable: 'SUDO_USER'),
                                     string(credentialsId: 'vCenter_IP', variable: 'VCENTER_IP'),
                                     string(credentialsId: 'Deployed_OVA_INTERNAL_IP', variable: 'OVA_INTERNAL_IP')
                                 ])
                                 {
-                                    deleteDir()
-                                    dir("build-config"){
-                                        checkout scm
+                                    try{                            
+                                        deleteDir()
+                                        dir("build-config"){
+                                            checkout scm
+                                        }
+                                        env.BUILD_CONFIG_DIR = "build-config"
+                                        echo "Checkout RackHD for un-src test."
+                                        def url = "https://github.com/RackHD/RackHD.git"
+                                        def branch = "master"
+                                        def targetDir = "RackHD"
+                                        env.RackHD_DIR = targetDir
+                                        shareMethod.checkout(url, branch, targetDir)
+                                        if (env.USE_PREBUILT_OVA == "true") {
+                                            env.OVA_PATH = "$env.OVA_FILE"
+                                        } else {
+                                            unstash "$OVA_STASH_NAME"
+                                        }
+                                    
+                                        sh '''#!/bin/bash
+                                        ./build-config/jobs/FunctionTest/prepare_common.sh
+                                        ./build-config/jobs/build_ova/prepare_ova_post_test.sh
+                                        '''
+                                    } catch(error){
+                                        // Clean up test stack
+                                        sh '''#!/bin/bash -x
+                                        ./build-config/jobs/FunctionTest/cleanup.sh
+                                        '''
+                                        echo "Caught: ${error}"
+                                        error("Preparation of ova post test failed.")
                                     }
-                                    env.BUILD_CONFIG_DIR = "build-config"
-                                    echo "Checkout RackHD for un-src test."
-                                    def url = "https://github.com/RackHD/RackHD.git"
-                                    def branch = "master"
-                                    def targetDir = "RackHD"
-                                    env.RackHD_DIR = targetDir
-                                    shareMethod.checkout(url, branch, targetDir)
-                                    if (env.USE_PREBUILT_OVA == "true") {
-                                        env.OVA_PATH = "$env.OVA_FILE"
-                                    } else {
-                                        unstash "$OVA_STASH_NAME"
-                                    }
-                                
-                                    sh '''#!/bin/bash
-                                    ./build-config/jobs/FunctionTest/prepare_common.sh
-                                    ./build-config/jobs/build_ova/prepare_ova_post_test.sh
-                                    '''
                                     function_test.functionTest(test_name,test_group, run_fit_test, run_cit_test, ova_test_stack, extra_hw)
                                 }
                             }
