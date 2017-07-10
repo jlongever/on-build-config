@@ -1,4 +1,43 @@
 #!/bin/bash -e
+
+######################################
+#
+# Download static file from deb
+#
+####################################
+downloadOnImagebuilderFromDeb(){
+    if [ $# -lt 4 ]; then
+        echo "[Error] Wrong usage of $0. Abort "
+        exit -1
+    fi
+    local artifactory_url=${1%/}  #remove the trailing slash
+    local deb_version=$2
+    local stage_repo=$3
+    local local_folder=$4
+
+    # Download the staging on-imagebuilder.deb
+    local remote_deb_file_path=${stage_repo}/pool/o
+    #the remote deb file name
+    local deb_name=on-imagebuilder_${deb_version}_all.deb
+    local local_deb_fname=local-on-imaegbuilder-${deb_version}.deb
+
+    echo "[Info] Downloading on-imagebuilder deb , version = $on_imagebuilder_version ... URL: ${artifactory_url}/${remote_deb_file_path}/${deb_name}"
+
+    #Download the deb package to local folder (the URL is senstive to duplicated splash)
+    wget -c -t 5 -nv ${artifactory_url}/${remote_deb_file_path}/${deb_name} -O ${local_deb_fname}
+
+    # Extact the deb content into a folder
+    if [ "$(which dpkg-deb)" == "" ]; then
+         echo $SUDO_PASSWORD |sudo -S apt-get install -y dpkg
+    fi
+
+    mkdir -p $local_folder
+
+    #using dpkg-deb -x to extract the deb file
+    dpkg-deb -x $local_deb_fname  $local_folder
+}
+
+
 #download manifest
 curl --user $BINTRAY_CREDS -L "$MANIFEST_FILE_URL" -o rackhd-manifest
 echo using artifactory : $ARTIFACTORY_URL
@@ -21,32 +60,13 @@ on_imagebuilder_version=$( ./build-config/build-release-tools/HWIMO-BUILD ./buil
 #build static files
 pushd ./$CLONE_DIR/on-imagebuilder
 
-# Download the staging on-imagebuilder.deb
-echo "[Info] Downloading on-imagebuilder deb , version = $on_imagebuilder_version ..."
-BINTRAY_DL_URL=https://dl.bintray.com/rackhd/debian
-BINTRAY_DEB_LIST_FNAME=debian_list.html
-local_deb_fname=local-on-imaegbuilder-${on_imagebuilder_version}.deb
-rm  $BINTRAY_DEB_LIST_FNAME  -f
-
-#Get all the debian package lis on Bintray
-wget -c -t 5 -nv $BINTRAY_DL_URL  -O $BINTRAY_DEB_LIST_FNAME
-
-# find out the deb package name , it should be on-imagebuilder_$VERSION_all.deb
-deb_name=$(cat $BINTRAY_DEB_LIST_FNAME  |grep -o href=.*\"|sed 's/href=//' | sed 's/"//g'|grep  "on-imagebuilder.*${on_imagebuilder_version}.*.deb$")
-
-#Download the deb package to local folder
-wget -c -t 5 -nv ${BINTRAY_DL_URL}/${deb_name} -O ${local_deb_fname}
-
-# Extact the deb content into a folder
-if [ "$(which dpkg-deb)" == "" ]; then
-     echo $SUDO_PASSWORD |sudo -S apt-get install -y dpkg
- fi
-
 STAGE_FOLDER=deb_content
 mkdir -p $STAGE_FOLDER
 
-#using dpkg-deb -x to extract the deb file
-dpkg-deb -x $local_deb_fname  $STAGE_FOLDER
+#Download deb
+downloadOnImagebuilderFromDeb ${ARTIFACTORY_URL}   ${on_imagebuilder_version}  ${STAGE_REPO_NAME} ${STAGE_FOLDER}
+
+
 common_path=${STAGE_FOLDER}/var/renasar/on-http/static/http/common
 pxe_path=${STAGE_FOLDER}/var/renasar/on-tftp/static/tftp/
 
