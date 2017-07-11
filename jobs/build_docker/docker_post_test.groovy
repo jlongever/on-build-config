@@ -77,7 +77,7 @@ def generateTestBranches(function_test){
                                         env.MANIFEST_FILE="$stash_manifest_path"
 
                                         env.DOCKER_REPO_HASHCODE_FILE = env.RackHD_DIR + "/docker/docker_repo_hashcode.txt"
-                                        sh "/bin/bash ./build-config/jobs/build_docker/get_docker_commit_version.sh"
+                                        sh "/bin/bash ./build-config/jobs/build_docker/get_docker_commit_version.sh ${DOCKER_RECORD_PATH} ${DOCKER_REPO_HASHCODE_FILE}"
                                         sh '''#!/bin/bash
                                         ./build-config/build-release-tools/HWIMO-BUILD ./build-config/build-release-tools/application/docker_version_check.py \
                                         --manifest-file $MANIFEST_FILE \
