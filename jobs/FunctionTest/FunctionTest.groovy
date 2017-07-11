@@ -18,7 +18,7 @@ def getUsedResources(){
     return used_resources
 }
 
-def functionTest(String test_name, String TEST_GROUP, Boolean RUN_FIT_TEST, Boolean RUN_CIT_TEST, String test_stack, String extra_hw){
+def functionTest(String test_name, String test_type, String TEST_GROUP, Boolean RUN_FIT_TEST, Boolean RUN_CIT_TEST, String test_stack, String extra_hw){
     withEnv([
         "API_PACKAGE_LIST=on-http-api2.0 on-http-redfish-1.0",
         "USE_VCOMPUTE=${env.USE_VCOMPUTE}",
@@ -61,6 +61,7 @@ def functionTest(String test_name, String TEST_GROUP, Boolean RUN_FIT_TEST, Bool
                     '''
                 }
             } finally{
+                test_name = "$test_type $test_name"
                 def result = "FAILURE"
                 def artifact_dir = test_name.replaceAll(' ', '-') + "[$NODE_NAME]"
                 try{
@@ -148,7 +149,7 @@ def functionTest(String test_name, String TEST_GROUP, Boolean RUN_FIT_TEST, Bool
     }
 }
 
-def archiveArtifactsToTarget(target, TESTS){
+def archiveArtifactsToTarget(target, TESTS, test_type){
     // The function will archive artifacts to the target
     // 1. Create a directory with name target and go to it
     // 2. Unstash files according to the member variable: TESTS, for example: CIT.FIT
@@ -160,7 +161,7 @@ def archiveArtifactsToTarget(target, TESTS){
             for(int i=0;i<tests.size();i++){
                 try{
                     test = tests[i]
-                    def test_name = "$test"
+                    def test_name = "$test_type $test"
                     unstash "$test_name"
                 } catch(error){
                     echo "[WARNING]Caught error during archive artifact of function test: ${error}"

@@ -1,3 +1,7 @@
+import groovy.transform.Field;
+
+@Field def TEST_TYPE = "docker"
+
 def generateTestBranches(function_test){
     def test_branches = [:]
     node{
@@ -29,7 +33,7 @@ def generateTestBranches(function_test){
                                 "DOCKER_RACKHD_IP=${env.DOCKER_RACKHD_IP}",
                                 "SKIP_PREP_DEP=false",
                                 "USE_VCOMPUTE=${env.USE_VCOMPUTE}",
-                                "TEST_TYPE=docker"])
+                                "TEST_TYPE=${TEST_TYPE}"])
                             {
                                 withCredentials([
                                     usernamePassword(credentialsId: 'ESXI_CREDS',
@@ -77,7 +81,7 @@ def generateTestBranches(function_test){
                                         error("Preparation of docker post test failed.")
                                     }
                                     // Start to run test
-                                    function_test.functionTest(test_name, test_group, run_fit_test, run_cit_test, docker_test_stack, extra_hw)
+                                    function_test.functionTest(test_name, TEST_TYPE, test_group, run_fit_test, run_cit_test, docker_test_stack, extra_hw)
                                 }
                             }
                         }
@@ -104,7 +108,7 @@ def runTests(function_test){
 
 def archiveArtifacts(function_test){
     def DOCKER_TESTS = "${env.DOCKER_POST_TESTS}"
-    function_test.archiveArtifactsToTarget("DOCKER_POST_SMOKE_TEST", DOCKER_TESTS)
+    function_test.archiveArtifactsToTarget("DOCKER_POST_SMOKE_TEST", DOCKER_TESTS, TEST_TYPE)
 }
 
 return this
