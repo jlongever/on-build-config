@@ -177,6 +177,7 @@ runTests() {
 }
 
 waitForAPI() {
+  netstat -ntlp
   timeout=0
   maxto=60
   set +e
@@ -231,6 +232,8 @@ fetchOVALog(){
 }
 
 dockerUp(){
+    ifconfig
+    netstat -ntlp 
     pushd $WORKSPACE
     echo $SUDO_PASSWORD |sudo -S docker load -i rackhd_pipeline_docker.tar
     popd
@@ -298,6 +301,7 @@ fitSmokeTest()
 
 exportLog(){
     set +e
+    mkdir -p ${WORKSPACE}/build-log   
     vnc_record_stop
     generateSolLogStop
     generateRackHDLog
