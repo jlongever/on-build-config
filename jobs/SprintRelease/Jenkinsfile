@@ -16,7 +16,6 @@ node{
             "USE_VCOMPUTE=${env.USE_VCOMPUTE}",
             "OS_VER=${env.OS_VER}",
             "BINTRAY_SUBJECT=${env.BINTRAY_SUBJECT}",
-            "CI_BINTRAY_SUBJECT=${env.CI_BINTRAY_SUBJECT}",
             "BINTRAY_REPO=binary"])
         {
             def message = "Job Name: ${env.JOB_NAME} \n" + "Build Full URL: ${env.BUILD_URL} \n" + "Phase: STARTED \n"

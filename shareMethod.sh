@@ -39,5 +39,26 @@ execWithTimeout() {
     fi
     set -e
 }
+####################################3
+#
+# To Check if a Shell Variable or Env Variable is empty or null (Jenkins Parameter but not set)
+#
+# $1; the variable name
+#
+# return 0: not empty
+# return 1: empty or null
+###################################
+check_empty_variable(){
+    if [ -n "$1" ] ; then
+          # ${!1} will dereference the variable value
+          if [ "${!1}" == "" ] || [ "${!1}" == "null" ]; then
+              echo "[Error] Env Variable $1 is missing "
+              return 1
+          fi
+    else
+          echo "[Warning] Wrong usage of $0"
+    fi
+    return 0
+}
 
 

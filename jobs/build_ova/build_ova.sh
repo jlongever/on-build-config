@@ -13,6 +13,15 @@ vmware -v
 
 echo using artifactory : $ARTIFACTORY_URL
 
+DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+source ${DIR}/../../shareMethod.sh
+# check variable readiness
+if   ! check_empty_variable "STAGE_REPO_NAME" ||  ! check_empty_variable "DEB_DISTRIBUTION"   || ! check_empty_variable "DEB_COMPONENT"  ; then
+    echo "[Error] Parameter Missing , refer error message as above.."
+    exit 2
+fi
+
+
 pushd $WORKSPACE/build/packer/ansible/roles/rackhd-builds/tasks
 sed -i "s#https://dl.bintray.com/rackhd/debian trusty release#${ARTIFACTORY_URL}/${STAGE_REPO_NAME} ${DEB_DISTRIBUTION} ${DEB_COMPONENT}#" main.yml
 sed -i "s#https://dl.bintray.com/rackhd/debian trusty main#${ARTIFACTORY_URL}/${STAGE_REPO_NAME} ${DEB_DISTRIBUTION} ${DEB_COMPONENT}#" main.yml

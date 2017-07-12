@@ -5,6 +5,8 @@ node(build_debian_node){
             "IS_OFFICIAL_RELEASE=${env.IS_OFFICIAL_RELEASE}",
             "ARTIFACTORY_URL=${env.ARTIFACTORY_URL}",
             "STAGE_REPO_NAME=${env.STAGE_REPO_NAME}",
+            "BINTRAY_SUBJECT=${env.BINTRAY_SUBJECT}",
+            "BINTRAY_REPO=debian",
             "DEB_COMPONENT=${env.DEB_COMPONENT}",
             "DEB_DISTRIBUTION=trusty",
             "DEB_ARCHITECTURE=amd64"]) {

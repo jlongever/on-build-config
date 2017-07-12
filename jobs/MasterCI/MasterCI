@@ -12,7 +12,6 @@ node{
             "TESTS=${env.TESTS}",
             "OVA_POST_TESTS=${env.OVA_POST_TESTS}",
             "BINTRAY_SUBJECT=${env.BINTRAY_SUBJECT}",
-            "CI_BINTRAY_SUBJECT=${env.CI_BINTRAY_SUBJECT}",
             "PUBLISH=${env.PUBLISH}",
             "OVA_CACHE_BUILD=true"
         ]){
