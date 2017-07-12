@@ -1,3 +1,7 @@
+import groovy.transform.Field;
+
+@Field def TEST_TYPE = "ova"
+
 def generateTestBranches(function_test){
     def test_branches = [:]
     node{
@@ -34,7 +38,7 @@ def generateTestBranches(function_test){
                                 "SKIP_PREP_DEP=false",
                                 "USE_VCOMPUTE=${env.USE_VCOMPUTE}",
                                 "OVA_NET_INTERFACE=${env.OVA_NET_INTERFACE}",
-                                "TEST_TYPE=ova"])
+                                "TEST_TYPE=${TEST_TYPE}"])
                             {
                                 withCredentials([
                                     usernamePassword(credentialsId: 'OVA_CREDS',
@@ -80,7 +84,7 @@ def generateTestBranches(function_test){
                                         echo "Caught: ${error}"
                                         error("Preparation of ova post test failed.")
                                     }
-                                    function_test.functionTest(test_name,test_group, run_fit_test, run_cit_test, ova_test_stack, extra_hw)
+                                    function_test.functionTest(test_name, TEST_TYPE, test_group, run_fit_test, run_cit_test, ova_test_stack, extra_hw)
                                 }
                             }
                         }
@@ -107,7 +111,7 @@ def runTests(function_test){
 
 def archiveArtifacts(function_test){
     def OVA_TESTS = "${env.OVA_POST_TESTS}"
-    function_test.archiveArtifactsToTarget("OVA_POST_TEST", OVA_TESTS)
+    function_test.archiveArtifactsToTarget("OVA_POST_TEST", OVA_TESTS, TEST_TYPE)
 }
 
 return this
