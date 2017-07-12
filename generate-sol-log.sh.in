@@ -30,7 +30,7 @@ while [ ${timeout} != ${maxto} ]; do
                         cmd='ipmitool -I lanplus -H ${bmc_ip} -U ${bmc_user} -P ${bmc_password} sol activate |
                                     tr 'A-Z' 'a-z' |
                                     while IFS= read -r line; do 
-                                        echo "$(date) $line"; 
+                                        echo "$(date +%FT%H:%M:%SZ) $line"; 
                                     done > ${WORKSPACE}/build-log/${vnode_num}.sol.log.raw'
                         #dump cmd to cmd.sh, replace vars with actual value.
                         echo -e "bmc_ip=$ip\nbmc_user=${bmc%:*}\nbmc_password=${bmc#*:}\nvnode_num=${vnode_num}"|\

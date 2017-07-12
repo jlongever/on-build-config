@@ -79,7 +79,7 @@ configOVA() {
     if [ -z "${External_vSwitch}" ]; then
       ansible-playbook -i hosts main.yml --extra-vars "ova_gateway=$OVA_GATEWAY ova_net_interface=$OVA_NET_INTERFACE" --tags "config-gateway"
     fi
-    ansible-playbook -i hosts main.yml --tags "before-test"
+    ansible-playbook -i hosts main.yml --tags "before-test" --extra-vars "ova_gateway=$OVA_GATEWAY"
   popd
 }
 

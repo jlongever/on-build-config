@@ -17,6 +17,14 @@
         - config-gateway
       when: gateway.rc != 0
 
+    - name: Sync ova time
+      become: yes
+      shell: |
+        timedatectl set-timezone America/New_York
+        ntpdate {{ ova_gateway }}
+      tags:
+        - before-test
+
     - name: Copy rackhd config for test
       become: yes
       copy:
