@@ -4,6 +4,8 @@ import subprocess
 import logging
 from pyjavaproperties import Properties
 import os
+import time
+from functools import wraps
 
 log_file = 'manifest-build-tools.log'
 logging.basicConfig(format='%(asctime)s %(levelname)s %(message)s', datefmt='%m/%d/%Y %I:%M:%S %p', filename=log_file, filemode='w', level=logging.DEBUG)
@@ -126,3 +128,28 @@ def str2bool(string):
     else:
         return False
 
+def retry(ExceptionToCheck, tries=3, delay=5, backoff=2):
+    """
+    Retry calling the decorated function using an exponential backoff.
+    :param ExceptionToCheck: the exception to check. may be a tuple of exceptions to check
+    :param tries: number of times to try (not retry) before giving up
+    :param delay: initial delay between retries in seconds
+    :param backoff: backoff multiplier e.g. value of 2 will double the delay each retry
+    """
+    def deco_retry(f):
+        @wraps(f)
+        def f_retry(*args, **kwargs):
+            mtries, mdelay = tries, delay
+            while mtries > 1:
+                try:
+                    return f(*args, **kwargs)
+                except ExceptionToCheck, e:
+                    print "%s, Retrying in %d seconds..." % (str(e), mdelay)
+                    time.sleep(mdelay)
+                    mtries -= 1
+                    mdelay *= backoff
+            return f(*args, **kwargs)
+
+        return f_retry
+
+    return deco_retry

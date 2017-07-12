@@ -2,6 +2,7 @@
 Module to abstract operations to repository
 """
 import os
+import shutil
 from gitbits import GitBit
 from ParallelTasks import ParallelTasks
 from common import *
@@ -85,6 +86,7 @@ class RepoCloner(ParallelTasks):
                              'return_code': return_code
                             })
 
+    @retry(Exception)
     def do_one_task(self, name, data, results):
         """
         Perform the actual work of checking out a repository.   This portion of the
@@ -151,6 +153,9 @@ class RepoCloner(ParallelTasks):
             destination_directory_name = repo['checked-out-directory-name']
             command.append(destination_directory_name)
 
+        destination_directory = os.path.abspath(data['builddir']) + "/" + destination_directory_name
+        if os.path.isdir(destination_directory):
+            shutil.rmtree(destination_directory)
         self.run_git_command(git,command,data['builddir'],results)
 
         # the clone has been performed -- now check to see if we need to move the HEAD
@@ -168,9 +173,8 @@ class RepoCloner(ParallelTasks):
 
             command = ["reset", "--hard", reset_id]
             self.run_git_command(git,command,working_directory,results)
-   
-        results['status'] = "success"
 
+        results['status'] = "success"
 
 class RepoOperator(object):
 
