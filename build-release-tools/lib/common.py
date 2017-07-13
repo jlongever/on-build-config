@@ -136,20 +136,20 @@ def retry(ExceptionToCheck, tries=3, delay=5, backoff=2):
     :param delay: initial delay between retries in seconds
     :param backoff: backoff multiplier e.g. value of 2 will double the delay each retry
     """
-    def deco_retry(f):
+    def decorated_retry(f):
         @wraps(f)
         def f_retry(*args, **kwargs):
-            mtries, mdelay = tries, delay
-            while mtries > 1:
+            max_tries, max_delay = tries, delay
+            while max_tries > 1:
                 try:
                     return f(*args, **kwargs)
                 except ExceptionToCheck, e:
-                    print "%s, Retrying in %d seconds..." % (str(e), mdelay)
-                    time.sleep(mdelay)
-                    mtries -= 1
-                    mdelay *= backoff
+                    print "%s, Retrying in %d seconds..." % (str(e), max_delay)
+                    time.sleep(max_delay)
+                    max_tries -= 1
+                    max_delay *= backoff
             return f(*args, **kwargs)
 
         return f_retry
 
-    return deco_retry
+    return decorated_retry
