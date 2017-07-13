@@ -7,7 +7,8 @@
 #   2. Gateway, connect to external net through $OVA_NET_INTERFACE(eth1) with $OVA_GATEWAY IP
 
 set -x
-source ${WORKSPACE}/build-config/shareMethod.sh
+DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+source ${DIR}/../../shareMethod.sh
 # If using a passed in ova file from an external http server and bypassing ova build,
 # use the path as is, else get the path via ls
 if [[ "${OVA_PATH}" == "http"* ]]; then

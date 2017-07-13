@@ -1,8 +1,11 @@
 #!/bin/bash -x
 set +e
 ifconfig
-packer -v
+packer -v  # $? of "packer -v" is 1 ...
 vagrant -v
+set -e
+
+echo "Modify rackhd-builds ansible role to redirect to Artifactory: "$ARTIFACTORY_URL
 
 cleanup()
 {
@@ -27,9 +30,21 @@ if [ -d  $WORKSPACE/cache_image/RackHD/packer/ ] ; then
      ls $WORKSPACE/build/packer/*
 fi
 
+
+echo using artifactory : $ARTIFACTORY_URL
+
+DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+source ${DIR}/../../shareMethod.sh
+# check variable readiness
+if   ! check_empty_variable "STAGE_REPO_NAME" ||  ! check_empty_variable "DEB_DISTRIBUTION"   || ! check_empty_variable "DEB_COMPONENT"  ; then
+        echo "[Error] Parameter Missing , refer error message as above.."
+        exit 2
+fi
+
+
 pushd $WORKSPACE/build/packer/ansible/roles/rackhd-builds/tasks
-sed -i "s#https://dl.bintray.com/rackhd/debian trusty release#https://dl.bintray.com/$CI_BINTRAY_SUBJECT/debian trusty main#" main.yml
-sed -i "s#https://dl.bintray.com/rackhd/debian trusty main#https://dl.bintray.com/$CI_BINTRAY_SUBJECT/debian trusty main#" main.yml
+sed -i "s#https://dl.bintray.com/rackhd/debian trusty release#${ARTIFACTORY_URL}/${STAGE_REPO_NAME} ${DEB_DISTRIBUTION} ${DEB_COMPONENT}#" main.yml
+sed -i "s#https://dl.bintray.com/rackhd/debian trusty main#${ARTIFACTORY_URL}/${STAGE_REPO_NAME} ${DEB_DISTRIBUTION} ${DEB_COMPONENT}#" main.yml
 popd
 
 cleanup # clean up previous dirty env
@@ -44,6 +59,8 @@ else
      echo "Build from begining"
      export BUILD_STAGE=BUILD_ALL
 fi
+
+export PACKER_CACHE_DIR=$HOME/.packer_cache
 
 if [ "${IS_OFFICIAL_RELEASE}" == "true" ]; then
     export ANSIBLE_PLAYBOOK=rackhd_release

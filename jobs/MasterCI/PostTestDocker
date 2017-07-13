@@ -18,7 +18,6 @@ node{
         "USE_VCOMPUTE=${env.USE_VCOMPUTE}",
         "TESTS=${env.TESTS}",
         "BINTRAY_SUBJECT=${env.BINTRAY_SUBJECT}",
-        "CI_BINTRAY_SUBJECT=${env.CI_BINTRAY_SUBJECT}",
         "PUBLISH=${env.PUBLISH}"
         ])
     {

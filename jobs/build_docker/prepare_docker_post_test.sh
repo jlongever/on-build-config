@@ -44,7 +44,7 @@ find ./ -type f -exec sed -i -e "s/172.31.128.1/$DOCKER_RACKHD_IP/g" {} \;
 popd
 
 # this step must behind sed replace
-cd $RackHD_DIR/docker
+pushd $RackHD_DIR/docker
 # replace default config json with the one which is for test.
 cp -f ${WORKSPACE}/build-config/vagrant/config/mongo/config.json ./monorail/config.json
 #if clone file name is not repo name, this scirpt should be edited.
@@ -60,4 +60,4 @@ docker pull rabbitmq:management
 set -e
 
 docker-compose -f docker-compose-mini.yml up > $WORKSPACE/build-log/vagrant.log &
-
+popd

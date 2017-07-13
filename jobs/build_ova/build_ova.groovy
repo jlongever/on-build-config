@@ -25,13 +25,10 @@ lock("ova_build"){
                     "OVA_CACHE_BUILD=${env.OVA_CACHE_BUILD}",
                     "OS_VER=${env.OS_VER}",
                     "BUILD_TYPE=vmware", 
-                    "BINTRAY_SUBJECT=${env.BINTRAY_SUBJECT}",
-                    "BINTRAY_REPO=debian",
-                    "CI_BINTRAY_SUBJECT=${env.CI_BINTRAY_SUBJECT}",
-                    "CI_BINTRAY_REPO=debian", 
-                    "BINTRAY_COMPONENT=main", 
-                    "BINTRAY_DISTRIBUTION=trusty", 
-                    "BINTRAY_ARCHITECTURE=amd64"]){
+                    "ARTIFACTORY_URL=${env.ARTIFACTORY_URL}",
+                    "STAGE_REPO_NAME=${env.STAGE_REPO_NAME}",
+                    "DEB_COMPONENT=${env.DEB_COMPONENT}",
+                    "DEB_DISTRIBUTION=trusty"]) {
                     def current_workspace = pwd()
                     deleteDir()
                     dir("on-build-config"){
