@@ -11,6 +11,7 @@ import os
 import subprocess
 import tempfile
 from urlparse import urlparse
+from github import Github
 from common import *
 
 class GitBit(object):
@@ -26,6 +27,16 @@ class GitBit(object):
         (username, password) = credential.split(':', 2)
         return username, password
 
+    @staticmethod
+    def __get_email_of_github(username, password):
+        try:
+            g = Github(username, password)
+            for email in g.get_user().get_emails():
+                email_address = email["email"]
+                return email_address
+            return None
+        except Exception,e:
+            raise ValueError("Username or Password for github is wrong. Failed to get the email")
 
     def __init__(self, verbose=False):
         """
@@ -79,7 +90,8 @@ class GitBit(object):
                                        "password": password,
                                        "url": full_url,
                                       })
-            self.set_identity(username=username)
+            email = self.__get_email_of_github(username,password)
+            self.set_identity(username=username, email=email)
             return True
         else:
             return False
