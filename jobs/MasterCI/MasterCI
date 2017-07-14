@@ -22,8 +22,14 @@ node{
             checkout scm
             def shareMethod = load("jobs/ShareMethod.groovy")
             try{
-                stage("Create Manifest"){
-                    load("jobs/create_manifest/create_manifest.groovy")
+                // If MANIFEST_FILE_URL is not defined, the value of "${env.MANIFEST_FILE_URL}" is "null"
+                // If MANIFEST_FILE_URL is defined but not assigned, the value of "${env.MANIFEST_FILE_URL}" is ""
+                if("${env.MANIFEST_FILE_URL}" == "null" || "${env.MANIFEST_FILE_URL}" == ""){
+                    stage("Create Manifest"){
+                        // The script create_manifest.groovy will upload a manifest file to bintray
+                        // and save the download link in variable : env.MANIFEST_FILE_URL
+                        load("jobs/create_manifest/create_manifest.groovy")
+                    }
                 }
                 def manifest_name=env.MANIFEST_FILE_URL.tokenize('/')[-1];
                 currentBuild.description = "<a href=${env.MANIFEST_FILE_URL}>${manifest_name}</a>";

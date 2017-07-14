@@ -29,8 +29,12 @@ node{
                     load("jobs/SprintRelease/check_jira.groovy")
                 }
 
-                if("${env.MANIFEST_FILE_URL}" == null || "${env.MANIFEST_FILE_URL}" == "null" || "${env.MANIFEST_FILE_URL}" == ""){
+                // If MANIFEST_FILE_URL is not defined, the value of "${env.MANIFEST_FILE_URL}" is "null"
+                // If MANIFEST_FILE_URL is defined but not assigned, the value of "${env.MANIFEST_FILE_URL}" is ""
+                if("${env.MANIFEST_FILE_URL}" == "null" || "${env.MANIFEST_FILE_URL}" == ""){
                     stage("Create Manifest"){
+                        // The script create_manifest.groovy will upload a manifest file to bintray
+                        // and save the download link in variable : env.MANIFEST_FILE_URL
                         load("jobs/create_manifest/create_manifest.groovy")
                     }
                 }
