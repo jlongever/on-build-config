@@ -1,4 +1,5 @@
 - hosts: ova-post-test
+
   tasks:
     - name: Enable external network through gateway
       become: yes
@@ -17,13 +18,22 @@
         - config-gateway
       when: gateway.rc != 0
 
+    - name: Add DNS Server IP if it's specified in Jenkins build param
+      become: yes
+      shell: bash -c " echo \"nameserver {{ dns_server_ip }}\" >> /etc/resolv.conf  "
+      tags:
+        - config-gateway
+      when: dns_server_ip != ""
+
     - name: Sync ova time
       become: yes
       shell: |
-        timedatectl set-timezone America/New_York
-        ntpdate {{ ova_gateway }}
+         timedatectl set-timezone America/New_York
+         ntpdate {{ ova_gateway }}
       tags:
         - before-test
+
+
 
     - name: Copy rackhd config for test
       become: yes
@@ -54,6 +64,106 @@
       tags:
         - before-test
       
+
+    - name: Copy SOL generating script
+      become: yes
+      copy:
+        src: ../../../generate-sol-log.sh
+        dest: /var/log/rackhd/generate-sol-log.sh
+      tags:
+        - before-test
+
+    - name: Copy VNC recording script
+      become: yes
+      copy:
+        src: ../../../vnc_record.sh
+        dest: /var/log/rackhd/vnc_record.sh
+      tags:
+        - before-test
+
+
+    - name: Start SOL Log collecting
+      become: yes
+      shell: |
+        cd /var/log/rackhd
+        nohup bash generate-sol-log.sh /var/log/rackhd  > sol_script.log &
+      tags:
+        - before-test
+
+
+    - name: get BUILD_ID from ENV
+      set_fact: BUILD_ID="{{ lookup('env','BUILD_ID') }}"
+      tags:
+        - before-test
+
+
+    - name: Start VNC Recording
+      become: yes
+      shell: |
+        cd /var/log/rackhd
+        export fname_prefix="vNode"
+        if [ "{{BUILD_ID}}" != "" ]; then
+             export fname_prefix=${fname_prefix}_b{{BUILD_ID}}
+        fi
+        nohup bash vnc_record.sh /var/log/rackhd $fname_prefix > vnc_record.log   &
+      tags:
+        - before-test
+
+
+#######################
+
+
+    - name: Stop VNC Record, sleep 2 sec to ensure FLV finishes the disk I/O before VM destroyed
+      become: yes
+      shell: |
+          kill -TERM $(ps -lef|grep flvrec.py|grep -v grep| awk '{print $4}')
+          sleep 2
+          pkill --full --exact "bash vnc_record.sh /var/log/rackhd vNode"
+      ignore_errors: yes
+      tags:
+        - after-test
+
+    - name: Kill screen which used by SOL collector
+      become: yes
+      shell: |
+          kill -KILL $(ps -lef|grep -i screen |grep -v grep| awk '{print $4}')
+          pkill --full --exact "bash generate-sol-log.sh /var/log/rackhd"
+      ignore_errors: yes
+      tags:
+        - after-test
+
+    - name: List remote sol.log.raw files
+      command: "/bin/sh -c 'ls /var/log/rackhd/*sol.log.raw'"
+      register: sol_logs
+      ignore_errors: yes
+      tags:
+        - after-test
+
+
+    - name: List remote flv files
+      command: "/bin/sh -c 'ls /var/log/rackhd/*.flv'"
+      register: flvfiles
+      ignore_errors: yes
+      tags:
+        - after-test
+
+
+    - name: Gather SOL and VNC log
+      become: yes
+      fetch:
+          src: "{{ item }}"
+          dest: ./
+          flat: yes
+      with_items:
+        - /var/log/rackhd/sol_script.log
+        - /var/log/rackhd/vnc_record.log
+        - "{{ flvfiles.stdout_lines }}"
+        - "{{ sol_logs.stdout_lines }}"
+      ignore_errors: yes
+      tags:
+        - after-test
+
+
     - name: Gather rackhd log
       become: yes
       fetch:

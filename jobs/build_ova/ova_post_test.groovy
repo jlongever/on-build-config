@@ -38,6 +38,8 @@ def generateTestBranches(function_test){
                                 "SKIP_PREP_DEP=false",
                                 "USE_VCOMPUTE=${env.USE_VCOMPUTE}",
                                 "OVA_NET_INTERFACE=${env.OVA_NET_INTERFACE}",
+                                "DNS_SERVER_IP=${env.DNS_SERVER_IP}",
+                                "BUILD_ID=${env.BUILD_ID}", //Jenkins Build-in Env
                                 "TEST_TYPE=${TEST_TYPE}"])
                             {
                                 withCredentials([
@@ -50,6 +52,9 @@ def generateTestBranches(function_test){
                                     usernamePassword(credentialsId: 'ff7ab8d2-e678-41ef-a46b-dd0e780030e1',
                                                     passwordVariable: 'SUDO_PASSWORD',
                                                     usernameVariable: 'SUDO_USER'),
+                                     usernamePassword(credentialsId: 'BMC_VNODE_CREDS',
+                                                    passwordVariable: 'BMC_VNODE_PASSWORD',
+                                                    usernameVariable: 'BMC_VNODE_USER'),
                                     string(credentialsId: 'vCenter_IP', variable: 'VCENTER_IP'),
                                     string(credentialsId: 'Deployed_OVA_INTERNAL_IP', variable: 'OVA_INTERNAL_IP')
                                 ])
