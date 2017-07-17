@@ -61,3 +61,26 @@ set -e
 
 docker-compose -f docker-compose-mini.yml up > $WORKSPACE/build-log/vagrant.log &
 popd
+
+#Folder named "common" is the deepest folder in mount folder which is used to share files on docker
+#Check the "common"folder is used to make sure all folder is created (all mount opreation is done),then change the authority
+#The foler tree is defined in RackHD/docker/docker-compose*.yml , refer to the mount command in this file
+mountpath="$WORKSPACE/RackHD/docker/files/mount/common"
+retrytimes=5
+#Check the folder is exist or not 5 times, if not, break. 
+while [ ! -d "$mountpath" ]
+do
+    echo "mount is not finished"
+    retrytimes=$(($retrytimes-1))
+    echo "retry : $retrytimes times"
+    sleep 10
+    if [ $retrytimes -eq 0 ]; then
+        break
+    fi
+done
+
+if [ -d "$mountpath" ]; then
+#After 5 times check ,if mount is still not finished, it may failed. no need to change the permissions 
+    echo "change the permissions  of RackHD"
+    echo $SUDO_PASSWORD |sudo -S chown -R $USER:$USER $WORKSPACE/RackHD
+fi
