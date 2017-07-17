@@ -7,3 +7,4 @@
     - install-docker
     - install-python-tools
     - tmp-clean
+    - sync-clock

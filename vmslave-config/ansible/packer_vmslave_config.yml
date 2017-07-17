@@ -9,3 +9,4 @@
     - install-packer-build-stack
     - install-ansible
     - tmp-clean
+    - sync-clock
