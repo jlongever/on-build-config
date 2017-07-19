@@ -356,6 +356,7 @@ if [ "$RUN_FIT_TEST" == true ] ; then
     # Prepare RackHD
     # Forward local host port to ova
     portForwarding localhost
+    trap exportLog SIGINT SIGTERM SIGKILL EXIT
 
     # We setup the virtual-environment here, since once we
     # call "nodesOn", it's a race to get to the first test
@@ -366,8 +367,9 @@ if [ "$RUN_FIT_TEST" == true ] ; then
     setupVirtualEnv
     waitForAPI
     nodesOn &
-    # Doesn't support ova smoke test now
-    # generateSolLog
+
+    generateSolLog
+    vnc_record_start
     # Run tests
     runTests
     # exit venv
