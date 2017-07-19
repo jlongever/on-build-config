@@ -19,12 +19,16 @@ node('vmslave-config') {
         "ANSIBLE_HOSTS=${env.ANSIBLE_HOSTS}",
         "RE_CONFIG=${env.RE_CONFIG}",
     ]){
-        deleteDir()
-        checkout(env.GIT_URL, env.GIT_COMMIT, 'rackhd')
-        dir('rackhd'){
-            unstash "hosts"
-            sh 'vmslave-config/pipeline/vmslave_config/vmslave_config.sh'
+        withCredentials([
+            string(credentialsId: 'JENKINS_MASTER_IP', variable: 'MASTER_IP')
+        ]) {
+
+            deleteDir()
+            checkout(env.GIT_URL, env.GIT_COMMIT, 'rackhd')
+            dir('rackhd'){
+                unstash "hosts"
+                sh 'vmslave-config/pipeline/vmslave_config/vmslave_config.sh'
+            }
         }
     }
-
 }

@@ -9,3 +9,4 @@
     - install-python-tools
     - install-ansible
     - tmp-clean
+    - sync-clock

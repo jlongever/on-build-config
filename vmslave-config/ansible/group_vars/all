@@ -10,4 +10,8 @@ slave_ansible_version: 2.3.0.0
 pip_version: 9.0.1
 virtualenv_version: 14.0.0
 docker_version: 17.03.1-ce
+
+#Jenkins Master IP
+master_ip: **.**.**.**
+
 nvm_install_script: https://raw.githubusercontent.com/creationix/nvm/v0.33.2/install.sh
