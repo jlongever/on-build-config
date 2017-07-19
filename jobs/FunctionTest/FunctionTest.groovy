@@ -155,6 +155,10 @@ def archiveArtifactsToTarget(target, TESTS, test_type){
     // 2. Unstash files according to the member variable: TESTS, for example: CIT.FIT
     //    The function functionTest() will stash log files after run test specified in the TESTS
     // 3. Archive the directory target
+     if(TESTS == "null" || TESTS == "" || TESTS == null){
+        print "No function test run, skip archiveArtifacts"
+        return
+    }
     List tests = Arrays.asList(TESTS.split(','))
     if(tests.size() > 0){
         dir("$target"){
