@@ -4,17 +4,18 @@
   with_items:
     - ntp
 
+- name: check if ntp is already configured
+  become: true
+  shell: cat /etc/ntp.conf | grep "{{master_ip}}"
+  register: ntp_configured
+  ignore_errors: true
+
 - name: stop ntp service
   become: true
   service:
     name: ntp
     state: stopped
-
-- name: check if ntp is already configured 
-  become: true
-  shell: cat /etc/ntp.conf | grep "{{master_ip}}"
-  register: ntp_configured
-  ignore_errors: true
+  when: ntp_configured|failed
 
 - name: config ntp service
   become: true
@@ -29,7 +30,8 @@
   shell: |
     timedatectl set-timezone America/New_York
     ntpdate {{ master_ip }}
-
+  when: ntp_configured|failed
+ 
 - name: start ntp service
   become: true
   service:

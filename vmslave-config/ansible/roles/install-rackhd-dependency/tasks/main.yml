@@ -5,10 +5,12 @@
   register: nvm_check
 
 - name: Install nvm if not installed
+  become: yes
   shell: |
-    curl -o- {{ nvm_install_script }} | bash
+    curl -o- "{{ nvm_install_script }}" | bash
     . ~/.nvm/nvm.sh
   when: nvm_check.rc != 0
+
 
 - name: Install node if it's not installed
   become: yes
@@ -29,6 +31,6 @@
   become: true
   apt: name={{item}} state=present
   with_items:
-    - rabbitmq-server="{{rabbitmq_version}}"
-    - mongodb="{{mongodb_version}}"
-    - ipmitool="{{ipmitool_version}}"
+    - rabbitmq-server={{rabbitmq_version}}
+    - mongodb={{mongodb_version}}
+    - ipmitool={{ipmitool_version}}
