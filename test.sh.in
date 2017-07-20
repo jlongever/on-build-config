@@ -122,7 +122,7 @@ vnc_record_stop(){
 
 generateSolLog(){
   pushd ${WORKSPACE}/build-config
-  bash generate-sol-log.sh > ${WORKSPACE}/sol.log &
+  bash generate-sol-log.sh > ${WORKSPACE}/sol_script.log &
 }
 
 generateSolLogStop(){
@@ -225,7 +225,7 @@ fetchOVALog(){
       echo "ova-post-test ansible_host=$OVA_INTERNAL_IP ansible_user=$OVA_USER ansible_ssh_pass=$OVA_PASSWORD ansible_become_pass=$OVA_PASSWORD" > hosts
       ansible-playbook -i hosts main.yml --tags "after-test"
       mkdir -p ${WORKSPACE}/build-log
-      for log in `ls *.log | xargs` ; do
+      for log in `ls *.log *.flv *sol.log.raw | xargs` ; do
         cp $log ${WORKSPACE}/build-log
       done
     popd
@@ -332,16 +332,14 @@ if [ "$RUN_FIT_TEST" == true ] ; then
     setupVirtualEnv
     waitForAPI
     nodesOn &
-    # Doesn't support ova smoke test now
-    # generateSolLog
+
+    # signal handler
+    trap fetchOVALog SIGINT SIGTERM SIGKILL EXIT
+
     # Run tests
     runTests
     # exit venv
     deactivate
-
-    # Remedial work
-    # Specific remedial work
-    fetchOVALog
 
     # Clean Up below
 

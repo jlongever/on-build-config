@@ -13,7 +13,14 @@ bmc_account_list="${BMC_ACCOUNT_LIST}"
 handled_ip_list=""
 vnode_num=0
 timeout=0
-maxto=20
+maxto=40
+
+target_folder=${WORKSPACE}/build-log/
+
+if [ ! -z $1 ]; then
+    target_folder=$1
+fi
+
 while [ ${timeout} != ${maxto} ]; do
     ip_list=`arp | awk '{print $1}' | xargs`
     echo "IP LIST: $ip_list"
@@ -31,9 +38,9 @@ while [ ${timeout} != ${maxto} ]; do
                                     tr 'A-Z' 'a-z' |
                                     while IFS= read -r line; do 
                                         echo "$(date +%FT%H:%M:%SZ) $line"; 
-                                    done > ${WORKSPACE}/build-log/${vnode_num}.sol.log.raw'
+                                    done > ${target_folder}/${vnode_num}.sol.log.raw'
                         #dump cmd to cmd.sh, replace vars with actual value.
-                        echo -e "bmc_ip=$ip\nbmc_user=${bmc%:*}\nbmc_password=${bmc#*:}\nvnode_num=${vnode_num}"|\
+                        echo -e "bmc_ip=$ip\nbmc_user=${bmc%:*}\nbmc_password=${bmc#*:}\nvnode_num=${vnode_num}\ntarget_folder=${target_folder}"|\
                         sed 's/[\%]/\\&/g;s/\([^=]*\)=\(.*\)/s%${\1}%\2%/' > sed.script
                         echo $cmd | sed -f sed.script > cmd.sh
                         chmod oug+x cmd.sh

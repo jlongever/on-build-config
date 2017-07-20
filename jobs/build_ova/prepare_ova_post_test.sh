@@ -73,12 +73,19 @@ waitForAPI() {
 }
 
 configOVA() {
+  # run build-config script, to generate  vnc_record.sh and generate_sol_log.sh
+  # Workaround, it's duplicated with what's run in FunctionTest.functionTest()
+  pushd ${WORKSPACE}/build-config
+  ./build-config
+  popd
+
   # config the OVA for post test
   pushd ${WORKSPACE}/build-config/jobs/build_ova/ansible
     echo "ova-post-test ansible_host=$OVA_INTERNAL_IP ansible_user=$OVA_USER ansible_ssh_pass=$OVA_PASSWORD ansible_become_pass=$OVA_PASSWORD" > hosts
     cp -f ${WORKSPACE}/build-config/vagrant/config/mongo/config.json .
+
     if [ -z "${External_vSwitch}" ]; then
-      ansible-playbook -i hosts main.yml --extra-vars "ova_gateway=$OVA_GATEWAY ova_net_interface=$OVA_NET_INTERFACE" --tags "config-gateway"
+      ansible-playbook -i hosts main.yml --extra-vars "ova_gateway=$OVA_GATEWAY ova_net_interface=$OVA_NET_INTERFACE dns_server_ip=$DNS_SERVER_IP"  --tags "config-gateway"
     fi
     ansible-playbook -i hosts main.yml --tags "before-test" --extra-vars "ova_gateway=$OVA_GATEWAY"
   popd

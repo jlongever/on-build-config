@@ -30,10 +30,16 @@ pip install vnc2flv
 FLVREC=flvrec.py
 
 #Using cutomized flvrec.py, which can do multiple retry when vNode power cycled (adding '-R' option)
+
 pushd $save_path
-wget https://raw.githubusercontent.com/panpan0000/vnc2flv/master/tools/flvrec.py
+echo "Download Customized flvrec.py.. "
+curl --insecure https://raw.githubusercontent.com/panpan0000/vnc2flv/master/tools/flvrec.py > ./flvrec.py
+#wget --no-check-certificate https://raw.githubusercontent.com/panpan0000/vnc2flv/master/tools/flvrec.py # FIXME: the wget always fail without any output when run under ansible for OVA
 chmod +x flvrec.py
 popd
+
+
+
 
 while [ ${timeout} -ne ${maxto} ]; do
     ip_list=`arp | awk '{print $1}' | xargs`
