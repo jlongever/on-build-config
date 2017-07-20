@@ -20,7 +20,10 @@ node{
                 withCredentials([
                     usernamePassword(credentialsId: 'ff7ab8d2-e678-41ef-a46b-dd0e780030e1',
                                      passwordVariable: 'SUDO_PASSWORD',
-                                     usernameVariable: 'SUDO_USER')
+                                     usernameVariable: 'SUDO_USER'),
+                    usernamePassword(credentialsId: 'da1e60c6-f23a-429d-b0f5-19e3b287f5dc',
+                         passwordVariable: 'DOCKERHUB_PASS',
+                         usernameVariable: 'DOCKERHUB_USER')
                 ]){
                     sh './on-build-config/jobs/BuildBaseImage/build_base_image.sh'
                     archiveArtifacts 'rackhd_pipeline_docker.tar'
