@@ -21,7 +21,7 @@ node{
                     usernamePassword(credentialsId: 'ff7ab8d2-e678-41ef-a46b-dd0e780030e1',
                                      passwordVariable: 'SUDO_PASSWORD',
                                      usernameVariable: 'SUDO_USER'),
-                    usernamePassword(credentialsId: 'da1e60c6-f23a-429d-b0f5-19e3b287f5dc',
+                    usernamePassword(credentialsId: 'rackhd-ci-docker-hub',
                          passwordVariable: 'DOCKERHUB_PASS',
                          usernameVariable: 'DOCKERHUB_USER')
                 ]){

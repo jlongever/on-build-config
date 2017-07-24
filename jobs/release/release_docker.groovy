@@ -6,7 +6,7 @@ node(build_docker_node){
         unstash env.DOCKER_STASH_NAME
     }
     withCredentials([
-        usernamePassword(credentialsId: 'da1e60c6-f23a-429d-b0f5-19e3b287f5dc', 
+        usernamePassword(credentialsId: 'rackhd-ci-docker-hub', 
                          passwordVariable: 'DOCKERHUB_PASS', 
                          usernameVariable: 'DOCKERHUB_USER')]) {
         timeout(120){
