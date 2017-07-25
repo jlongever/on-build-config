@@ -2,11 +2,10 @@ import groovy.transform.Field;
 
 // The default test config: ALL_TESTS (a global variable)
 @Field def ALL_TESTS = [:]
-ALL_TESTS["FIT"]=["TEST_GROUP":"-test tests -group smoke","RUN_FIT_TEST":true,"RUN_CIT_TEST":false,"label":"smoke_test", "EXTRA_HW":""]
-ALL_TESTS["CIT"]=["TEST_GROUP":"smoke-tests","RUN_FIT_TEST":false,"RUN_CIT_TEST":true,"label":"smoke_test", "EXTRA_HW":""]
-ALL_TESTS["Install Ubuntu 14.04"]=["TEST_GROUP":"-test tests/bootstrap/test_api20_linux_bootstrap.py -extra install_ubuntu14.04_minimum.json","RUN_FIT_TEST":true,"RUN_CIT_TEST":false,"label":"os_install", "EXTRA_HW":""]
-ALL_TESTS["Install ESXI 6.0"]=["TEST_GROUP":"-test tests/bootstrap/test_api20_esxi_bootstrap.py -extra install_esxi6.0_minimum.json","RUN_FIT_TEST":true,"RUN_CIT_TEST":false,"label":"os_install", "EXTRA_HW":""]
-ALL_TESTS["Install Centos 6.5"]=["TEST_GROUP":"-test tests/bootstrap/test_api20_linux_bootstrap.py -extra install_centos65_minimum.json","RUN_FIT_TEST":true,"RUN_CIT_TEST":false,"label":"os_install", "EXTRA_HW":""]
+ALL_TESTS["FIT"]=["TEST_GROUP":"-test tests -group smoke","label":"smoke_test", "EXTRA_HW":""]
+ALL_TESTS["Install Ubuntu 14.04"]=["TEST_GROUP":"-test tests/bootstrap/test_api20_linux_bootstrap.py -extra install_ubuntu14.04_minimum.json","label":"os_install", "EXTRA_HW":""]
+ALL_TESTS["Install ESXI 6.0"]=["TEST_GROUP":"-test tests/bootstrap/test_api20_esxi_bootstrap.py -extra install_esxi6.0_minimum.json","label":"os_install", "EXTRA_HW":""]
+ALL_TESTS["Install Centos 6.5"]=["TEST_GROUP":"-test tests/bootstrap/test_api20_linux_bootstrap.py -extra install_centos65_minimum.json","label":"os_install", "EXTRA_HW":""]
 
 @Field ArrayList<String> used_resources = []
 
@@ -18,13 +17,11 @@ def getUsedResources(){
     return used_resources
 }
 
-def functionTest(String test_name, String test_type, String TEST_GROUP, Boolean RUN_FIT_TEST, Boolean RUN_CIT_TEST, String test_stack, String extra_hw){
+def functionTest(String test_name, String test_type, String TEST_GROUP, String test_stack, String extra_hw){
     withEnv([
         "API_PACKAGE_LIST=on-http-api2.0 on-http-redfish-1.0",
         "USE_VCOMPUTE=${env.USE_VCOMPUTE}",
         "TEST_GROUP=$TEST_GROUP",
-        "RUN_CIT_TEST=$RUN_CIT_TEST",
-        "RUN_FIT_TEST=$RUN_FIT_TEST",
         "NODE_NAME=${env.NODE_NAME}",
         "TEST_STACK=$test_stack",
         "EXTRA_HW=$extra_hw",
