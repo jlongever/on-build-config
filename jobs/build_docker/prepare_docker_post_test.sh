@@ -50,7 +50,7 @@ cp -f ${WORKSPACE}/build-config/vagrant/config/mongo/config.json ./monorail/conf
 #if clone file name is not repo name, this scirpt should be edited.
 for repo_tag in $image_list; do
     repo=${repo_tag%:*}
-    sed -i "s#${repo}.*#${repo_tag}#g" docker-compose-mini.yml
+    sed -i "s#${repo}.*#${repo_tag}#g" docker-compose.yml
 done
 
 mkdir -p $WORKSPACE/build-log
@@ -59,7 +59,7 @@ docker pull mongo:latest
 docker pull rabbitmq:management
 set -e
 
-docker-compose -f docker-compose-mini.yml up > $WORKSPACE/build-log/vagrant.log &
+docker-compose -f docker-compose.yml up > $WORKSPACE/build-log/vagrant.log &
 popd
 
 #Folder named "common" is the deepest folder in mount folder which is used to share files on docker

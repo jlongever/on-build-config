@@ -383,13 +383,13 @@ post_test_docker() {
     cd $RackHDDir/docker 
     #if clone file name is not repo name, this scirpt should be edited.
     while read -r LINE; do
-        cp docker-compose-mini.yml docker-compose-mini.yml.bak
+        cp docker-compose.yml docker-compose.yml.bak
         for repo_tag in $LINE; do
             repo=${repo_tag%:*}
-            sed -i "s#rackhd/${repo}.*#rackhd/${repo_tag}#g" docker-compose-mini.yml
+            sed -i "s#rackhd/${repo}.*#rackhd/${repo_tag}#g" docker-compose.yml
         done
-        docker-compose -f docker-compose-mini.yml up -d
-        mv docker-compose-mini.yml.bak docker-compose-mini.yml
+        docker-compose -f docker-compose.yml up -d
+        mv docker-compose.yml.bak docker-compose.yml
         waitForAPI
         clean_all_containers
     done < $buildRecord
