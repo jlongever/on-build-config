@@ -5,6 +5,7 @@
     - openjdk-7-jdk
     - maven
     - socat
+    - fuseiso
 
 - name: Check if ovftool is installed
   shell: |
