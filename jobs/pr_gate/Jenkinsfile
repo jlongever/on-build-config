@@ -26,10 +26,16 @@ node{
         } finally{
             unit_test.archiveArtifactsToTarget("UnitTest")
             source_based_test.archiveArtifacts(function_test)
-            stage("Write Back"){
-                load("jobs/write_back_github/write_back_github.groovy")
-            }
             def shareMethod = load("jobs/ShareMethod.groovy")
+            stage("write back"){
+                withEnv([
+                    "stash_manifest_name=${env.stash_manifest_name}",
+                    "stash_manifest_path=${env.stash_manifest_path}"
+                ]){
+                    unstash "${env.stash_manifest_name}"
+                    shareMethod.writeBackToGitHub(repo_dir, env.stash_manifest_path)
+                }
+            }
             shareMethod.sendResult(true,true)
         }
     }
