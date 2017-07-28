@@ -329,12 +329,10 @@ exportLog(){
     nodesOn &
 
     # signal handler
-    trap fetchOVALog SIGINT SIGTERM SIGKILL EXIT
+    trap "deactivate && fetchOVALog" SIGINT SIGTERM SIGKILL EXIT
 
     # Run tests
     runTests
-    # exit venv
-    deactivate
 
     # Clean Up below
 
