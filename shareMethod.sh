@@ -9,9 +9,9 @@ execWithTimeout() {
         echo "execWithTimeout() Command not specified"
         exit 2
     fi
-    local cmd="/bin/sh -c \"$1\""
+    export cmd="/bin/sh -c \"$1\""
     #timeout default to 90 seconds
-    local timeout=90
+    export timeout=90
     local retry=3
     local result=0
     if [ ! -z "${2}" ]; then
@@ -25,7 +25,16 @@ execWithTimeout() {
     i=1
     while [[ $i -le $retry ]]
     do
-        expect -c "set timeout $timeout; spawn -noecho $cmd; expect timeout { exit 1 } eof { exit 0 }"
+        expect << 'EOF'
+            set timeout $env(timeout)
+            eval spawn -noecho $env(cmd)
+            expect {
+                timeout { exit 1 }
+                eof
+            }
+            lassign [wait] pid spawnid os_error_flag value
+            exit $value
+EOF
         result=$?
         echo "execWithTimeout() exit code $result"
         if [ $result = 0 ] ; then
@@ -36,6 +45,9 @@ execWithTimeout() {
     if [ $result = 1 ] ; then
         echo "execWithTimeout() command timed out $retry times after $timeout seconds"
         exit 1
+    elif [ $result != 0 ]; then
+        echo "execWithTimeout() exit final code $result"
+        exit $result
     fi
     set -e
 }
