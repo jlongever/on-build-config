@@ -201,14 +201,16 @@ def downloadManifest(String url, String target){
 }
 
 def generateManifestFromPR(String manifest_path){
+    // Create a manifest file as manifest_path which specifies the info of repo/branch under PR test, 
+    // according to variable ghprbGhRepository and sha1 ( build-in variable defined by Jenkins plugin GHPRB )
     def manifest = new net.sf.json.JSONObject()
     String repository_url = "https://github.com/${ghprbGhRepository}.git"
     manifest.putAll([
         "repositories":[
                 [
                 "branch":"",
-                "commit-id":sha1,
-                "repository":repository_url,
+                "commit-id":sha1,             // such as origin/pr/9/merge
+                "repository":repository_url,  // such as https://github.com/RackHD/image-service.git
                 "under-test": true
                 ]
             ]

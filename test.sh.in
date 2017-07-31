@@ -1,6 +1,5 @@
 #!/bin/bash -ex
 export VCOMPUTE=("${NODE_NAME}-Rinjin1","${NODE_NAME}-Rinjin2","${NODE_NAME}-Quanta")
-RUN_FIT_TEST="${RUN_FIT_TEST}"
 MODIFY_API_PACKAGE="${MODIFY_API_PACKAGE}"
 source ${WORKSPACE}/build-config/shareMethod.sh
 
@@ -170,9 +169,7 @@ runTests() {
   if [ ! -z "$1" ];then
       args+="$1"
   fi
-  if [ "$RUN_FIT_TEST" == true ] ; then
-      fitSmokeTest "${args}"
-  fi
+  fitSmokeTest "${args}"
   set -e
 }
 
@@ -251,15 +248,14 @@ setupTestsConfig(){
       wget --tries=3 $RACKHD_CONFIG_FILE_URL -O ${WORKSPACE}/build-config/jobs/pr_gate/docker/monorail/config.json
     fi
     sed -i "s/172.31.128.1/${RACKHD_DHCP_HOST_IP}/g" ${WORKSPACE}/build-config/jobs/pr_gate/docker/monorail/config.json
-    if [ "$RUN_FIT_TEST" == true ] ; then
-        pushd ${WORKSPACE}/RackHD/test/config
-        sed -i "s/\"username\": \"vagrant\"/\"username\": \"${SUDO_USER}\"/g" credentials_default.json
-        sed -i "s/\"password\": \"vagrant\"/\"password\": \"$SUDO_PASSWORD\"/g" credentials_default.json
-        popd
-        pushd ${WORKSPACE}/RackHD
-        find ./ -type f -exec sed -i -e "s/172.31.128.1/${RACKHD_DHCP_HOST_IP}/g" {} \;
-        popd
-    fi
+
+    pushd ${WORKSPACE}/RackHD/test/config
+    sed -i "s/\"username\": \"vagrant\"/\"username\": \"${SUDO_USER}\"/g" credentials_default.json
+    sed -i "s/\"password\": \"vagrant\"/\"password\": \"$SUDO_PASSWORD\"/g" credentials_default.json
+    popd
+    pushd ${WORKSPACE}/RackHD
+    find ./ -type f -exec sed -i -e "s/172.31.128.1/${RACKHD_DHCP_HOST_IP}/g" {} \;
+    popd
 }
 
 collectTestReport()
@@ -313,7 +309,6 @@ exportLog(){
 #  OVA POST SMOKE TEST RELATED END   #
 ######################################
 
-if [ "$RUN_FIT_TEST" == true ] ; then
   if [ "$TEST_TYPE" == "ova" ]; then
     # based on the assumption that in the same folder, the VMs has been exist normally. so don't destroy VM here.
     
@@ -334,12 +329,10 @@ if [ "$RUN_FIT_TEST" == true ] ; then
     nodesOn &
 
     # signal handler
-    trap fetchOVALog SIGINT SIGTERM SIGKILL EXIT
+    trap "deactivate && fetchOVALog" SIGINT SIGTERM SIGKILL EXIT
 
     # Run tests
     runTests
-    # exit venv
-    deactivate
 
     # Clean Up below
 
@@ -396,4 +389,3 @@ if [ "$RUN_FIT_TEST" == true ] ; then
     runTests " --sm-amqp-use-user guest"
   fi
 
-fi

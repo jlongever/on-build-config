@@ -7,3 +7,14 @@
     - unzip
     - curl
     - jq
+    - ntp
+
+- name: Config Ntp server
+  become: yes
+  shell: |
+    sed -i '1 a server {{ ntp_server }}' /etc/ntp.conf 
+
+- name: Restart Ntp
+  become: yes
+  name: ntp
+  state: restarted

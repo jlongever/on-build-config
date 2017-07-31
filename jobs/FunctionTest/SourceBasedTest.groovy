@@ -23,8 +23,6 @@ def generateTestBranches(function_test){
             def test_name = tests_group[i]
             def label_name=ALL_TESTS[test_name]["label"]
             def test_group = ALL_TESTS[test_name]["TEST_GROUP"]
-            def run_fit_test = ALL_TESTS[test_name]["RUN_FIT_TEST"]
-            def run_cit_test = ALL_TESTS[test_name]["RUN_CIT_TEST"]
             def extra_hw = ALL_TESTS[test_name]["EXTRA_HW"]
             test_branches["manifest $test_name"] = {
                 String node_name = ""
@@ -89,7 +87,7 @@ def generateTestBranches(function_test){
                                 projectName: 'Docker_Image_Build',
                                 target: "$WORKSPACE"]);
     
-                                function_test.functionTest(test_name, TEST_TYPE, test_group, run_fit_test, run_cit_test, test_stack, extra_hw)
+                                function_test.functionTest(test_name, TEST_TYPE, test_group, test_stack, extra_hw)
                                 }
                             }
                         }
