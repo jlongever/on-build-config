@@ -22,24 +22,17 @@ execWithTimeout() {
     fi
     echo "execWithTimeout() retry count is $retry"
     echo "execWithTimeout() timeout is set to $timeout"
+    dir=${WORKSPACE}/build-config/deployment
+    local time_cmd="${dir}/timeout_cmd.exp"
+    if [ ! -x ${time_cmd} ]; then
+        chmod a+x ${time_cmd}
+        echo "chmod +x ${time_cmd}"
+    fi
+
     i=1
     while [[ $i -le $retry ]]
     do
-        cat <<EOF > ./timeout_cmd.exp
-#!/usr/bin/expect
-set timeout $timeout
-spawn -noecho $cmd
-expect { 
-         timeout { exit 1 }
-         eof
-       }
-lassign [wait] pid spawnid os_error_flag value
-exit \$value
-expect eof
-EOF
-
-        chmod a+x ./timeout_cmd.exp
-        ./timeout_cmd.exp
+        ${time_cmd} "${timeout}" "${cmd}"
         result=$?
         echo "execWithTimeout() exit code $result"
         if [ $result = 0 ] ; then
