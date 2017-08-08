@@ -1,0 +1,24 @@
+## Main packages released at final release
+deb http://cnlabfile1.lss.emc.com/mirror/ubuntu/ trusty main restricted
+deb-src http://cnlabfile1.lss.emc.com/mirror/ubuntu/ trusty main restricted
+deb http://cnlabfile1.lss.emc.com/mirror/ubuntu/ trusty universe
+deb-src http://cnlabfile1.lss.emc.com/mirror/ubuntu/ trusty universe
+deb http://cnlabfile1.lss.emc.com/mirror/ubuntu/ trusty multiverse
+deb-src http://cnlabfile1.lss.emc.com/mirror/ubuntu/ trusty multiverse
+
+## Major bug fix updates produced after the final release of the
+## distribution.
+deb http://cnlabfile1.lss.emc.com/mirror/ubuntu/ trusty-updates main restricted
+deb-src http://cnlabfile1.lss.emc.com/mirror/ubuntu/ trusty-updates main restricted
+deb http://cnlabfile1.lss.emc.com/mirror/ubuntu/ trusty-updates universe
+deb-src http://cnlabfile1.lss.emc.com/mirror/ubuntu/ trusty-updates universe
+deb http://cnlabfile1.lss.emc.com/mirror/ubuntu/ trusty-updates multiverse
+deb-src http://cnlabfile1.lss.emc.com/mirror/ubuntu/ trusty-updates multiverse
+
+## Security updates
+deb http://cnlabfile1.lss.emc.com/mirror/ubuntu trusty-security main restricted
+deb-src http://cnlabfile1.lss.emc.com/mirror/ubuntu trusty-security main restricted
+deb http://cnlabfile1.lss.emc.com/mirror/ubuntu trusty-security universe
+deb-src http://cnlabfile1.lss.emc.com/mirror/ubuntu trusty-security universe
+deb http://cnlabfile1.lss.emc.com/mirror/ubuntu trusty-security multiverse
+deb-src http://cnlabfile1.lss.emc.com/mirror/ubuntu trusty-security multiverse

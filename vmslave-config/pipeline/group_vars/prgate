@@ -1,0 +1,17 @@
+# vagrant box packages
+vagrant_deb: "{{ lookup('env','VAGRANT_DEB') }}"
+virtualbox_deb: "{{ lookup('env','VIRTUALBOX_DEB') }}"
+
+# ovftool bundle url
+ovftool_bundle: "{{ lookup('env','OVFTOOL_BUNDLE') }}"
+# vars for mount isofarm
+isofarm_path: "{{ lookup('env','ISOFARM_PATH') }}"
+isofarm_src: "{{ lookup('env','ISOFARM_SRC') }}"
+isofarm_fstype: "{{ lookup('env','ISOFARM_FSTYPE') }}"
+isofarm_mount_opts: "{{ lookup('env','ISOFARM_MOUNT_OPTS') }}"
+
+# docker vmslave user name
+user_name: "{{ lookup('env','USER_NAME') }}"
+
+# docker compose bin file url
+docker_compose_bin: "{{ lookup('env','DOCKER_COMPOSE_BIN') }}"

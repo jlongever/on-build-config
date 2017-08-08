@@ -9,3 +9,13 @@ if [ "${RUN_AUTOTEST}" = "true" ]; then
   done
 fi
 
+#raw sol logs saved in WORKSPACE/build-log
+#this script convert them into html by ansi2html tool
+#and move them to 'build-log' folder for publishing
+cd $WORKSPACE/build-log
+for file in `ls *sol.log.raw`; do
+    iconv -f "windows-1252" -t "UTF-8" $file -o new_$file
+    if [ -f new_$file ];then
+      ansi2html < new_$file > $WORKSPACE/build-log/${file%.*}
+    fi
+done

@@ -1,0 +1,25 @@
+- name: Backup old sources.list
+  become: true
+  shell: |
+    cp /etc/apt/sources.list /etc/apt/sources.list.bak
+
+- name: Replace /etc/apt/sources.list with remote file
+  become: true
+  get_url:
+    url: "{{ sources_list_url | quote }}"
+    dest: /etc/apt/sources.list
+    force: yes
+  register: apt_update
+  when: (sources_list_url is not undefined) and sources_list_url
+
+- name: Replace /etc/apt/sources.list with local file
+  become: true
+  copy:
+    src: sources.list
+    dest: /etc/apt/sources.list
+  register: apt_update
+  when: (sources_list_url is undefined) and not sources_list_url
+
+- name: Apt-get update
+  become: true
+  apt: update_cache=yes

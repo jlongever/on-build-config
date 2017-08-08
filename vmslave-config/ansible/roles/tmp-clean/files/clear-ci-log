@@ -1,0 +1,6 @@
+#!/bin/sh
+year_string=`date +%Y`
+year_log_pattern='d'${year_string}*
+find /tmp -mtime +1 -name ${year_log_pattern}
+find /tmp -mtime +1 -name npm* -execdir rm -rf "{}" \;
+find /tmp -atime +1 -name vagrant* -exec rm -rf "{}" \;

@@ -1,0 +1,8 @@
+
+# Ignore these generated files so they dont get checked in again
+config.ini
+generate-sol-log.sh
+post-deploy.sh
+test.sh
+pre-deploy.sh
+vnc_record.sh

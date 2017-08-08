@@ -1,0 +1,90 @@
+---
+- name: Use INTIF as gateway to enable external network for internal VMs
+  become: yes
+  shell: |
+    echo -e "\n\nSETTING UP IPTABLES PROXY..."
+    
+    # net interface connected to internal net
+    INTIF={{ INTIF }}
+    # net interface connected to external net
+    EXTIF={{ EXTIF }}
+    EXTIP=$( ifconfig {{ INTIF }} | grep 'inet addr:' | cut -d: -f2 | awk '{ print $1}' )
+
+    echo "Loading required stateful/NAT kernel modules..."
+
+    /sbin/depmod -a
+    /sbin/modprobe ip_tables
+    /sbin/modprobe ip_conntrack
+    /sbin/modprobe ip_conntrack_ftp
+    /sbin/modprobe ip_conntrack_irc
+    /sbin/modprobe iptable_nat
+    /sbin/modprobe ip_nat_ftp
+    /sbin/modprobe ip_nat_irc
+    
+    echo "    Enabling IP forwarding..."
+    echo "1" > /proc/sys/net/ipv4/ip_forward
+    echo "1" > /proc/sys/net/ipv4/ip_dynaddr
+    
+    echo "    External interface: $EXTIF"
+    echo "       External interface IP address is: $EXTIP"
+    
+    echo "    Loading proxy server rules..."
+    
+    # Clearing any existing rules and setting default policy
+    iptables -P INPUT ACCEPT
+    iptables -F INPUT
+    iptables -P OUTPUT ACCEPT
+    iptables -F OUTPUT
+    iptables -P FORWARD DROP
+    iptables -F FORWARD
+    iptables -t nat -F
+    
+    # FWD: Allow all connections OUT and only existing and related ones IN
+    iptables -A FORWARD -i $EXTIF -o $INTIF -m state --state ESTABLISHED,RELATED -j ACCEPT
+    iptables -A FORWARD -i $INTIF -o $EXTIF -j ACCEPT
+    
+    # Enabling SNAT (MASQUERADE) functionality on $EXTIF
+    iptables -t nat -A POSTROUTING -o $EXTIF -j MASQUERADE
+    # --------  No more variable setting beyond this point  --------
+    
+    
+    echo "Loading required stateful/NAT kernel modules..."
+    
+    /sbin/depmod -a
+    /sbin/modprobe ip_tables
+    /sbin/modprobe ip_conntrack
+    /sbin/modprobe ip_conntrack_ftp
+    /sbin/modprobe ip_conntrack_irc
+    /sbin/modprobe iptable_nat
+    /sbin/modprobe ip_nat_ftp
+    /sbin/modprobe ip_nat_irc
+    
+    echo "    Enabling IP forwarding..."
+    echo "1" > /proc/sys/net/ipv4/ip_forward
+    echo "1" > /proc/sys/net/ipv4/ip_dynaddr
+    
+    echo "    External interface: $EXTIF"
+    echo "       External interface IP address is: $EXTIP"
+    
+    echo "    Loading proxy server rules..."
+    
+    # Clearing any existing rules and setting default policy
+    iptables -P INPUT ACCEPT
+    iptables -F INPUT
+    iptables -P OUTPUT ACCEPT
+    iptables -F OUTPUT
+    iptables -P FORWARD DROP
+    iptables -F FORWARD
+    iptables -t nat -F
+    
+    # FWD: Allow all connections OUT and only existing and related ones IN
+    iptables -A FORWARD -i $EXTIF -o $INTIF -m state --state ESTABLISHED,RELATED -j ACCEPT
+    iptables -A FORWARD -i $INTIF -o $EXTIF -j ACCEPT
+    
+    # Enabling SNAT (MASQUERADE) functionality on $EXTIF
+    iptables -t nat -A POSTROUTING -o $EXTIF -j MASQUERADE
+    
+    echo -e "       Proxy server rule loading complete\n\n"
+  args:
+    executable: /bin/sh
+

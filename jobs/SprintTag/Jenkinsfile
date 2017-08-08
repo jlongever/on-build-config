@@ -1,0 +1,56 @@
+node{
+    deleteDir()
+    checkout scm
+    def shareMethod = load("jobs/ShareMethod.groovy")
+    if(TAG == "true"){
+        stage("Create Tag"){
+            load("jobs/SprintTag/create_tag.groovy")
+        }
+    }
+    def manifest_name=env.MANIFEST_FILE_URL.tokenize('/')[-1];
+    currentBuild.description = "<a href=${env.MANIFEST_FILE_URL}>${manifest_name}</a>";
+
+    shareMethod.downloadManifest(env.MANIFEST_FILE_URL, manifest_name)
+    stash name: "sprint_tag_manifest", includes: "${manifest_name}"
+    env.stash_manifest_name = "sprint_tag_manifest"
+    env.stash_manifest_path = "${manifest_name}"
+    
+    def repo_dir = pwd()
+    def TESTS = "${env.TESTS}"
+    // Create an instance of UnitTest/UnitTest.groovy
+    def unit_test = load("jobs/UnitTest/UnitTest.groovy")
+    // Create an instance of FunctionTest/FunctionTest.groovy
+    def function_test = load("jobs/FunctionTest/FunctionTest.groovy")
+    def source_based_test = load("build-config/jobs/FunctionTest/SourceBasedTest.groovy")
+
+    def test_type = "manifest"
+    def retry_times = Integer.valueOf(env.Test_Time);
+    int failed_times = 0
+    for (int i=0; i < retry_times; i++) {
+        try{
+            stage("Unit Test${i}"){
+                // Call the function runTest to run unit test               
+                unit_test.runTest(env.stash_manifest_name, env.stash_manifest_path, repo_dir)
+            }
+            stage("Function Test${i}"){
+                source_based_test.runTests(function_test)
+            }
+        } catch(error){
+            echo "Caught: ${error}"
+            failed_times += 1
+        } finally{
+            unit_test.archiveArtifactsToTarget("UnitTest${i}")
+            function_test.archiveArtifactsToTarget("FunctionTest${i}", TESTS)
+        }
+    }
+
+    if(failed_times > 0){
+        currentBuild.result = "FAILURE"
+        if(failed_times == retry_times){
+            error("All Tests failed")
+        }
+    }
+    Boolean create_tag = false
+    Boolean publish = true
+    shareMethod.buildAndPublish(publish, create_tag, repo_dir)
+}

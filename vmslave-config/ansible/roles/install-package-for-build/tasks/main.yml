@@ -1,0 +1,15 @@
+- name: add dh-virtualenv repository
+  become: true
+  apt_repository:
+    repo: 'ppa:dh-virtualenv/stable'
+
+- name: Install packages for build deb
+  become: true
+  apt: name={{item}} state=present update_cache=yes
+  with_items:
+    - devscripts 
+    - build-essential 
+    - debhelper
+    - dh-virtualenv
+
+

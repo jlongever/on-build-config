@@ -1,0 +1,58 @@
+- name: Install test deps
+  become: true
+  apt: name={{item}} state=present
+  with_items:
+    - openjdk-7-jdk
+    - maven
+    - socat
+    - fuseiso
+
+- name: Check if ovftool is installed
+  shell: |
+    ovftool --version
+  ignore_errors: yes
+  register: ovftool_check
+
+- name: Download ovftool
+  get_url:
+    url: "{{ ovftool_bundle }}"
+    dest: /tmp/ovftool.bundle
+    force: yes
+  when: ovftool_check.rc !=0
+
+- name: Install ovftool
+  become: true
+  shell: |
+    set timeout -1
+    spawn bash /tmp/ovftool.bundle
+    match_max 100000
+    expect "*Press Enter to proceed."
+    send -- "\r"
+    expect "*--More--*"
+    send -- "q"
+    expect "*Do you agree?*"
+    send -- "yes\r"
+    expect "* Press Enter to begin\r
+    installation or Ctrl-C to cancel."
+    send -- "\r"
+    expect eof
+    catch wait result
+    exit [lindex $result 3]
+  args:
+    executable: /usr/bin/expect
+  when: ovftool_check.rc !=0
+
+- name: Check if apache2 is installed
+  shell: |
+    apachectl -V
+  ignore_errors: yes
+  register: apache2_check
+
+- name: Install apache2
+  become: true
+  apt: name={{item}} state=present
+  with_items:
+    - apache2
+    - apache2-doc
+    - apache2-utils
+  when: apache2_check.rc !=0

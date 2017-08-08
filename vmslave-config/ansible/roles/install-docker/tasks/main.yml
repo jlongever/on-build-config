@@ -1,0 +1,85 @@
+- name: Check if docker is installed
+  shell: |
+    docker --version
+  ignore_errors: yes
+  register: docker_check
+
+- name: Get ubuntu kernel version
+  shell: |
+    uname -r
+  register: uname_r
+  when: docker_check.rc != 0
+
+- name: Get ubuntu distribution
+  shell: |
+    lsb_release -cs
+  register: lsb_release
+  when: docker_check.rc != 0
+
+- name: Install the linux-image-extra-* packages
+  become: yes
+  apt: name={{item}} state=present
+  with_items:
+    - linux-image-extra-{{ uname_r.stdout }}
+    - linux-image-extra-virtual
+  when: docker_check.rc != 0
+
+- name: Install packages to allow apt to use a repository over HTTPS
+  become: yes
+  apt: name={{item}} state=present
+  with_items:
+    - apt-transport-https
+    - ca-certificates
+    - curl
+    - software-properties-common
+  when: docker_check.rc != 0
+
+- name: Add Docker’s official GPG key
+  become: yes
+  shell: |
+    curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
+  when: docker_check.rc != 0
+
+- name: Set up the stable docker repository
+  become: yes
+  apt_repository:
+    repo: deb [arch=amd64] https://download.docker.com/linux/ubuntu {{ lsb_release.stdout }} stable
+    state: present
+    update_cache: yes
+  when: docker_check.rc != 0
+
+- name: Install Docker CE
+  become: yes
+  apt: name={{item}} state=present
+  when: docker_check.rc != 0
+  with_items:
+    - docker-ce={{docker_version}}
+
+- name: Docker with no sudo, create docker group
+  become: yes
+  group:
+    name: docker
+    state: present
+  when: docker_check.rc != 0
+
+- name: Docker with no sudo, add user to docker group
+  become: yes
+  user:
+    name: "{{ user_name }}"
+    group: docker
+  notify: restart docker
+  when: docker_check.rc != 0
+
+- name: Check if docker compose is installed
+  shell: |
+    docker-compose --version
+  ignore_errors: yes
+  register: docker_compose_check
+
+- name: Install docker-compose
+  become: yes
+  get_url:
+    url: "{{ docker_compose_bin }}"
+    dest: /usr/local/bin/docker-compose
+    mode: 0755
+  when: docker_compose_check.rc != 0

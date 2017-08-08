@@ -1,0 +1,36 @@
+- name: Check if nvm is installed
+  shell: |
+    . ~/.nvm/nvm.sh && nvm --version
+  ignore_errors: yes
+  register: nvm_check
+
+- name: Install nvm if not installed
+  become: yes
+  shell: |
+    curl -o- "{{ nvm_install_script }}" | bash
+    . ~/.nvm/nvm.sh
+  when: nvm_check.rc != 0
+
+
+- name: Install node if it's not installed
+  become: yes
+  shell: |
+    . ~/.nvm/nvm.sh && nvm install v"{{ node_version }}"
+
+- name: Install ucs-service deps
+  become: true
+  apt: name={{item}} state=present
+  with_items:
+    - libssl-dev
+    - libkrb5-dev
+    - libffi-dev
+    - python-dev
+    - python-pip
+
+- name: Install external dependent packages
+  become: true
+  apt: name={{item}} state=present
+  with_items:
+    - rabbitmq-server={{rabbitmq_version}}
+    - mongodb={{mongodb_version}}
+    - ipmitool={{ipmitool_version}}

@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/sh -x
 Usage()
 {
     echo "this script is used to operate VM, including power_on, power_off and delete"
@@ -33,7 +33,7 @@ vm_getname() #get the name of VM via ID, return ID if fails
     return 0
 }
 
-power_action() #id_string action(on/off)
+power_action() #id_string action(on/off/reset)
 {
     action=$1
     duration=$2
@@ -42,6 +42,10 @@ power_action() #id_string action(on/off)
     do
         state=`vim-cmd vmsvc/power.getstate $id | grep "^Powered" | awk '{print $2}'`
         vm_name=`vm_getname $id`
+        if [ $action = "reset" -a $state = "off" ];then
+            echo "$vm_name current state is off, changing action to power_on instead of reset"
+            action="on"
+        fi 
         if [ $state = $action ];then
             echo "$vm_name current state has been $state, no need to do power_$action"
             continue
@@ -54,10 +58,62 @@ power_action() #id_string action(on/off)
             continue
         fi
         state=`vim-cmd vmsvc/power.getstate $id | grep "^Powered" | awk '{print $2}'`
-        if [ $state != $action ];then
+        if [ $action != reset -a $state != $action ];then
             echo "ERROR: $vm_name power_$action fails"
         else
             echo "$vm_name power_$action successfully"
+        fi
+        sleep $duration
+    done
+}
+
+snapshot_action()
+{
+    action=$1
+    duration=$2
+    shift 2
+    for id in $@
+    do
+        snapshot_count=`vim-cmd vmsvc/snapshot.get $id | grep "Snapshot Id"| wc -l`
+        vm_name=`vm_getname $id`
+
+        if [ $snapshot_count -gt 1 ]; then
+            echo "Snapshots of $vm_name is in bad status, please contact administrator."
+            exit 1
+        fi
+
+        if [ "$action" = "create" ]; then
+            if [ $snapshot_count = 1 ]; then
+                echo "Snapshot creation failed, snapshot of this vm: $vm_name already exists."
+                echo "If this is not expected, please contact administrator."
+                exit 1
+            fi
+            echo "Creating snapshot for $vm_name".
+            vim-cmd vmsvc/snapshot.create $id singleton_snapshot 2>&1 > /dev/null
+            if [ $? -ne 0 ];then
+                echo "ERROR: snapshot_create VM $vm_name fails"
+                continue
+            fi
+        fi
+
+        snapshot_id=`vim-cmd vmsvc/snapshot.get $id | grep "Snapshot Id" | awk '{print $4}'`
+        if [ "$action" = "revert" ]; then
+            if [ $snapshot_count = 0 ]; then
+                echo "Revert snapshot failed, there's no snapshot of this vm: $vm_name."
+                echo "If this is not expected, please contact administrator."
+                exit 1
+            fi
+            vim-cmd vmsvc/snapshot.revert $id $snapshot_id false
+            if [ $? -ne 0 ];then
+                echo "ERROR: snapshot_revert VM $vm_name fails"
+                continue
+            fi
+            vim-cmd vmsvc/power.on $id 2>&1 > /dev/null
+            vim-cmd vmsvc/snapshot.remove $id $snapshot_id
+            if [ $? -ne 0 ];then
+                echo "ERROR: snapshot_remove VM $vm_name fails"
+                continue
+            fi
         fi
         sleep $duration
     done
@@ -124,6 +180,9 @@ do
     case $vm_action in
         "power_on") power_action "on" $duration $vm_ids;;
         "power_off") power_action "off" $duration $vm_ids;;
+        "reset") power_action "reset" $duration $vm_ids;;
         "delete") delete_action $duration $vm_ids;;
+        "snapshot_create") snapshot_action "create" $duration $vm_ids;;
+        "snapshot_revert") snapshot_action "revert" $duration $vm_ids;;
     esac
 done

@@ -1,0 +1,4 @@
+# docker vmslave user name
+user_name: "{{ lookup('env','USER_NAME') }}"
+# docker compose bin file url
+docker_compose_bin: "{{ lookup('env','DOCKER_COMPOSE_BIN') }}"

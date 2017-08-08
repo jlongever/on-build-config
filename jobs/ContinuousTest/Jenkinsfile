@@ -1,0 +1,74 @@
+node{
+    timestamps{
+        def message = "Job Name: ${env.JOB_NAME} \n" + "Build Full URL: ${env.BUILD_URL} \n" + "Phase: STARTED \n"
+        echo "$message"
+        slackSend "$message"
+        deleteDir()
+        dir("build-config"){
+            checkout scm
+        }
+        try{
+            stage("Generate Manifest"){
+                // Generate a manifest file according to the branch, date and timezone parameters if manifest file url is null
+                if("${MANIFEST_FILE_URL}" == null || "${MANIFEST_FILE_URL}" == "null" || "${MANIFEST_FILE_URL}" == ""){
+                    withEnv([
+                        "branch=${env.branch}",
+                        "date=current",
+                        "timezone=-0500"
+                    ]){
+                        sh '''#!/bin/bash -ex
+                        pushd $WORKSPACE
+                        ./build-config/build-release-tools/HWIMO-BUILD build-config/build-release-tools/application/generate_manifest.py \
+                        --branch "$branch" \
+                        --date "$date" \
+                        --timezone "$timezone" \
+                        --builddir b \
+                        --force \
+                        --jobs 8
+
+                        arrBranch=($(echo $branch | tr "/" "\n"))
+                        slicedBranch=${arrBranch[-1]}
+                        manifest_file=$(find -maxdepth 1 -name "$slicedBranch-[0-9]*" -printf "%f\n")
+                        mv $manifest_file manifest
+                        '''
+                    }
+                }
+                else{
+                    sh 'curl -L $MANIFEST_FILE_URL -o manifest'
+                }
+
+                // Name the manifest file with build number and the md5sum of the manifest file
+                // That helps to tell uses whether there is different with tested code between builds
+                sh '''#!/bin/bash -ex
+                file_hash=$( md5sum manifest | awk '{print $1}' )
+                number="$BUILD_NUMBER"
+                new_manifest="manifest_${number}_${file_hash}"
+                mv manifest $new_manifest
+                echo "manifest_name=$new_manifest" > downstream_file
+                '''
+                def props = readProperties file: 'downstream_file'
+                archiveArtifacts "${props.manifest_name}"
+                stash name: 'manifest', includes: "${props.manifest_name}"
+                env.stash_manifest_name = 'manifest'
+                env.stash_manifest_path = "${props.manifest_name}"
+            }
+            stage("Test"){
+                // Start to run test
+                def test_type = "manifest"
+                def TESTS = "${env.TESTS}"
+                def repo_dir = pwd() + "/build-config"
+                def function_test = load("build-config/jobs/FunctionTest/FunctionTest.groovy")
+                def source_based_test = load("build-config/jobs/FunctionTest/SourceBasedTest.groovy")
+                try{
+                    source_based_test.runTests(function_test)
+                } finally{
+                    source_based_test.archiveArtifacts(function_test)
+                }
+            }
+            currentBuild.result="SUCCESS"
+        } finally{
+            def shareMethod = load("build-config/jobs/ShareMethod.groovy")
+            shareMethod.sendResult(true,true)
+        }
+    }
+}

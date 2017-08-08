@@ -1,0 +1,18 @@
+# vagrant box packages
+vagrant_deb: https://releases.hashicorp.com/vagrant/1.9.1/vagrant_1.9.1_x86_64.deb
+virtualbox_deb: http://download.virtualbox.org/virtualbox/4.3.36/virtualbox-4.3_4.3.36-105129~Ubuntu~raring_amd64.deb
+
+# ovftool bundle url
+ovftool_bundle: http://ftp.tucha13.net/pub/software/VMware-ovftool-4.1.0/VMware-ovftool-4.1.0-2459827-lin.x86_64.bundle
+
+# vars for mount isofarm
+isofarm_path: /home/jenkins/isofarm
+isofarm_src: //**.**.**.**/isofarm
+isofarm_fstype: cifs
+isofarm_mount_opts: ro,username=***,password=***
+
+# docker vmslave user name
+user_name: jenkins
+
+# docker compose bin file url
+docker_compose_bin: https://github.com/docker/compose/releases/download/1.11.2/docker-compose-Linux-x86_64

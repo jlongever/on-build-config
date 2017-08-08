@@ -1,0 +1,35 @@
+- name: Check if ansible is installed
+  shell: |
+    ansible --version
+  ignore_errors: yes
+  register: ansible_check
+
+- name: Install ansible latest
+  become: yes
+  pip: 
+    name: ansible
+    state: latest
+  when: ansible_check.rc != 0 and ((slave_ansible_version is undefined) or (not slave_ansible_version))
+
+- name: Install ansible specifc version
+  become: yes
+  pip:
+    name: ansible
+    version: "{{ slave_ansible_version }}"
+  when: ansible_check.rc != 0 and ((slave_ansible_version is not undefined) and slave_ansible_version)
+
+- name: Install sshpass
+  become: yes
+  apt: name={{item}} state=present
+  with_items:
+    - sshpass
+
+- name: Ensure /etc/ansible dir exists
+  become: yes
+  file: path=/etc/ansible state=directory
+
+- name: Copy ansible.cfg with host_key_check=false
+  become: yes
+  copy:
+    src: ansible.cfg
+    dest: /etc/ansible/ansible.cfg

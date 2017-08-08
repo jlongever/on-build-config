@@ -1,0 +1,40 @@
+- name: Install ntp service
+  become: true
+  apt: name={{item}} state=present
+  with_items:
+    - ntp
+
+- name: check if ntp is already configured
+  become: true
+  shell: cat /etc/ntp.conf | grep "{{master_ip}}"
+  register: ntp_configured
+  ignore_errors: true
+
+- name: stop ntp service
+  become: true
+  service:
+    name: ntp
+    state: stopped
+  when: ntp_configured|failed
+
+- name: config ntp service
+  become: true
+  shell: |
+    cp /etc/ntp.conf /tmp/ntp.conf
+    sed -i "s/^server /#server/g" /tmp/ntp.conf
+    awk 'FNR==NR{ if (/#server/) p=NR; next} 1; FNR==p{ print "server {{master_ip}}\nserver 127.127.1.0\nfudge 127.127.1.0 startum 10" }' /tmp/ntp.conf /tmp/ntp.conf> /etc/ntp.conf
+  when: ntp_configured|failed
+
+- name: sync date time
+  become: true
+  shell: |
+    timedatectl set-timezone America/New_York
+    ntpdate {{ master_ip }}
+  when: ntp_configured|failed
+ 
+- name: start ntp service
+  become: true
+  service:
+    name: ntp
+    state: started
+    enabled: yes

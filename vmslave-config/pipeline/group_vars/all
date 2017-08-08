@@ -1,0 +1,18 @@
+# If not set, default: use roles/replace-apt-source/files/sources.list
+sources_list_url: "{{ lookup('env','SOURCES_LIST_URL') }}"
+
+#Versions
+node_version: "{{ lookup('env','SLAVE_NODE_VERSION') | default('4.7.3') }}"
+rabbitmq_version: "{{ lookup('env','SLAVE_RABBITMQ_VERSION') | default('3.2.4-1') }}"
+mongodb_version: "{{ lookup('env','SLAVE_MONGODB_VERSION') | default('1:2.4.9-1ubuntu2') }}"
+nvm_install_script: "{{ lookup('env', 'NVM_INSTALL_SCRIPT') | default('https://raw.githubusercontent.com/creationix/nvm/v0.33.2/install.sh') }}"
+ipmitool_version: "{{ lookup('env','SLAVE_IPMITOOL_VERSION') | default('1.8.13-1ubuntu0.6') }}"
+slave_ansible_version: "{{ lookup('env','SLAVE_ANSIBLE_VERSION') | default('2.3.0.0') }}"
+pip_version: "{{ lookup('env','SLAVE_PIP_VERSION') | default(9.0.1) }}"
+virtualenv_version: "{{ lookup('env','SLAVE_VIRTUALENV_VERSION') | default('14.0.0') }}"
+docker_version: "{{ lookup('env','SLAVE_DOCKER_VERSION') | default('17.03.1-ce') }}"
+ntp_server: "{{ lookup('env','NTP_SERVER') | default('ntp.ubuntu.com') }}"
+
+#Jenkins Master IP
+master_ip: "{{ lookup('env','MASTER_IP') }}"
+

@@ -1,0 +1,34 @@
+- name: Check if vagrant is installed
+  shell: |
+    vagrant --version
+  ignore_errors: yes
+  register: vagrant_check
+
+- name: Install vagrant
+  become: true
+  apt: 
+    deb: "{{ vagrant_deb }}"
+  when: vagrant_check.rc != 0
+
+- name: Check if virtualbox is installed
+  shell: |
+    vboxmanage --version
+  ignore_errors: yes
+  register: virtualbox_check
+
+- name: Install virtualbox
+  become: true
+  apt: 
+    deb: "{{ virtualbox_deb }}"
+  when: virtualbox_check.rc != 0
+  
+- name: Check if vagrant plugin vguest is installed
+  shell: |
+    vagrant plugin list | grep vagrant-vbguest
+  ignore_errors: yes
+  register: vagrant_plugin_check
+
+- name: Install vagrant-vguest
+  shell: |
+    vagrant plugin install vagrant-vbguest
+  when: vagrant_plugin_check.rc != 0

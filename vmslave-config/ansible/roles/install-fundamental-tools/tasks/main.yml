@@ -1,0 +1,20 @@
+- name: Install fundamental tools
+  become: true
+  apt: name={{item}} state=present
+  with_items:
+    - git
+    - expect
+    - unzip
+    - curl
+    - jq
+    - ntp
+
+- name: Config Ntp server
+  become: yes
+  shell: |
+    sed -i '1 a server {{ ntp_server }}' /etc/ntp.conf 
+
+- name: Restart Ntp
+  become: yes
+  name: ntp
+  state: restarted
